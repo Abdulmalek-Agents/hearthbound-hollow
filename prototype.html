@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Hearthbound Hollow — Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{
+    --parchment:#f4ead0;
+    --parchment2:#ead8a8;
+    --wood:#7a4a2d;
+    --wood-dark:#4d2c19;
+    --wood-light:#a9744a;
+    --rust:#c9603a;
+    --green:#6c8453;
+    --ink:#3a2615;
+    --gold:#c9893d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:#2a1c10;color:var(--ink);font-family:Georgia,'Times New Roman',serif;overflow:hidden;user-select:none}
+  #wrap{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+  canvas{display:block;background:var(--parchment);box-shadow:0 0 60px rgba(0,0,0,.7);cursor:default}
+  .hud{position:absolute;pointer-events:none;color:var(--ink);font-family:Georgia,serif}
+  #topbar{top:18px;left:18px;display:flex;gap:30px;align-items:center;font-size:13px}
+  #topbar .pill{background:rgba(255,255,255,.55);border:1px solid rgba(74,46,25,.4);padding:6px 14px;border-radius:20px;letter-spacing:1px}
+  #topbar .pill b{color:var(--rust)}
+  #title-card{position:absolute;inset:0;background:linear-gradient(180deg,#3b2515 0%,#5a3a22 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;cursor:pointer}
+  #title-card h1{font-size:54px;color:var(--parchment);margin:0;letter-spacing:6px;text-shadow:0 4px 0 #2a1607}
+  #title-card .sub{color:var(--gold);font-style:italic;letter-spacing:3px;margin-top:6px}
+  #title-card .start{margin-top:36px;background:var(--parchment);border:none;padding:14px 36px;font-family:Georgia,serif;font-size:17px;color:var(--ink);cursor:pointer;letter-spacing:2px;border-radius:6px;box-shadow:0 4px 0 #1a0e07}
+  #title-card .start:hover{transform:translateY(-2px);box-shadow:0 6px 0 #1a0e07}
+  #title-card .hint{color:var(--parchment2);font-size:12px;letter-spacing:2px;margin-top:30px;text-align:center;max-width:520px;line-height:1.9;opacity:.85}
+  #dialog{position:absolute;left:50%;transform:translateX(-50%);bottom:60px;width:540px;background:rgba(244,234,208,.96);border:2px solid var(--wood);border-radius:8px;padding:16px 22px;display:none;font-size:14px;line-height:1.55;box-shadow:0 8px 0 rgba(0,0,0,.2)}
+  #dialog .name{color:var(--rust);font-weight:bold;letter-spacing:1.5px;font-size:13px;text-transform:uppercase;margin-bottom:6px}
+  #dialog .text{color:var(--ink);font-style:italic}
+  #dialog .actions{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;pointer-events:auto}
+  #dialog button{background:var(--wood);color:var(--parchment);border:none;padding:8px 14px;font-family:Georgia,serif;font-size:13px;cursor:pointer;border-radius:4px;letter-spacing:.5px;box-shadow:0 3px 0 var(--wood-dark)}
+  #dialog button:hover{transform:translateY(-1px);box-shadow:0 4px 0 var(--wood-dark)}
+  #dialog button.alt{background:var(--green);box-shadow:0 3px 0 #3e5530}
+  #dialog button.danger{background:var(--rust);box-shadow:0 3px 0 #7a3a20}
+  #ledger{position:absolute;right:18px;top:18px;width:280px;background:rgba(244,234,208,.92);border:2px solid var(--wood);border-radius:6px;padding:12px;font-size:11px;letter-spacing:.5px;max-height:60vh;overflow-y:auto;pointer-events:auto}
+  #ledger h3{margin:0 0 8px;color:var(--rust);font-size:12px;letter-spacing:2px;text-transform:uppercase;text-align:center;border-bottom:1px solid var(--wood);padding-bottom:4px}
+  #ledger .entry{padding:6px 0;border-bottom:1px dashed rgba(122,74,45,.3);display:flex;justify-content:space-between;gap:8px}
+  #ledger .entry:last-child{border-bottom:none}
+  #ledger .entry .who{font-weight:bold;color:var(--ink)}
+  #ledger .entry .what{color:var(--wood);font-style:italic;flex:1;text-align:right;font-size:10px}
+  #log{position:absolute;left:18px;bottom:18px;width:380px;font-size:12px;color:var(--ink);font-style:italic;pointer-events:none}
+  #log p{margin:3px 0;opacity:0;animation:fade 6s forwards;text-shadow:0 1px 0 rgba(244,234,208,.8)}
+  @keyframes fade{0%{opacity:0;transform:translateY(2px)}10%{opacity:1;transform:none}90%{opacity:.9}100%{opacity:.3}}
+  #endcard{position:absolute;inset:0;background:rgba(58,38,21,.94);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;color:var(--parchment)}
+  #endcard h2{margin:0 0 12px;letter-spacing:4px;color:var(--gold)}
+  #endcard p{max-width:540px;text-align:center;line-height:1.8;font-style:italic;font-size:15px}
+  #endcard button{margin-top:30px;background:var(--parchment);color:var(--ink);border:none;padding:12px 30px;font-family:Georgia,serif;cursor:pointer;border-radius:4px;letter-spacing:2px;box-shadow:0 4px 0 #1a0e07}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <div id="topbar" class="hud">
+    <div class="pill"><b>Day</b> <span id="dayVal">1</span></div>
+    <div class="pill"><b>Silver</b> <span id="silverVal">25</span></div>
+    <div class="pill"><b>Memories Kept</b> <span id="keptVal">0</span></div>
+    <div class="pill" style="background:rgba(201,96,58,.18)"><b>Reputation</b> <span id="repVal">Neutral</span></div>
+  </div>
+
+  <div id="ledger">
+    <h3>The Hollow's Ledger</h3>
+    <div id="ledgerList">
+      <div class="entry" style="opacity:.5"><span class="who">—</span><span class="what">no entries yet</span></div>
+    </div>
+  </div>
+
+  <div id="dialog">
+    <div class="name" id="dlgName">—</div>
+    <div class="text" id="dlgText">—</div>
+    <div class="actions" id="dlgActions"></div>
+  </div>
+
+  <div id="log"></div>
+
+  <div id="title-card">
+    <h1>HEARTHBOUND&nbsp;HOLLOW</h1>
+    <div class="sub">~ a memory broker's tale ~</div>
+    <button class="start" onclick="startGame()">✿  Open The Hollow  ✿</button>
+    <div class="hint">
+      Drag memory orbs from your counter to the shelves to <b>keep</b> them.<br>
+      Drag an orb to the workbench to <b>polish</b> it (raises its value).<br>
+      Villagers will visit with offers. Buy. Sell. Restore. Refuse.<br><br>
+      <span style="color:#e3a96f">Every memory has a story. The village has secrets.</span>
+    </div>
+  </div>
+
+  <div id="endcard">
+    <h2 id="endTitle">— END OF DAY —</h2>
+    <p id="endBody">—</p>
+    <p id="endStats" style="font-size:13px;opacity:.7"></p>
+    <button onclick="location.reload()">Sleep, and dream</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// =========================================================================
+// HEARTHBOUND HOLLOW — Prototype
+// Demonstrates: shop interior, drag-drop memory orbs, villager visits,
+// dialogue choices with consequences, polish mini-game, ledger persistence.
+// =========================================================================
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ----------------------- World State -----------------------------------
+const state = {
+  running: false,
+  day: 1,
+  silver: 25,
+  reputation: 0,   // -10..+10
+  kept: [],        // orbs on shelves
+  ledger: [],      // every transaction
+  counter: [],     // orbs currently on counter
+  workbench: null, // orb being polished
+  shelfSlots: [],  // positions of shelf slots
+  villagerIdx: 0,
+  villagerQueue: [],
+  currentVillager: null,
+  drag: null,
+  polishProgress: 0,
+  polishTrail: [],
+  particles: [],
+  hover: null,
+};
+
+// ----------------------- Content ---------------------------------------
+const EMOTIONS = {
+  joy:      { color: '#f4c862', glow: '#fff1be' },
+  grief:    { color: '#6e7fa4', glow: '#bcc8e0' },
+  shame:    { color: '#a05a5a', glow: '#d7a8a8' },
+  longing:  { color: '#c98aae', glow: '#f0c8da' },
+  awe:      { color: '#7fb5a1', glow: '#c0e0d4' },
+  dread:    { color: '#4a3e5a', glow: '#9489a8' },
+  love:     { color: '#d76f4a', glow: '#f0b59a' },
+  regret:   { color: '#8a6e4a', glow: '#c5ad8a' },
+};
+
+const VILLAGERS = [
+  {
+    name: 'Doris Ackerley',
+    title: 'the baker',
+    portrait: { skin:'#e0b890', hair:'#7a5a3a', cloth:'#a05a3a' },
+    request: 'sell',
+    emotion: 'grief',
+    description: 'her late mother kneading dough at dawn',
+    askPrice: 18,
+    fairPrice: 12,
+    refuseLine: 'I had hoped you would take it. Perhaps tomorrow.',
+    acceptLine: 'Thank you. It was getting heavy.',
+    consequence: { rep: +1, log: 'Took the grief of Doris\'s mother. She seemed lighter.' },
+  },
+  {
+    name: 'Mayor Olwen',
+    title: 'mayor',
+    portrait: { skin:'#d7b496', hair:'#a09080', cloth:'#3e5a78' },
+    request: 'buy',
+    wantsEmotion: 'joy',
+    description: 'a memory of a childhood birthday — any child\'s will do',
+    offer: 30,
+    refuseLine: 'A pity. Some men should not be without joy.',
+    acceptLine: 'You are a strange shopkeeper. But — thank you.',
+    consequence: { rep: -1, log: 'Sold a stranger\'s joy to a man who never knew them. He smiled like he had.' },
+  },
+  {
+    name: 'Tomas Reed',
+    title: 'the fisherman',
+    portrait: { skin:'#c9a47e', hair:'#3a2e1e', cloth:'#5a7044' },
+    request: 'restore',
+    emotion: 'love',
+    description: 'his wedding day — cracked and faded',
+    rewardPrice: 22,
+    refuseLine: 'Then I will carry it as it is. Cracked.',
+    acceptLine: 'I see her face again. Bless you.',
+    consequence: { rep: +2, log: 'Restored Tomas\'s wedding day. He wept.' },
+  },
+  {
+    name: 'Old Margaret',
+    title: 'the herbalist',
+    portrait: { skin:'#b89878', hair:'#cccccc', cloth:'#6e5a3a' },
+    request: 'sell',
+    emotion: 'shame',
+    description: 'a letter she never sent, fifty years ago',
+    askPrice: 14,
+    fairPrice: 10,
+    refuseLine: 'Yes. Perhaps it is mine to keep.',
+    acceptLine: 'I have carried it long enough.',
+    consequence: { rep: +1, log: 'Took Margaret\'s old shame. She walked home humming.' },
+  },
+  {
+    name: 'The Stranger',
+    title: '???',
+    portrait: { skin:'#d8c8b8', hair:'#1a1a1a', cloth:'#1f1818' },
+    request: 'sell',
+    emotion: 'dread',
+    description: 'a memory of the previous Hollow-keeper — leaving in the night',
+    askPrice: 40,
+    fairPrice: 40,
+    refuseLine: 'A wise refusal. Few would have made it.',
+    acceptLine: 'You will see what I saw. Sleep well, broker.',
+    consequence: { rep: 0, log: 'Took a stranger\'s dread. Tonight you will dream of the one who left.' },
+  },
+];
+
+// Initial shop stock
+function initStock() {
+  state.kept = [
+    makeOrb('joy', 0.85, 'a child\'s first snowfall'),
+    makeOrb('awe', 0.7, 'a meteor over the bay'),
+    makeOrb('longing', 0.6, 'a song no one remembers'),
+  ];
+}
+
+let orbId = 0;
+function makeOrb(emotion, clarity, desc) {
+  return {
+    id: ++orbId,
+    emotion,
+    clarity,            // 0..1
+    desc,
+    x: 0, y: 0,
+    polished: false,
+  };
+}
+
+// ----------------------- Layout ----------------------------------------
+function buildShelfSlots() {
+  state.shelfSlots = [];
+  const startX = 120, startY = 170;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 4; col++) {
+      state.shelfSlots.push({
+        x: startX + col * 80,
+        y: startY + row * 110,
+        occupied: false,
+      });
+    }
+  }
+  // Place initial stock
+  for (let i = 0; i < state.kept.length; i++) {
+    const slot = state.shelfSlots[i];
+    state.kept[i].x = slot.x;
+    state.kept[i].y = slot.y;
+    slot.occupied = true;
+  }
+}
+
+// Counter & workbench positions
+const COUNTER  = { x: 760, y: 470, w: 380, h: 90 };
+const WORKBENCH = { x: 560, y: 320, w: 200, h: 140 };
+
+// ----------------------- Input ----------------------------------------
+const mouse = { x:0, y:0, down:false };
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) * (W / r.width);
+  mouse.y = (e.clientY - r.top)  * (H / r.height);
+  if (state.drag) {
+    state.drag.x = mouse.x;
+    state.drag.y = mouse.y;
+  }
+  if (state.workbench === state.drag) {/* leave */ }
+  if (state.workbench && state.workbench.beingPolished) {
+    // Track mouse circular motion in workbench
+    if (insideRect(mouse, WORKBENCH)) {
+      state.polishTrail.push({ x:mouse.x, y:mouse.y, t: performance.now() });
+      if (state.polishTrail.length > 80) state.polishTrail.shift();
+      updatePolishProgress();
+    }
+  }
+});
+canvas.addEventListener('mousedown', e => {
+  mouse.down = true;
+  // Try to pick up an orb (from counter, shelves, or workbench)
+  const all = [...state.counter, ...state.kept];
+  if (state.workbench) all.push(state.workbench);
+  for (const o of all) {
+    if (Math.hypot(mouse.x - o.x, mouse.y - o.y) < 26) {
+      pickup(o);
+      return;
+    }
+  }
+});
+canvas.addEventListener('mouseup', e => {
+  mouse.down = false;
+  if (state.drag) drop();
+});
+
+function pickup(orb) {
+  state.drag = orb;
+  // Remove from current container
+  state.counter = state.counter.filter(o => o !== orb);
+  if (state.kept.includes(orb)) {
+    const slot = state.shelfSlots.find(s => Math.hypot(s.x - orb.x, s.y - orb.y) < 30);
+    if (slot) slot.occupied = false;
+    state.kept = state.kept.filter(o => o !== orb);
+  }
+  if (state.workbench === orb) {
+    state.workbench = null;
+    state.polishTrail = [];
+  }
+}
+
+function drop() {
+  const orb = state.drag;
+  state.drag = null;
+  if (!orb) return;
+  // Workbench drop?
+  if (insideRect(mouse, WORKBENCH)) {
+    if (state.workbench) {
+      // bounce back
+      returnToShelf(orb);
+      return;
+    }
+    state.workbench = orb;
+    state.workbench.x = WORKBENCH.x + WORKBENCH.w/2;
+    state.workbench.y = WORKBENCH.y + WORKBENCH.h/2;
+    state.workbench.beingPolished = true;
+    state.polishProgress = orb.clarity;
+    log('You set the orb on the workbench. Circle your cursor over it to polish.');
+    return;
+  }
+  // Shelf drop?
+  let bestSlot = null, bestDist = 999;
+  for (const s of state.shelfSlots) {
+    if (s.occupied) continue;
+    const d = Math.hypot(s.x - mouse.x, s.y - mouse.y);
+    if (d < 50 && d < bestDist) { bestDist = d; bestSlot = s; }
+  }
+  if (bestSlot) {
+    orb.x = bestSlot.x;
+    orb.y = bestSlot.y;
+    bestSlot.occupied = true;
+    state.kept.push(orb);
+    updateKeptCount();
+    log('You placed «' + orb.desc + '» on the shelf.');
+    return;
+  }
+  // Counter drop?
+  if (insideRect(mouse, COUNTER)) {
+    orb.x = mouse.x;
+    orb.y = mouse.y;
+    state.counter.push(orb);
+    return;
+  }
+  returnToShelf(orb);
+}
+
+function returnToShelf(orb) {
+  const empty = state.shelfSlots.find(s => !s.occupied);
+  if (empty) {
+    orb.x = empty.x; orb.y = empty.y;
+    empty.occupied = true;
+    state.kept.push(orb);
+  } else {
+    // counter fallback
+    orb.x = COUNTER.x + 40; orb.y = COUNTER.y + 40;
+    state.counter.push(orb);
+  }
+}
+
+function insideRect(p, r) {
+  return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+}
+
+// ----------------------- Polish Mini-Game ------------------------------
+function updatePolishProgress() {
+  if (!state.workbench) return;
+  // Reward circular motion: compute average distance from orb center + arc covered
+  const cx = WORKBENCH.x + WORKBENCH.w/2;
+  const cy = WORKBENCH.y + WORKBENCH.h/2;
+  const last = state.polishTrail[state.polishTrail.length-1];
+  if (state.polishTrail.length < 2) return;
+  const prev = state.polishTrail[state.polishTrail.length-2];
+  const dx = last.x - prev.x, dy = last.y - prev.y;
+  const speed = Math.hypot(dx,dy);
+  const distFromCenter = Math.hypot(last.x - cx, last.y - cy);
+  if (speed > 1 && distFromCenter > 22 && distFromCenter < 60) {
+    state.workbench.clarity = Math.min(1, state.workbench.clarity + 0.0014 * speed);
+    if (state.workbench.clarity >= 1 && !state.workbench.polished) {
+      state.workbench.polished = true;
+      log('« ' + state.workbench.desc + ' » is luminous. Polished to perfection.');
+      addLedger('Hollow', 'polished: ' + state.workbench.desc);
+    }
+  }
+}
+
+// ----------------------- Villager Flow ---------------------------------
+function startGame() {
+  document.getElementById('title-card').style.display = 'none';
+  state.running = true;
+  initStock();
+  buildShelfSlots();
+  state.villagerQueue = shuffle(VILLAGERS.slice()).slice(0, 4);
+  setTimeout(nextVillager, 1200);
+  log('Morning at the Hollow. The bell above the door has been polished.');
+  requestAnimationFrame(loop);
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function nextVillager() {
+  if (state.villagerIdx >= state.villagerQueue.length) {
+    return endDay();
+  }
+  const v = state.villagerQueue[state.villagerIdx++];
+  state.currentVillager = v;
+  // Build dialog
+  const dlg = document.getElementById('dialog');
+  const name = document.getElementById('dlgName');
+  const text = document.getElementById('dlgText');
+  const acts = document.getElementById('dlgActions');
+  name.textContent = v.name + ' — ' + v.title;
+  acts.innerHTML = '';
+
+  if (v.request === 'sell') {
+    text.textContent = `"I have a memory I would sell. It is ${v.description}. I ask ${v.askPrice} silver."`;
+    addBtn(acts, 'Accept ('+v.askPrice+'s)', () => acceptSell(v, v.askPrice), 'alt');
+    addBtn(acts, 'Negotiate ('+v.fairPrice+'s)', () => acceptSell(v, v.fairPrice));
+    addBtn(acts, 'Refuse', () => refuse(v), 'danger');
+  } else if (v.request === 'buy') {
+    // find any orb of that emotion
+    const candidates = [...state.kept, ...state.counter];
+    const match = candidates.find(o => o.emotion === v.wantsEmotion);
+    text.textContent = `"I would buy ${v.description} for ${v.offer} silver. Have you such a thing?"`;
+    if (match) {
+      addBtn(acts, 'Sell «'+match.desc+'» ('+v.offer+'s)', () => acceptBuy(v, match), 'alt');
+    } else {
+      addBtn(acts, 'I have nothing fitting', () => refuse(v));
+    }
+    addBtn(acts, 'Refuse to sell', () => refuse(v), 'danger');
+  } else if (v.request === 'restore') {
+    const cost = 4;
+    text.textContent = `"My memory of ${v.description} fades. I will pay ${v.rewardPrice} silver to have it restored. It will take a polished orb of love."`;
+    const polished = state.kept.find(o => o.emotion === v.emotion && o.polished);
+    if (polished) {
+      addBtn(acts, 'Give «'+polished.desc+'» (+'+v.rewardPrice+'s)', () => acceptRestore(v, polished), 'alt');
+    } else {
+      addBtn(acts, 'I have no polished orb of that kind', () => refuse(v));
+    }
+    addBtn(acts, 'Decline', () => refuse(v), 'danger');
+  }
+  dlg.style.display = 'block';
+}
+
+function addBtn(parent, label, fn, cls='') {
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  parent.appendChild(b);
+}
+
+function acceptSell(v, price) {
+  if (state.silver < price) {
+    log('You do not have ' + price + ' silver.', 'rust');
+    return;
+  }
+  state.silver -= price;
+  // Add orb to counter
+  const orb = makeOrb(v.emotion, 0.45 + Math.random()*0.3, v.description);
+  orb.x = COUNTER.x + 40 + Math.random()*200;
+  orb.y = COUNTER.y + 40;
+  state.counter.push(orb);
+  addLedger(v.name, 'sold ' + v.description + ' (-' + price + 's)');
+  applyConsequence(v);
+  log(v.acceptLine, 'rust');
+  endVillager();
+}
+function acceptBuy(v, orb) {
+  state.silver += v.offer;
+  state.kept = state.kept.filter(o => o !== orb);
+  state.counter = state.counter.filter(o => o !== orb);
+  for (const s of state.shelfSlots) if (Math.hypot(s.x-orb.x,s.y-orb.y)<10) s.occupied=false;
+  addLedger(v.name, 'bought ' + orb.desc + ' (+' + v.offer + 's)');
+  applyConsequence(v);
+  log(v.acceptLine, 'green');
+  spawnParticles(orb.x, orb.y, EMOTIONS[orb.emotion].glow);
+  endVillager();
+  updateKeptCount();
+}
+function acceptRestore(v, orb) {
+  state.silver += v.rewardPrice;
+  state.kept = state.kept.filter(o => o !== orb);
+  for (const s of state.shelfSlots) if (Math.hypot(s.x-orb.x,s.y-orb.y)<10) s.occupied=false;
+  addLedger(v.name, 'restored ' + v.description + ' (+' + v.rewardPrice + 's)');
+  applyConsequence(v);
+  log(v.acceptLine, 'green');
+  spawnParticles(orb.x, orb.y, EMOTIONS[orb.emotion].glow);
+  endVillager();
+  updateKeptCount();
+}
+function refuse(v) {
+  log(v.refuseLine, 'wood');
+  // Mild rep penalty for refusing — but stranger gives bonus for refusing
+  if (v.name === 'The Stranger') state.reputation += 2;
+  else state.reputation -= 1;
+  endVillager();
+}
+function applyConsequence(v) {
+  if (v.consequence) {
+    state.reputation += v.consequence.rep || 0;
+    if (v.consequence.log) log(v.consequence.log, 'rust');
+  }
+}
+function endVillager() {
+  document.getElementById('dialog').style.display = 'none';
+  state.currentVillager = null;
+  updateTopbar();
+  setTimeout(nextVillager, 1400);
+}
+function addLedger(who, what) {
+  state.ledger.unshift({ who, what });
+  const list = document.getElementById('ledgerList');
+  list.innerHTML = state.ledger.slice(0,14).map(e =>
+    `<div class="entry"><span class="who">${e.who}</span><span class="what">${e.what}</span></div>`
+  ).join('');
+}
+function updateKeptCount() {
+  document.getElementById('keptVal').textContent = state.kept.length;
+}
+function updateTopbar() {
+  document.getElementById('dayVal').textContent = state.day;
+  document.getElementById('silverVal').textContent = state.silver;
+  updateKeptCount();
+  const rep = state.reputation;
+  let label = 'Neutral';
+  if (rep >= 4) label = 'Beloved';
+  else if (rep >= 2) label = 'Welcomed';
+  else if (rep <= -4) label = 'Feared';
+  else if (rep <= -2) label = 'Whispered About';
+  document.getElementById('repVal').textContent = label;
+}
+function endDay() {
+  state.running = false;
+  const c = document.getElementById('endcard');
+  document.getElementById('endTitle').textContent = 'EVENING AT THE HOLLOW';
+  const polishedCount = state.kept.filter(o => o.polished).length;
+  let body = '';
+  if (state.reputation >= 3) {
+    body = 'The village speaks softly of you tonight. The baker leaves bread at your door. The mayor wonders what you might want next.';
+  } else if (state.reputation <= -3) {
+    body = 'A shutter slams in the wind. You hear footsteps that pause outside the Hollow, then move on.';
+  } else {
+    body = 'You close the shop. The orbs hum on the shelves like sleeping bees. The kettle whistles, alone.';
+  }
+  document.getElementById('endBody').textContent = body;
+  document.getElementById('endStats').textContent =
+    `Silver: ${state.silver}  ·  Memories Kept: ${state.kept.length}  ·  Polished: ${polishedCount}  ·  Reputation: ${state.reputation>0?'+':''}${state.reputation}`;
+  c.style.display = 'flex';
+}
+
+// ----------------------- Rendering -------------------------------------
+function draw() {
+  // Background — warm interior
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#f4ead0');
+  bg.addColorStop(1,'#e0c69a');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  drawWalls();
+  drawShelves();
+  drawWorkbench();
+  drawCounter();
+  drawVillager();
+  drawOrbsOnShelves();
+  drawOrbsOnCounter();
+  drawWorkbenchOrb();
+  drawDraggedOrb();
+  drawParticles();
+  drawTitleBar();
+  drawHints();
+}
+
+function drawWalls() {
+  // Wooden floor
+  ctx.fillStyle = '#7a4a2d';
+  ctx.fillRect(0, 580, W, H-580);
+  for (let i = 0; i < 14; i++) {
+    ctx.fillStyle = i%2?'#6e4226':'#8a5634';
+    ctx.fillRect(i*100, 580, 92, 140);
+  }
+  // Wall pattern lines (wallpaper)
+  ctx.strokeStyle = 'rgba(122,74,45,0.13)';
+  for (let y = 80; y < 580; y += 22) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  // Window
+  ctx.fillStyle = '#c4d8c0';
+  ctx.fillRect(540, 100, 200, 140);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillRect(540, 100, 200, 70);
+  ctx.strokeStyle = '#6e4628';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(540, 100, 200, 140);
+  ctx.beginPath();
+  ctx.moveTo(640,100); ctx.lineTo(640,240); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(540,170); ctx.lineTo(740,170); ctx.stroke();
+  // Sign above
+  ctx.fillStyle = '#5a3a22';
+  ctx.fillRect(560, 60, 160, 30);
+  ctx.fillStyle = '#f4ead0';
+  ctx.font = '14px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('THE HOLLOW', 640, 80);
+  // Candle on right
+  drawCandle(1180, 240);
+  drawCandle(80, 240);
+}
+
+function drawCandle(x, y) {
+  ctx.fillStyle = '#3a2615';
+  ctx.fillRect(x-2, y, 4, 30);
+  ctx.fillStyle = '#e8d4a0';
+  ctx.fillRect(x-6, y-20, 12, 22);
+  // Flame
+  const flick = Math.sin(performance.now()*0.01 + x)*2;
+  ctx.fillStyle = '#ffb05a';
+  ctx.beginPath();
+  ctx.ellipse(x+flick*0.3, y-26, 4, 9, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#fff4d0';
+  ctx.beginPath();
+  ctx.ellipse(x+flick*0.3, y-26, 2, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Glow
+  const g = ctx.createRadialGradient(x, y-20, 0, x, y-20, 120);
+  g.addColorStop(0,'rgba(255,200,120,0.18)');
+  g.addColorStop(1,'rgba(255,200,120,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x-120, y-140, 240, 240);
+}
+
+function drawShelves() {
+  // 3 shelves
+  for (let row = 0; row < 3; row++) {
+    const y = 170 + row * 110;
+    ctx.fillStyle = '#6e4226';
+    ctx.fillRect(70, y + 28, 380, 8);
+    ctx.fillStyle = '#4d2c19';
+    ctx.fillRect(70, y + 36, 380, 4);
+  }
+  // Shelf brackets
+  ctx.fillStyle = '#4d2c19';
+  ctx.fillRect(72, 198, 6, 220);
+  ctx.fillRect(442, 198, 6, 220);
+}
+
+function drawWorkbench() {
+  // Wood bench
+  ctx.fillStyle = '#6e4226';
+  roundRect(WORKBENCH.x, WORKBENCH.y, WORKBENCH.w, WORKBENCH.h, 8, true);
+  ctx.fillStyle = '#8a5634';
+  roundRect(WORKBENCH.x + 6, WORKBENCH.y + 6, WORKBENCH.w - 12, WORKBENCH.h - 12, 6, true);
+  // Engraved label
+  ctx.fillStyle = '#4d2c19';
+  ctx.font = 'italic 12px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('— workbench —', WORKBENCH.x + WORKBENCH.w/2, WORKBENCH.y + WORKBENCH.h - 10);
+  // Pedestal in middle
+  const cx = WORKBENCH.x + WORKBENCH.w/2;
+  const cy = WORKBENCH.y + WORKBENCH.h/2;
+  ctx.fillStyle = '#4d2c19';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 12, 36, 8, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Highlight when something dropped here
+  if (state.workbench) {
+    ctx.strokeStyle = 'rgba(212,144,68,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 38, 0, Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function drawCounter() {
+  // Wooden front
+  ctx.fillStyle = '#6e4226';
+  roundRect(COUNTER.x, COUNTER.y, COUNTER.w, COUNTER.h, 6, true);
+  ctx.fillStyle = '#8a5634';
+  roundRect(COUNTER.x + 4, COUNTER.y + 4, COUNTER.w - 8, COUNTER.h - 8, 4, true);
+  // Top edge
+  ctx.fillStyle = '#a9744a';
+  ctx.fillRect(COUNTER.x - 4, COUNTER.y - 6, COUNTER.w + 8, 10);
+  // Label
+  ctx.fillStyle = '#4d2c19';
+  ctx.font = 'italic 11px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('— the counter —', COUNTER.x + COUNTER.w/2, COUNTER.y + COUNTER.h - 6);
+}
+
+function drawVillager() {
+  if (!state.currentVillager) return;
+  const v = state.currentVillager;
+  const t = performance.now() * 0.002;
+  const bx = COUNTER.x + COUNTER.w/2;
+  const by = COUNTER.y - 60 + Math.sin(t)*2;
+  // Body
+  ctx.fillStyle = v.portrait.cloth;
+  roundRect(bx - 30, by, 60, 90, 8, true);
+  // Head
+  ctx.fillStyle = v.portrait.skin;
+  ctx.beginPath();
+  ctx.arc(bx, by - 22, 22, 0, Math.PI*2);
+  ctx.fill();
+  // Hair
+  ctx.fillStyle = v.portrait.hair;
+  ctx.beginPath();
+  ctx.arc(bx, by - 28, 22, Math.PI, Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(bx - 22, by - 28, 44, 6);
+  // Eyes
+  ctx.fillStyle = '#222';
+  ctx.fillRect(bx - 8, by - 22, 3, 4);
+  ctx.fillRect(bx + 5, by - 22, 3, 4);
+  // Mouth
+  ctx.strokeStyle = '#5a2818';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(bx, by - 12, 5, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+  // Name plaque
+  ctx.fillStyle = 'rgba(58,38,21,0.85)';
+  roundRect(bx - 70, by + 100, 140, 22, 4, true);
+  ctx.fillStyle = '#f4ead0';
+  ctx.font = 'italic 11px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText(v.name, bx, by + 115);
+}
+
+function drawOrb(orb, x, y, scale=1) {
+  const e = EMOTIONS[orb.emotion];
+  const t = performance.now() * 0.003 + orb.id;
+  const wobble = Math.sin(t) * 1.5;
+  const r = 18 * scale;
+  // Glow halo
+  const glow = ctx.createRadialGradient(x, y + wobble, 0, x, y + wobble, r*2.2);
+  glow.addColorStop(0, e.glow + 'cc');
+  glow.addColorStop(0.5, e.glow + '33');
+  glow.addColorStop(1, e.glow + '00');
+  ctx.fillStyle = glow;
+  ctx.fillRect(x - r*2.5, y + wobble - r*2.5, r*5, r*5);
+  // Orb body
+  const grad = ctx.createRadialGradient(x - r*0.4, y + wobble - r*0.4, 1, x, y + wobble, r);
+  grad.addColorStop(0, '#ffffff');
+  grad.addColorStop(0.4, e.glow);
+  grad.addColorStop(1, e.color);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y + wobble, r, 0, Math.PI*2);
+  ctx.fill();
+  // Clarity-based haze
+  if (orb.clarity < 1) {
+    ctx.fillStyle = `rgba(40,30,20,${(1 - orb.clarity) * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(x, y + wobble, r * 0.9, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath();
+  ctx.arc(x - r*0.4, y + wobble - r*0.45, r*0.22, 0, Math.PI*2);
+  ctx.fill();
+  // Polished sparkle
+  if (orb.polished) {
+    for (let i = 0; i < 3; i++) {
+      const a = t + i*2;
+      const sx = x + Math.cos(a) * r * 1.3;
+      const sy = y + wobble + Math.sin(a) * r * 1.3;
+      ctx.fillStyle = 'rgba(255,240,200,0.9)';
+      ctx.fillRect(sx-1, sy-3, 2, 6);
+      ctx.fillRect(sx-3, sy-1, 6, 2);
+    }
+  }
+}
+
+function drawOrbsOnShelves() {
+  for (const o of state.kept) {
+    if (o === state.drag) continue;
+    drawOrb(o, o.x, o.y);
+    // Tooltip on hover
+    if (Math.hypot(mouse.x - o.x, mouse.y - o.y) < 22) {
+      drawTooltip(o, o.x, o.y - 40);
+    }
+  }
+}
+function drawOrbsOnCounter() {
+  for (const o of state.counter) {
+    if (o === state.drag) continue;
+    drawOrb(o, o.x, o.y);
+    if (Math.hypot(mouse.x - o.x, mouse.y - o.y) < 22) {
+      drawTooltip(o, o.x, o.y - 40);
+    }
+  }
+}
+function drawWorkbenchOrb() {
+  if (state.workbench && state.workbench !== state.drag) {
+    drawOrb(state.workbench, state.workbench.x, state.workbench.y, 1.4);
+    // Polish ring
+    const cx = state.workbench.x;
+    const cy = state.workbench.y;
+    ctx.strokeStyle = 'rgba(255,235,180,0.4)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 38, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Polish trail
+    for (let i = 1; i < state.polishTrail.length; i++) {
+      const a = i / state.polishTrail.length;
+      ctx.strokeStyle = `rgba(255,220,150,${a * 0.4})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(state.polishTrail[i-1].x, state.polishTrail[i-1].y);
+      ctx.lineTo(state.polishTrail[i].x, state.polishTrail[i].y);
+      ctx.stroke();
+    }
+    // Clarity bar
+    ctx.fillStyle = 'rgba(58,38,21,0.5)';
+    ctx.fillRect(cx - 40, cy + 55, 80, 6);
+    ctx.fillStyle = '#c9893d';
+    ctx.fillRect(cx - 40, cy + 55, 80 * state.workbench.clarity, 6);
+    ctx.fillStyle = '#3a2615';
+    ctx.font = '10px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.workbench.polished ? 'POLISHED' : 'clarity', cx, cy + 76);
+  }
+}
+function drawDraggedOrb() {
+  if (state.drag) {
+    drawOrb(state.drag, mouse.x, mouse.y, 1.1);
+  }
+}
+function drawTooltip(o, x, y) {
+  const lines = [
+    o.desc,
+    'emotion: ' + o.emotion + (o.polished ? '  ✦ polished' : '')
+  ];
+  ctx.font = '11px Georgia';
+  let maxW = 0;
+  for (const l of lines) maxW = Math.max(maxW, ctx.measureText(l).width);
+  ctx.fillStyle = 'rgba(58,38,21,0.92)';
+  roundRect(x - maxW/2 - 8, y - 28, maxW + 16, 36, 4, true);
+  ctx.fillStyle = '#f4ead0';
+  ctx.textAlign = 'center';
+  ctx.fillText(lines[0], x, y - 14);
+  ctx.fillStyle = '#c9893d';
+  ctx.font = 'italic 10px Georgia';
+  ctx.fillText(lines[1], x, y - 1);
+}
+
+function drawTitleBar() {
+  // soft top-bar shadow
+  const g = ctx.createLinearGradient(0,0,0,60);
+  g.addColorStop(0,'rgba(0,0,0,0.15)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,60);
+}
+
+function drawHints() {
+  if (state.kept.length === 0 && state.counter.length === 0) return;
+  if (state.currentVillager) return;
+  ctx.fillStyle = 'rgba(122,74,45,0.5)';
+  ctx.font = 'italic 12px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('drag an orb to the workbench to polish · or wait for the next visitor', W/2, 670);
+}
+
+function spawnParticles(x, y, color) {
+  for (let i = 0; i < 18; i++) {
+    state.particles.push({
+      x, y,
+      vx: (Math.random()-.5) * 4,
+      vy: (Math.random()-.5) * 4 - 1,
+      life: 1,
+      color,
+    });
+  }
+}
+function drawParticles() {
+  for (const p of state.particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= 0.015;
+    ctx.fillStyle = p.color + Math.floor(p.life*255).toString(16).padStart(2,'0');
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3 * p.life, 0, Math.PI*2);
+    ctx.fill();
+  }
+  state.particles = state.particles.filter(p => p.life > 0);
+}
+
+function roundRect(x, y, w, h, r, fill) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+}
+
+function log(msg, tone='ink') {
+  const el = document.createElement('p');
+  el.textContent = '✦ ' + msg;
+  document.getElementById('log').prepend(el);
+  while (document.getElementById('log').children.length > 5)
+    document.getElementById('log').lastChild.remove();
+}
+
+// ----------------------- Main loop -------------------------------------
+function loop() {
+  draw();
+  requestAnimationFrame(loop);
+}
+buildShelfSlots();
+draw();
+</script>
+</body>
+</html>
