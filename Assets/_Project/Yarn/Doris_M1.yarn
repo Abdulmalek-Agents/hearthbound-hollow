@@ -1,0 +1,113 @@
+title: Doris_M1_Start
+tags: mission1 doris
+---
+// Doris the Baker — first encounter outside the Hollow at dusk.
+// Per Mission_1_2_Focus/01_DORIS_THE_BAKER.md
+// Variables wired through YarnVillageStateBridge:
+//   $trust_doris (int 0-100)
+
+<<eyes_look_at "player">>
+Doris: Oh — you must be the new Keeper.
+Doris: I'd heard. I just didn't expect... so soon.
+
+-> "I'm here to help."
+    Doris: That's kind. That's — kind.
+    <<adjust_trust "doris" 5>>
+    <<jump Doris_M1_OfferOrb>>
+-> "I'm not sure I'm ready."
+    Doris: None of us ever are, dear. None of us ever are.
+    <<jump Doris_M1_OfferOrb>>
+-> (silent) Wait.
+    Doris: It's all right. We can stand here a moment.
+    <<jump Doris_M1_OfferOrb>>
+
+===
+
+title: Doris_M1_OfferOrb
+---
+Doris: I have something. A memory. Something I've kept too long.
+Doris: I wondered if you might — buy it. Take care of it.
+<<eyes_look_at "orb">>
+Doris: It's the morning I first baked bread on my own. After mother. After.
+Doris: It's bright. It's just so bright I sometimes can't go into the kitchen.
+Doris: I'd like to look at it less. I'd like it not to ache.
+
+-> "I'll honor it. Five silver."
+    <<adjust_trust "doris" 5>>
+    <<adjust_coin -5>>
+    <<jump Doris_M1_HandsOrb_Honor>>
+-> "Ten silver. It looks important."
+    <<adjust_trust "doris" 8>>
+    <<adjust_coin -10>>
+    <<jump Doris_M1_HandsOrb_Generous>>
+-> "Three silver — I'm starting out."
+    <<adjust_trust "doris" 2>>
+    <<adjust_coin -3>>
+    <<jump Doris_M1_HandsOrb_Practical>>
+
+===
+
+title: Doris_M1_HandsOrb_Honor
+---
+Doris: That's fair. That's — fair.
+Doris: Polish it gently. The faster you press, the less the orb hears you.
+<<jump Doris_M1_PolishHandoff>>
+
+===
+
+title: Doris_M1_HandsOrb_Generous
+---
+Doris: That's more than fair. Thank you.
+Doris: I'll bring you a loaf in the morning. Two loaves. Three.
+<<jump Doris_M1_PolishHandoff>>
+
+===
+
+title: Doris_M1_HandsOrb_Practical
+---
+Doris: Three is — three is fine. I understand.
+Doris: Just — please be careful with it.
+<<jump Doris_M1_PolishHandoff>>
+
+===
+
+title: Doris_M1_PolishHandoff
+---
+Doris: Polish in slow circles. Cover all sides. Most memories need ninety seconds.
+Doris: There's a note pinned above the workbench. Marin's hand. It still helps.
+<<pickle_say "Slower.">>
+Doris: And — Pickle. Don't mind her. She judges everyone.
+<<dialogue_end>>
+<<offer_polish>>
+
+===
+
+title: Doris_M1_AfterPolish_Bright
+---
+<<eyes_look_at "orb">>
+Doris: ... You did it cleaner than I remembered.
+Doris: That's — that's how it was. Yes.
+<<adjust_trust "doris" 3>>
+Doris: Keep it on the shelf. The one by the window if you can.
+Doris: Goodnight, Keeper.
+<<dialogue_end>>
+
+===
+
+title: Doris_M1_AfterPolish_Acceptable
+---
+Doris: It's a little less bright than I remembered. That's all right.
+Doris: That's all right.
+<<adjust_trust "doris" 1>>
+Doris: Keep it where you can see it.
+<<dialogue_end>>
+
+===
+
+title: Doris_M1_AfterPolish_Dim
+---
+Doris: It's the morning still. A little dimmer.
+Doris: ... I'll come back tomorrow, maybe.
+<<dialogue_end>>
+
+===
