@@ -40,7 +40,9 @@ namespace HearthboundHollow.Save
                 var json = JsonUtility.ToJson(snap, prettyPrint: true);
                 AtomicWrite(GetSlotPath(slot), json);
                 Hh.Log(LogCategory.Save, $"Saved slot {slot} ({json.Length} bytes).");
-                EventBus.Publish(new VillageStateSavedEvent(slot, isAutosave: slot < 0));
+                // BUGFIX: VillageStateSavedEvent ctor parameter is named `autosave`, not `isAutosave`.
+                // Using positional argument here for clarity — autosave when slot < 0.
+                EventBus.Publish(new VillageStateSavedEvent(slot, slot < 0));
                 return true;
             }
             catch (Exception ex)
