@@ -1,0 +1,57 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.distantlands.zephyr/Editor/UI/Zephyr.uss?fileID=7433441132597879392&amp;guid=d9081069a744c4346b118e54140b156f&amp;type=3#Zephyr" />
+    <ui:VisualElement class="banner" style="height: 90px;">
+        <ui:Label text="ZEPHYR" />
+    </ui:VisualElement>
+    <ui:VisualElement class="graphRow">
+        <ui:VisualElement name="windVelocityGraph" class="windVelocityGraph" style="justify-content: center; align-items: center;">
+            <ui:VisualElement style="margin-bottom: 15px; align-items: center;">
+                <ui:Label text="SE" name="directionLabel" style="-unity-font-style: bold; font-size: 62px; color: rgb(101, 149, 115); margin-bottom: -12px;" />
+                <ui:Label text="BLUSTERY" name="strengthLabel" style="-unity-font-style: bold; -unity-text-align: upper-center; font-size: 14px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement>
+        <ui:Slider value="0" high-value="5" name="windSlider" style="margin-right: 10px; margin-left: 10px; margin-bottom: 5px;" />
+        <ui:VisualElement class="windSpeedSelectorRow" style="flex-grow: 1;">
+            <ui:VisualElement tooltip="Still" name="still" style="background-image: resource(&apos;Still&apos;);" />
+            <ui:VisualElement tooltip="Calm" name="calm" style="background-image: resource(&apos;Calm&apos;);" />
+            <ui:VisualElement tooltip="Breezy" name="breezy" style="background-image: resource(&apos;Breezy&apos;);" />
+            <ui:VisualElement tooltip="Strong" name="strong" style="background-image: resource(&apos;Strong&apos;);" />
+            <ui:VisualElement tooltip="Violent" name="violent" style="background-image: resource(&apos;Violent&apos;);" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement style="flex-grow: 1;">
+        <ui:Label text="Base Wind Settings" class="h1" />
+        <ui:VisualElement class="section-bg">
+            <uie:PropertyField name="directionSource" binding-path="directionSource" />
+            <uie:PropertyField name="targetDirection" binding-path="targetDirection" />
+            <uie:PropertyField binding-path="targetWindStrength" class="space-below" />
+            <uie:PropertyField binding-path="windAccelerationCoefficient" />
+            <uie:PropertyField binding-path="windNoiseTexture" />
+        </ui:VisualElement>
+        <ui:Label text="Gusting" class="h1" />
+        <ui:VisualElement class="section-bg">
+            <uie:PropertyField binding-path="gustStrength" />
+            <uie:PropertyField binding-path="gustScale" />
+            <uie:PropertyField binding-path="gustSpeed" />
+            <uie:PropertyField binding-path="gustPullback" />
+        </ui:VisualElement>
+        <ui:Label text="Fluttering" class="h1" />
+        <ui:VisualElement class="section-bg">
+            <uie:PropertyField binding-path="flutterStrength" />
+            <uie:PropertyField binding-path="flutterScale" />
+            <uie:PropertyField binding-path="flutterSpeed" />
+        </ui:VisualElement>
+        <ui:Label text="Wind Zones" class="h1" />
+        <ui:VisualElement class="section-bg">
+            <uie:PropertyField binding-path="maxWindZones" />
+            <uie:PropertyField binding-path="windZoneSearchRadius" />
+        </ui:VisualElement>
+        <ui:Label text="Debug" class="h1" />
+        <ui:VisualElement class="section-bg">
+            <uie:PropertyField binding-path="debugMode" name="debugMode" />
+            <uie:PropertyField binding-path="debugScale" name="debugScale" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
