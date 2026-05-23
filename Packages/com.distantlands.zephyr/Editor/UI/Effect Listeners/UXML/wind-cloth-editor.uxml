@@ -1,0 +1,21 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.distantlands.zephyr/Editor/UI/Zephyr.uss?fileID=7433441132597879392&amp;guid=d9081069a744c4346b118e54140b156f&amp;type=3#Zephyr" />
+    <ui:VisualElement class="banner">
+        <ui:Label text="WIND CLOTH" />
+    </ui:VisualElement>
+    <ui:Label text="Wind Listener" class="h1" />
+    <ui:VisualElement class="section-bg">
+        <uie:PropertyField name="overrideInputListener" binding-path="overrideInputListener" />
+        <ui:VisualElement name="windProperties">
+            <uie:PropertyField binding-path="windEffectMultiplier" />
+            <uie:PropertyField binding-path="springStrength" />
+            <uie:PropertyField binding-path="damping" />
+            <uie:PropertyField binding-path="windMask" />
+            <uie:PropertyField binding-path="windTestPoint" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:Label text="Cloth Settings" class="h1" />
+    <ui:VisualElement class="section-bg">
+        <uie:PropertyField binding-path="randomAccelerationMultiplier" />
+    </ui:VisualElement>
+</ui:UXML>

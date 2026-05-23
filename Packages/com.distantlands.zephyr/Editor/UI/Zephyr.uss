@@ -1,0 +1,88 @@
+VisualElement {
+}
+
+.banner {
+    justify-content: center;
+    align-items: center;
+    background-image: resource('Header');
+    -unity-background-scale-mode: scale-and-crop;
+    margin-left: -15px;
+    margin-right: -6px;
+    height: 90px;
+}
+
+.banner Label {
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: upper-left;
+}
+
+.section-bg {
+    margin-top: 5px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    margin-left: 5px;
+    background-color: rgba(122, 122, 122, 0.18);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    padding-top: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+}
+
+.h1 {
+    -unity-font-style: bold;
+    font-size: 18px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 2px;
+}
+
+.windSpeedSelectorRow {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.windSpeedSelectorRow Button {
+    flex-grow: 1;
+    width: 45px;
+    height: 45px;
+    -unity-background-scale-mode: scale-to-fit;
+    background-size: 60% 60%;
+    background-position-y: center 0;
+    background-position-x: center 0;
+    max-width: 45px;
+    max-height: 45px;
+    min-height: 45px;
+    min-width: 45px;
+    border-top-left-radius: 100%;
+    border-top-right-radius: 100%;
+    border-bottom-right-radius: 100%;
+    border-bottom-left-radius: 100%;
+}
+
+.windVelocityGraph {
+    height: 300px;
+    width: 300px;
+}
+
+.windSpeedSelectorRow > VisualElement {
+    width: 30px;
+    height: 30px;
+    max-height: 30px;
+    max-width: 30px;
+    min-width: auto;
+    min-height: auto;
+}
+
+.graphRow {
+    align-items: center;
+}
+
+.space-below {
+    margin-bottom: 15px;
+}

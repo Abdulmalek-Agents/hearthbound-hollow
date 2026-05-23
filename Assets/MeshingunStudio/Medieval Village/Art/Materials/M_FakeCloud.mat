@@ -11,12 +11,11 @@ Material:
   m_Shader: {fileID: -6465566751694194690, guid: 93df32a12ed78e94da10d63eed0f0c0b,
     type: 3}
   m_ValidKeywords:
-  - _ALPHATEST_ON
+  - _SURFACE_TYPE_TRANSPARENT
+  m_InvalidKeywords:
   - _DISABLE_SSR_TRANSPARENT
   - _DOUBLESIDED_ON
   - _ENABLE_FOG_ON_TRANSPARENT
-  - _SURFACE_TYPE_TRANSPARENT
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 1
@@ -57,7 +56,7 @@ Material:
     m_Floats:
     - Boolean_7ad87f2fbdfc4b82b08260c99cf7de08: 0
     - Vector1_80b41553e3ac4fb2b06c958bc6dfdc25: 1.76
-    - Vector1_90cd57d5abe24eecb45af1219d61e336: 0.003
+    - Vector1_90cd57d5abe24eecb45af1219d61e336: 0.005
     - Vector1_c61e0042ead244c0ba2a1af40dc758e7: 1
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
@@ -70,7 +69,7 @@ Material:
     - _BlendMode: 0
     - _CastShadows: 1
     - _ConservativeDepthOffsetEnable: 0
-    - _Cull: 2
+    - _Cull: 0
     - _CullMode: 0
     - _CullModeForward: 0
     - _DepthOffsetEnable: 0
@@ -91,7 +90,7 @@ Material:
     - _RefractionModel: 0
     - _RenderQueueType: 4
     - _RequireSplitLighting: 0
-    - _SrcBlend: 1
+    - _SrcBlend: 5
     - _StencilRef: 0
     - _StencilRefDepth: 0
     - _StencilRefDistortionVec: 4
