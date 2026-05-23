@@ -13,143 +13,37 @@
 
 ---
 
-## ✅ Phase 0 — Architecture & Skeleton
-
-**Branch:** `feat/mission-1-2-architecture` · **PR:** #7
-**Outcome:** Architecture, folder skeleton, 12 asmdefs, manifest patched.
-
-| Task | Status |
-|---|---|
-| `Docs/ARCHITECTURE.md` | 🟢 |
-| `Docs/PROGRESS.md` | 🟢 |
-| `Docs/EXISTING_ASSETS_INDEX.md` | 🟢 |
-| `Assets/_Project/` folder skeleton (23 subfolders) | 🟢 |
-| 10 asmdef files + 2 test asmdefs | 🟢 |
-| `Packages/manifest.json` patched | 🟢 |
-
----
+## ✅ Phase 0 — Architecture & Skeleton  (PR #7)
+All 7 items 🟢.
 
 ## 🟢 Phase 1 — Core Systems
-
-| Task | Status |
-|---|---|
-| `Hh.cs` (LogCategory + Hh.Log/Warn/Err) | 🟢 |
-| `EventBus.cs` | 🟢 |
-| `ServiceLocator.cs` | 🟢 |
-| `GameEvents.cs` (12 readonly-struct event types) | 🟢 |
-| `VillageState.cs` (14-dimension SO) | 🟢 |
-| `MissionSO.cs` | 🟢 |
-| `GameManager.cs` (bootstrap + scene loader) | 🟢 |
-| `CoreTests.cs` (NUnit EditMode tests) | 🟢 |
-
----
+Hh, EventBus, ServiceLocator, GameEvents, VillageState, MissionSO, GameManager, CoreTests.
 
 ## 🟢 Phase 2 — Memory Data Layer
-
-| Task | Status |
-|---|---|
-| `EmotionalTone.cs` enum + palette helper | 🟢 |
-| `MoralChoice.cs` + `CleanseOutcome.cs` enums | 🟢 |
-| `VillagerSO.cs` | 🟢 |
-| `MemoryNodeSO.cs` (canonical Memory Card schema) | 🟢 |
-| `MemoryConnectionSO.cs` (Echo Web link) | 🟢 |
-| `VillagerMemoryMapSO.cs` (node graph) | 🟢 |
-| `MemoryHerb.cs` (Lavender + Valerian schema) | 🟢 |
-| `TariffSO.cs` (per-choice tariff data) | 🟢 |
-
----
+EmotionalTone, MoralChoice, CleanseOutcome, VillagerSO, MemoryNodeSO, MemoryConnectionSO, VillagerMemoryMapSO, MemoryHerb, TariffSO.
 
 ## 🟢 Phase 3 — Player + Interactions
-
-| Task | Status |
-|---|---|
-| `Interactable.cs` (abstract base) | 🟢 |
-| `PlayerController.cs` (Input System + legacy fallback) | 🟢 |
-| `MemoryOrbInteractable.cs` (shader-driven clarity/crack/tint) | 🟢 |
-| `HollowDoorInteractable.cs` | 🟢 |
-| `HerbHarvestInteractable.cs` | 🟢 |
-| `KettleInteractable.cs` | 🟢 |
-| `DayCycleManager.cs` (sun + ambient curves) | 🟢 |
-| `LumenLightController.cs` (time-of-day → Lumen intensities) | 🟢 |
-| `InteractionPromptUI.cs` | 🟢 |
-
----
+Interactable, PlayerController, MemoryOrbInteractable, HollowDoorInteractable, HerbHarvestInteractable, KettleInteractable, DayCycleManager, LumenLightController, InteractionPromptUI.
 
 ## 🟢 Phase 4 — Mini-Games
-
-| Task | Status |
-|---|---|
-| `MiniGameBase.cs` (abstract state machine) | 🟢 |
-| `PolishMiniGame.cs` (4-quadrant coverage + milestone + reveal + auto-complete) | 🟢 |
-| `CleanseMiniGame.cs` (UV crack-trace + 4 outcomes + core protection) | 🟢 |
-
----
+MiniGameBase, PolishMiniGame, CleanseMiniGame.
 
 ## 🟢 Phase 5 — UI
-
-| Task | Status |
-|---|---|
-| `DialogueUI.cs` (Bamao parchment + typewriter + choices) | 🟢 |
-| `ChoiceCardUI.cs` (4-option moral with tariff preview) | 🟢 |
-| `EveningLedgerUI.cs` (day summary + 3 slots + autosave) | 🟢 |
-| `TeaBrewingUI.cs` (herb pick + 90s timer + auto-complete) | 🟢 |
-| `CodexUI.cs` (tooltip + Memory Map view) | 🟢 |
-| `ComfortToolsMenu.cs` (Gentle Mode, AutoComplete toggles, color-blind, subtitle, one-hand) | 🟢 |
-| `ToneCompassCard.cs` (first-launch primer) | 🟢 |
-| `HUDController.cs` (day + coin + held memory) | 🟢 |
-| `MainMenuController.cs` (Open The Hollow CTA) | 🟢 |
-
----
+DialogueUI, ChoiceCardUI, EveningLedgerUI, TeaBrewingUI, CodexUI, ComfortToolsMenu, ToneCompassCard, HUDController, MainMenuController.
 
 ## 🟢 Phase 6 — Yarn Integration
-
-| Task | Status |
-|---|---|
-| Yarn Spinner package install | ⬜ (user, after manifest pull) |
-| `YarnVillageStateBridge.cs` (compile-guarded by YARN_SPINNER_PRESENT) | 🟢 |
-| `Doris_M1.yarn` (9 nodes, 3 polish outcomes) | 🟢 |
-| `Gerrold_M2.yarn` (10 nodes, 4 moral choices, 5 dream variants) | 🟢 |
-| `Marin_Notes.yarn` (predecessor hooks) | 🟢 |
-| `Pickle.yarn` (4 cat quotes) | 🟢 |
-| `Codex.yarn` (6 examine tooltips) | 🟢 |
-
----
+YarnVillageStateBridge (compile-guarded), Doris_M1.yarn, Gerrold_M2.yarn, Marin_Notes.yarn, Pickle.yarn, Codex.yarn.
+(Yarn Spinner package install ⬜ — user, after pull.)
 
 ## 🟢 Phase 7 — Cutscenes
-
-| Task | Status |
-|---|---|
-| `MemoryDreamSequencer.cs` (Dream 1 + 5 Dream 2 variants) | 🟢 |
-| `ListenSceneSequencer.cs` | ⬜ (M2 wiring, Phase 9 scene step) |
-| Timeline assets (Dream 1, Dream 2×5, Opening, Outro) | ⬜ (require Unity-side authoring) |
-
----
+MemoryDreamSequencer, **ListenSceneSequencer (NEW)**. Timeline assets ⬜ (Unity-side).
 
 ## 🟢 Phase 8 — Save + Ripple + Pickle + Mission
-
-| Task | Status |
-|---|---|
-| `VillageStateSnapshot.cs` | 🟢 |
-| `SaveService.cs` (atomic + power-fail safe) | 🟢 |
-| `RippleEngine.cs` | 🟢 |
-| `PickleAI.cs` | 🟢 |
-| `MissionRunner.cs` (event-driven orchestration) | 🟢 |
-
----
+VillageStateSnapshot, SaveService, RippleEngine, PickleAI, MissionRunner.
 
 ## ⬜ Phase 9 — Scenes (Unity-side authoring)
-
-Scenes require **Unity-side authoring** (not scriptable from headless tooling). The PR documents exactly what to drag into each scene. See `Docs/SCENE_ASSEMBLY_GUIDE.md` (added in this PR) for step-by-step.
-
-| Task | Status |
-|---|---|
-| `00_Bootstrap.unity` | ⬜ (Unity-side) |
-| `01_MainMenu.unity` | ⬜ (Unity-side) |
-| `02_Mission01_Lane.unity` | ⬜ (Unity-side) |
-| `03_Mission01_Hollow.unity` | ⬜ (Unity-side) |
-| `04_Mission02_Garden.unity` | ⬜ (Unity-side) |
-| `05_Mission02_Cottage.unity` | ⬜ (Unity-side) |
-| `Scenes In Build` list updated | ⬜ (Unity-side) |
+See `Docs/SCENE_ASSEMBLY_GUIDE.md` for the 6-step procedure (~10–20 min per scene).
+**Now made easier by the new `Hearthbound → Create Mission 1-2 Seed Assets` Editor menu.**
 
 ---
 
@@ -158,11 +52,37 @@ Scenes require **Unity-side authoring** (not scriptable from headless tooling). 
 | Task | Status |
 |---|---|
 | Secret-scan all C# + .yarn files | 🟢 (no secrets) |
-| EditMode unit tests (8 tests in CoreTests.cs) | 🟢 |
+| EditMode unit tests | 🟢 **21 tests** (was 8) |
 | PlayMode integration test | ⬜ (deferred — requires scenes) |
 | README.md build section | 🟢 |
 | CHANGELOG.md | 🟢 |
 | Final PR to `main` | 🟡 (PR #7 open) |
+
+---
+
+## 🔧 Phase 10.5 — Bug Fix Cycle  (NEW)
+
+Console errors reported after first pull. All resolved in this commit cluster.
+
+| # | Error | Resolution |
+|---|---|---|
+| CS1739 in SaveService.cs:43 | `isAutosave` named arg didn't exist on event ctor | Changed to positional argument `slot < 0` |
+| CS0234 `Player` ns missing in MiniGames | MiniGames asmdef lacked `HearthboundHollow.Player` reference | Added Player ref to MiniGames asmdef |
+| CS0246 `MemoryOrbInteractable` not found | Same root cause as CS0234 | Same fix |
+| "Project has invalid dependencies" at editor boot | `com.unity.textmeshpro 3.0.9` deprecated in Unity 6 (folded into ugui 2.0) | Removed from manifest.json |
+| (preempt) CS0234 in YarnVillageStateBridge | When user installs Yarn, the SaveService dep wouldn't resolve | Added `HearthboundHollow.Save` to Dialogue asmdef |
+
+---
+
+## 🆕 Phase 11 — Quality-of-Life Tooling
+
+| Item | Status | Notes |
+|---|---|---|
+| `Editor/SeedAssetGenerator.cs` | 🟢 | One-click menu creates all 17 ScriptableObject seed assets (DOR-001, GER-007, Doris, Gerrold, etc.) — saves ~30 min of right-clicking |
+| `Editor/HearthboundHollow.Editor.asmdef` | 🟢 | Editor-only asmdef so the menu code is excluded from runtime builds |
+| `Settings/HearthboundInput.inputactions` | 🟢 | Pre-configured input actions (Move, Interact, PointerPosition, PointerActive, Pause × 3 control schemes: Keyboard&Mouse, Gamepad, Touch) — drop on Player prefab |
+| `Cutscene/ListenSceneSequencer.cs` | 🟢 | Mission 2 Listen path Timeline driver — was missing from Phase 7 |
+| `Tests/EditMode/SaveAndRippleTests.cs` | 🟢 | +13 NUnit tests (Save round-trip × 5, RippleEngine × 4, MemoryNode × 2, VillagerRuntime × 2). Total EditMode coverage: 21 tests |
 
 ---
 
@@ -177,6 +97,9 @@ Scenes require **Unity-side authoring** (not scriptable from headless tooling). 
 | D-005 | InteractionPromptUI lives in Player asmdef | Phase 5 | Avoids UI→Player dep cycle |
 | D-006 | YarnVillageStateBridge compile-guarded by `YARN_SPINNER_PRESENT` | Phase 6 | Bridge compiles before Yarn package install |
 | D-007 | Scene authoring is Unity-side, scripts are GitHub-side | Phase 9 | `.unity` files contain GUIDs to assets not yet on disk |
+| **D-008** | **Drop `com.unity.textmeshpro` from manifest** | Phase 10.5 | Unity 6 folded TMP into `com.unity.ugui` 2.0; standalone package no longer exists |
+| **D-009** | **Cinemachine integration via reflection in ListenSceneSequencer** | Phase 11 | Avoids hard compile dep on `com.unity.cinemachine` for the Cutscene asmdef |
+| **D-010** | **Seed asset generation via Editor menu, not committed .asset files** | Phase 11 | Avoids GUID/.meta race conditions; idempotent + safe to re-run |
 
 ---
 
@@ -184,32 +107,18 @@ Scenes require **Unity-side authoring** (not scriptable from headless tooling). 
 
 | # | Item | Severity | Status |
 |---|---|---|---|
-| (none open) | | | |
+| All Phase-10.5 compile errors | High | ✅ Resolved |
 
 ---
 
-## Files Landed (Phase 0–10)
+## Files Landed (Phase 0–11)
 
-**C# scripts:** 32 files, ~4 k lines
-- Core (7): Hh, EventBus, ServiceLocator, GameEvents, VillageState, MissionSO, GameManager
-- Memory (8): EmotionalTone, MoralChoice, VillagerSO, MemoryNodeSO, MemoryConnectionSO, VillagerMemoryMapSO, MemoryHerb, TariffSO
-- Player (9): Interactable, PlayerController, MemoryOrbInteractable, HollowDoorInteractable, HerbHarvestInteractable, KettleInteractable, DayCycleManager, LumenLightController, InteractionPromptUI
-- MiniGames (3): MiniGameBase, PolishMiniGame, CleanseMiniGame
-- UI (9): DialogueUI, ChoiceCardUI, EveningLedgerUI, TeaBrewingUI, CodexUI, ComfortToolsMenu, ToneCompassCard, HUDController, MainMenuController
-- Dialogue (1): YarnVillageStateBridge
-- Cutscene (1): MemoryDreamSequencer
-- Save (2): SaveService, VillageStateSnapshot
-- Mission (3): MissionRunner, RippleEngine, PickleAI
-- Tests (1): CoreTests (8 NUnit tests)
-
-**Yarn scripts:** 5 files
-- Doris_M1.yarn (9 nodes), Gerrold_M2.yarn (10 nodes), Marin_Notes.yarn (3 nodes), Pickle.yarn (4 nodes), Codex.yarn (6 nodes)
-
-**Docs:** 4 files
-- ARCHITECTURE.md, PROGRESS.md, EXISTING_ASSETS_INDEX.md, SCENE_ASSEMBLY_GUIDE.md (added in Phase 10)
-
-**Asmdefs:** 12 files (10 product + 2 test)
+**C# scripts:** 35 files (+3: ListenSceneSequencer, SeedAssetGenerator, SaveAndRippleTests), ~5 k lines
+**Asmdefs:** 13 (+1: HearthboundHollow.Editor)
+**Yarn dialogue:** 5 files unchanged
+**Input Actions:** 1 file (NEW) — `HearthboundInput.inputactions`
+**Docs:** 6 (ARCHITECTURE, PROGRESS, EXISTING_ASSETS_INDEX, SCENE_ASSEMBLY_GUIDE, CHANGELOG, and this Bug Fix Cycle section)
 
 ---
 
-*Last updated: end of Phase 10. PR #7 open.*
+*Last updated: end of Phase 10.5 + Phase 11. PR #7 open with 4 compile-error fixes + 5 QoL additions.*
