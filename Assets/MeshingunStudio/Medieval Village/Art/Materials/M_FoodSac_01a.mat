@@ -24,8 +24,9 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_FoodSac_01a
-  m_Shader: {fileID: -6465566751694194690, guid: 2df30f81845e4884b96f9291b15cf18e,
-    type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 2df30f81845e4884b96f9291b15cf18e, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ALPHATEST_ON
   - _SURFACE_TYPE_TRANSPARENT
@@ -34,8 +35,8 @@ Material:
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
-  m_DoubleSidedGI: 1
-  m_CustomRenderQueue: 2475
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 3000
   stringTagMap:
     MotionVector: User
     RenderType: Transparent
@@ -46,6 +47,7 @@ Material:
   - RayTracingPrepass
   - MOTIONVECTORS
   - DepthOnly
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -155,6 +157,7 @@ Material:
     - _Bend_Strength: 0.01
     - _Blend: 0
     - _BlendMode: 0
+    - _BlendModePreserveSpecular: 0
     - _CastShadows: 1
     - _Color_Multiply: 1
     - _Color_Multiply2_: 1
@@ -167,6 +170,7 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _EmissiveIntensity: 9.87
     - _EnableBlendModePreserveSpecularLighting: 1
     - _EnableFogOnTransparent: 1
@@ -186,6 +190,7 @@ Material:
     - _SmoothnessIntensity: 0.53
     - _Speed: 0.1
     - _SrcBlend: 5
+    - _SrcBlendAlpha: 1
     - _StencilRef: 0
     - _StencilRefDepth: 8
     - _StencilRefDistortionVec: 4
@@ -225,12 +230,9 @@ Material:
     m_Colors:
     - Color_9999a74f96034bfd8f70d82adf6bdcbd: {r: 0, g: 0.38447738, b: 1, a: 1}
     - Color_AF14EE56: {r: 1, g: 1, b: 1, a: 0}
-    - Color_fcf0d71d110b460c9a774db2f4ef67b1: {r: 0.745283, g: 0.42537376, b: 0.42537376,
-        a: 0}
-    - Color_fcf0d71d110b460c9a774db2f4ef67b1_1: {r: 0.745283, g: 0.745283, b: 0.745283,
-        a: 1}
-    - Color_fcf0d71d110b460c9a774db2f4ef67b1_2: {r: 0.7169812, g: 0.28070486, b: 0.28070486,
-        a: 0}
+    - Color_fcf0d71d110b460c9a774db2f4ef67b1: {r: 0.745283, g: 0.42537376, b: 0.42537376, a: 0}
+    - Color_fcf0d71d110b460c9a774db2f4ef67b1_1: {r: 0.745283, g: 0.745283, b: 0.745283, a: 1}
+    - Color_fcf0d71d110b460c9a774db2f4ef67b1_2: {r: 0.7169812, g: 0.28070486, b: 0.28070486, a: 0}
     - Color_fcf0d71d110b460c9a774db2f4ef67b1_3: {r: 0, g: 0, b: 0, a: 0}
     - Color_fcf0d71d110b460c9a774db2f4ef67b1_4: {r: 0, g: 0, b: 0, a: 0}
     - Color_fcf0d71d110b460c9a774db2f4ef67b1_5: {r: 0, g: 0, b: 0, a: 0}
@@ -246,6 +248,7 @@ Material:
     - _EmissiveColor: {r: 1, g: 0.6787144, b: 0.25, a: 0}
     - _WindMovement: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &4069523340853479038
 MonoBehaviour:
   m_ObjectHideFlags: 11
@@ -258,4 +261,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  version: 5
+  version: 10

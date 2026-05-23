@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  version: 5
+  version: 10
 --- !u!114 &-6489221024326741359
 MonoBehaviour:
   m_ObjectHideFlags: 11
@@ -37,8 +37,9 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_WoodenObjects_02a
-  m_Shader: {fileID: -6465566751694194690, guid: 266733e31d1df2348a4e020d296c86f6,
-    type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 266733e31d1df2348a4e020d296c86f6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ALPHATEST_ON
   m_InvalidKeywords:
@@ -56,6 +57,7 @@ Material:
   - TransparentBackface
   - RayTracingPrepass
   - MOTIONVECTORS
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -163,10 +165,11 @@ Material:
     - _AlphaCutoffEnable: 0
     - _AlphaDstBlend: 0
     - _AlphaSrcBlend: 1
-    - _AlphaToMask: 0
+    - _AlphaToMask: 1
     - _AlphaToMaskInspectorValue: 0
     - _Blend: 0
     - _BlendMode: 0
+    - _BlendModePreserveSpecular: 0
     - _CastShadows: 1
     - _Color_Multiply2_: 1
     - _ConservativeDepthOffsetEnable: 0
@@ -178,6 +181,7 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 0
+    - _DstBlendAlpha: 0
     - _EnableBlendModePreserveSpecularLighting: 1
     - _EnableFogOnTransparent: 1
     - _MaskUv: 1
@@ -195,6 +199,7 @@ Material:
     - _SecondTextureTiling: 1
     - _SnowHeight: 0
     - _SrcBlend: 1
+    - _SrcBlendAlpha: 1
     - _StencilRef: 0
     - _StencilRefDepth: 8
     - _StencilRefDistortionVec: 4
@@ -239,13 +244,12 @@ Material:
     - Color_fcf0d71d110b460c9a774db2f4ef67b1: {r: 1, g: 1, b: 1, a: 0}
     - Color_fcf0d71d110b460c9a774db2f4ef67b1_1: {r: 1, g: 1, b: 1, a: 1}
     - Color_fcf0d71d110b460c9a774db2f4ef67b1_2: {r: 1, g: 1, b: 1, a: 0}
-    - Color_fcf0d71d110b460c9a774db2f4ef67b1_3: {r: 0.23529413, g: 0.2392157, b: 0.23137257,
-        a: 0}
-    - Color_fcf0d71d110b460c9a774db2f4ef67b1_4: {r: 0.9490197, g: 0, b: 0.26666668,
-        a: 0}
+    - Color_fcf0d71d110b460c9a774db2f4ef67b1_3: {r: 0.23529413, g: 0.2392157, b: 0.23137257, a: 0}
+    - Color_fcf0d71d110b460c9a774db2f4ef67b1_4: {r: 0.9490197, g: 0, b: 0.26666668, a: 0}
     - Color_fcf0d71d110b460c9a774db2f4ef67b1_5: {r: 1, g: 1, b: 1, a: 0}
     - Vector2_a2eabf39adb94f15b288ca76d631bb9d: {r: 0, g: 0, b: 0, a: 0}
     - _Color2: {r: 1, g: 0.91372555, b: 0.8000001, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1

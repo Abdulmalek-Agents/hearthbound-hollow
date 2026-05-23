@@ -8,8 +8,9 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_FakeCloud
-  m_Shader: {fileID: -6465566751694194690, guid: 93df32a12ed78e94da10d63eed0f0c0b,
-    type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 93df32a12ed78e94da10d63eed0f0c0b, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords:
@@ -29,6 +30,7 @@ Material:
   - TransparentBackface
   - RayTracingPrepass
   - TransparentDepthPrepass
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -37,6 +39,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SampleTexture2D_aacf2c6352ed4f56b497eb5ca078107e_Texture_1:
+        m_Texture: {fileID: 2800000, guid: abc00000000007786217463468289236, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_aacf2c6352ed4f56b497eb5ca078107e_Texture_1_Texture2D:
         m_Texture: {fileID: 2800000, guid: abc00000000007786217463468289236, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -67,6 +73,7 @@ Material:
     - _AlphaToMaskInspectorValue: 0
     - _Blend: 0
     - _BlendMode: 0
+    - _BlendModePreserveSpecular: 0
     - _CastShadows: 1
     - _ConservativeDepthOffsetEnable: 0
     - _Cull: 0
@@ -78,6 +85,7 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 1
     - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _EnableBlendModePreserveSpecularLighting: 0
     - _EnableFogOnTransparent: 1
     - _OpaqueCullMode: 2
@@ -91,6 +99,7 @@ Material:
     - _RenderQueueType: 4
     - _RequireSplitLighting: 0
     - _SrcBlend: 5
+    - _SrcBlendAlpha: 1
     - _StencilRef: 0
     - _StencilRefDepth: 0
     - _StencilRefDistortionVec: 4
@@ -120,12 +129,12 @@ Material:
     - _ZWrite: 0
     - _ZWriteControl: 0
     m_Colors:
-    - Color_63d7c3d86ae846c696c58a8d1ef2ae42: {r: 0.8301887, g: 0.78304416, b: 0.70879316,
-        a: 0.9843137}
+    - Color_63d7c3d86ae846c696c58a8d1ef2ae42: {r: 0.8301887, g: 0.78304416, b: 0.70879316, a: 0.9843137}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &6431143137967980166
 MonoBehaviour:
   m_ObjectHideFlags: 11
@@ -138,7 +147,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  version: 5
+  version: 10
 --- !u!114 &7621178334998607433
 MonoBehaviour:
   m_ObjectHideFlags: 11
