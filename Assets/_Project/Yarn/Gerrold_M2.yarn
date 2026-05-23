@@ -1,0 +1,131 @@
+title: Gerrold_M2_Start
+tags: mission2 gerrold widower
+---
+// Gerrold Pell — the widower's request, Mission 2.
+// Per Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md
+// Variables:
+//   $trust_gerrold (int), $tea_brewed (string herb id),
+//   $cleanse_quality (Perfect/Acceptable/Sloppy/CrossedCore)
+//   $choice_made (Erase/Cleanse/Listen/Defer)
+
+<<eyes_look_at "player">>
+Gerrold: You're the Keeper Doris spoke about.
+Gerrold: I don't have a long way of saying this.
+Gerrold: I have a memory of my wife. The morning she died.
+Gerrold: I would like you to take it away.
+
+-> "I'm so sorry, Gerrold."
+    Gerrold: ... yes. Yes.
+    <<jump Gerrold_M2_RequestPause>>
+-> "Tell me more first."
+    Gerrold: I don't sleep. I can't go in that room. I've tried.
+    <<jump Gerrold_M2_RequestPause>>
+-> (nod, silent)
+    Gerrold: ... thank you.
+    <<jump Gerrold_M2_RequestPause>>
+
+===
+
+title: Gerrold_M2_RequestPause
+---
+Gerrold: I have lavender. I brought it. For the tea you make.
+Gerrold: Doris said... if I drink it, I'll be able to talk about it. About her.
+<<adjust_trust "gerrold" 3>>
+Gerrold: I'll wait. Take your time.
+<<dialogue_end>>
+<<offer_tea_brewing>>
+
+===
+
+title: Gerrold_M2_AfterTea_Lavender
+---
+Gerrold: ... that's — that's lavender. From the back garden, isn't it?
+Gerrold: Margery would have liked that.
+<<adjust_trust "gerrold" 5>>
+Gerrold: I can talk about it now. I think.
+<<jump Gerrold_M2_TellAboutMargery>>
+
+===
+
+title: Gerrold_M2_AfterTea_Valerian
+---
+Gerrold: Valerian — bitter. I always hated it. But it works.
+Gerrold: I... feel less afraid.
+<<adjust_trust "gerrold" 3>>
+<<jump Gerrold_M2_TellAboutMargery>>
+
+===
+
+title: Gerrold_M2_TellAboutMargery
+---
+Gerrold: Margery. Margery Pell.
+Gerrold: We were married thirty-six years. She died in our bed.
+Gerrold: It was a Sunday. There was bread on the counter — Doris had brought it the day before.
+<<echo_reveal "DOR-001" "GER-007-kitchen">>
+Gerrold: ... your eyes did something just then. Did I say something?
+Gerrold: No. Let me just give you the memory.
+
+<<offer_choice "GER-007">>
+
+===
+
+title: Gerrold_M2_ChoiceErase
+---
+Gerrold: ... oh. Oh, that's — that's what I asked for.
+Gerrold: I can't — I can't see her face now. I can only see... a shape.
+Gerrold: That's what I asked for. Right? That's what I asked for.
+<<adjust_trust "gerrold" -5>>
+<<adjust_vow "vow1" -10>>
+<<adjust_vow "vow3" -3>>
+<<dialogue_end>>
+<<play_cutscene "Dream2_Erase">>
+
+===
+
+title: Gerrold_M2_ChoiceCleanse
+---
+Gerrold: You haven't taken her. You've just — softened it.
+Gerrold: I can think about that morning without going to bed for the day.
+Gerrold: I don't know what to call that.
+<<adjust_trust "gerrold" 10>>
+<<adjust_vow "vow1" 5>>
+<<adjust_vow "vow3" 3>>
+<<dialogue_end>>
+<<play_cutscene "Dream2_Cleanse">>
+
+===
+
+title: Gerrold_M2_ChoiceListen
+---
+Gerrold: ... you don't want the memory.
+Gerrold: You're just... going to sit here. With me. While I tell it.
+Gerrold: ... all right. All right.
+<<adjust_trust "gerrold" 15>>
+<<adjust_vow "vow3" 10>>
+<<adjust_vow "vow7" 5>>
+<<dialogue_end>>
+<<play_cutscene "Dream2_Listen">>
+
+===
+
+title: Gerrold_M2_ChoiceDefer
+---
+Gerrold: You took it. But you didn't ... do anything to it.
+Gerrold: ... I think that's all right, for tonight.
+<<adjust_trust "gerrold" 2>>
+<<dialogue_end>>
+<<play_cutscene "Dream2_Defer">>
+
+===
+
+title: Gerrold_M2_AfterCleanse_CrossedCore
+---
+Gerrold: ... something is missing. I can feel it.
+Gerrold: I — I can't remember the color of her dress. The one she wore on Sundays.
+Gerrold: ... I know I should know.
+<<adjust_trust "gerrold" -10>>
+<<adjust_memory_integrity "gerrold" -25>>
+<<dialogue_end>>
+<<play_cutscene "Dream2_CrossedCore">>
+
+===
