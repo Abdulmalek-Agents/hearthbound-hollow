@@ -135,13 +135,17 @@ namespace HearthboundHollow.EditorTools
             }
 
             // Build ComfortToolsMenu inside a Settings panel.
+            // NOTE Phase 25 hotfix: BuildSettingsPanel now returns the
+            // always-active script-HOST. Its visual CHILD is already hidden.
+            // Do NOT deactivate the host or ComfortToolsMenu.Show() couldn't
+            // re-light its visual without self-heal. (Self-heal is in place
+            // as belt-and-braces, but the wiring is correct without it now.)
             var canvas = Object.FindFirstObjectByType<Canvas>();
             if (canvas != null)
             {
                 var settingsPanel = BuildSettingsPanel(canvas.transform, out var comfort);
                 ctrl.settingsPanel = settingsPanel;
                 ctrl.comfortToolsMenu = comfort;
-                settingsPanel.SetActive(false);
             }
 
             // Attach the save coordinator.
@@ -275,18 +279,31 @@ namespace HearthboundHollow.EditorTools
             EnsureEventSystem();
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Two-layer pattern: the script-host GameObject stays ACTIVE so
+        // Update() listens for Escape; a child "Visual" GameObject carries
+        // the visible UI and is what Pause()/Resume() toggle. Previously
+        // we deactivated the host, which silently killed Esc handling.
         private static PauseMenuUI BuildPauseMenu(Transform canvas)
         {
-            var rootGO = new GameObject("PauseMenu", typeof(RectTransform));
-            rootGO.transform.SetParent(canvas, false);
-            var bg = rootGO.AddComponent<Image>();
+            // 1) Script-host — always active, empty RectTransform spanning the canvas.
+            var hostGO = new GameObject("PauseMenu", typeof(RectTransform));
+            hostGO.transform.SetParent(canvas, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+
+            // 2) Visual root — CHILD of host, toggled by Pause()/Resume().
+            var visualGO = new GameObject("Visual", typeof(RectTransform));
+            visualGO.transform.SetParent(hostGO.transform, false);
+            var bg = visualGO.AddComponent<Image>();
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.78f);
-            var rt = bg.rectTransform;
-            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            var bgRT = bg.rectTransform;
+            bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero; bgRT.offsetMax = Vector2.zero;
 
             var panel = new GameObject("Panel", typeof(RectTransform));
-            panel.transform.SetParent(rootGO.transform, false);
+            panel.transform.SetParent(visualGO.transform, false);
             var pImg = panel.AddComponent<Image>();
             pImg.color = new Color(0.10f, 0.08f, 0.06f, 0.96f);
             var pRT = pImg.rectTransform;
@@ -315,8 +332,9 @@ namespace HearthboundHollow.EditorTools
             var quit = MakeButton(panel.transform, "Btn_QuitToDesktop",     "Quit to Desktop",
                 new Vector2(0.10f, 0.17f), new Vector2(0.90f, 0.27f));
 
-            var pause = rootGO.AddComponent<PauseMenuUI>();
-            pause.root = rootGO;
+            // Script lives on the HOST (always active). Wire `root` → visual child.
+            var pause = hostGO.AddComponent<PauseMenuUI>();
+            pause.root = visualGO;
             pause.titleLabel = title;
             pause.hintLabel = hint;
             pause.resumeButton = resume;
@@ -324,22 +342,33 @@ namespace HearthboundHollow.EditorTools
             pause.saveAndQuitButton = saveQuit;
             pause.quitToDesktopButton = quit;
             pause.mainMenuSceneName = "01_MainMenu";
-            rootGO.SetActive(false);
+
+            // Hide ONLY the visual child — host stays active so Update() runs.
+            visualGO.SetActive(false);
             return pause;
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Two-layer pattern (see BuildPauseMenu comment) so the H key keeps
+        // working while the overlay is hidden.
         private static HelpOverlayUI BuildHelpOverlay(Transform canvas)
         {
-            var rootGO = new GameObject("HelpOverlay", typeof(RectTransform));
-            rootGO.transform.SetParent(canvas, false);
-            var bg = rootGO.AddComponent<Image>();
+            var hostGO = new GameObject("HelpOverlay", typeof(RectTransform));
+            hostGO.transform.SetParent(canvas, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+
+            var visualGO = new GameObject("Visual", typeof(RectTransform));
+            visualGO.transform.SetParent(hostGO.transform, false);
+            var bg = visualGO.AddComponent<Image>();
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.82f);
-            var rt = bg.rectTransform;
-            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            var bgRT = bg.rectTransform;
+            bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero; bgRT.offsetMax = Vector2.zero;
 
             var panel = new GameObject("Panel", typeof(RectTransform));
-            panel.transform.SetParent(rootGO.transform, false);
+            panel.transform.SetParent(visualGO.transform, false);
             var pImg = panel.AddComponent<Image>();
             pImg.color = new Color(0.10f, 0.08f, 0.06f, 0.96f);
             var pRT = pImg.rectTransform;
@@ -367,29 +396,38 @@ namespace HearthboundHollow.EditorTools
             var close = MakeButton(panel.transform, "Btn_Close", "Close (H)",
                 new Vector2(0.35f, 0.06f), new Vector2(0.65f, 0.14f));
 
-            var help = rootGO.AddComponent<HelpOverlayUI>();
-            help.root = rootGO;
+            var help = hostGO.AddComponent<HelpOverlayUI>();
+            help.root = visualGO;
             help.titleLabel = title;
             help.subtitleLabel = subtitle;
             help.bodyText = body;
             help.closeButton = close;
             help.toggleKey = KeyCode.H;
-            rootGO.SetActive(false);
+            visualGO.SetActive(false);
             return help;
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Two-layer pattern. The host stays active so ComfortToolsMenu.Show()
+        // can run hot-refresh logic safely.
         private static GameObject BuildSettingsPanel(Transform canvas, out ComfortToolsMenu comfort)
         {
-            var rootGO = new GameObject("SettingsPanel", typeof(RectTransform));
-            rootGO.transform.SetParent(canvas, false);
-            var bg = rootGO.AddComponent<Image>();
+            var hostGO = new GameObject("SettingsPanel", typeof(RectTransform));
+            hostGO.transform.SetParent(canvas, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+
+            var visualGO = new GameObject("Visual", typeof(RectTransform));
+            visualGO.transform.SetParent(hostGO.transform, false);
+            var bg = visualGO.AddComponent<Image>();
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.92f);
-            var rt = bg.rectTransform;
-            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            var bgRT = bg.rectTransform;
+            bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = Vector2.zero; bgRT.offsetMax = Vector2.zero;
 
             var panel = new GameObject("Panel", typeof(RectTransform));
-            panel.transform.SetParent(rootGO.transform, false);
+            panel.transform.SetParent(visualGO.transform, false);
             var pImg = panel.AddComponent<Image>();
             pImg.color = new Color(0.12f, 0.10f, 0.08f, 0.98f);
             var pRT = pImg.rectTransform;
@@ -419,20 +457,23 @@ namespace HearthboundHollow.EditorTools
                 new Vector2(0.08f, 0.50f), new Vector2(0.92f, 0.58f),
                 min: 0, max: 3, value: 1, out var subtitleLabel);
 
-            // Close button
+            // Close button — hides only the visual child; the script-host
+            // stays active so the next Show() call can light it back up.
             var close = MakeButton(panel.transform, "Btn_CloseSettings", "Close",
                 new Vector2(0.35f, 0.05f), new Vector2(0.65f, 0.13f));
-            close.onClick.AddListener(() => rootGO.SetActive(false));
+            close.onClick.AddListener(() => visualGO.SetActive(false));
 
-            comfort = rootGO.AddComponent<ComfortToolsMenu>();
-            comfort.root = rootGO;
+            comfort = hostGO.AddComponent<ComfortToolsMenu>();
+            comfort.root = visualGO;
             comfort.gentleMode = gentleToggle;
             comfort.autoCompletePolish = autoPolish;
             comfort.autoCompleteCleanse = autoCleanse;
             comfort.subtitleSize = subtitleSlider;
             comfort.subtitleSizeLabel = subtitleLabel;
 
-            return rootGO;
+            // Hide visual; host stays active.
+            visualGO.SetActive(false);
+            return hostGO;
         }
 
         private static Toggle BuildToggle(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax)
@@ -506,52 +547,65 @@ namespace HearthboundHollow.EditorTools
             return slider;
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Same two-layer pattern as the rest. The script-host MUST remain
+        // active so Start()/Play() runs the fade-in coroutine.
         private static void AddMissionTitleCard(string title, string tone, string missionSoPath)
         {
             if (Object.FindFirstObjectByType<MissionTitleCard>() != null) return;
             var canvas = Object.FindFirstObjectByType<Canvas>();
             if (canvas == null) return;
 
-            var rootGO = new GameObject("MissionTitleCard", typeof(RectTransform));
-            rootGO.transform.SetParent(canvas.transform, false);
-            var rt = rootGO.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
-            var cg = rootGO.AddComponent<CanvasGroup>();
+            // Host — always active, hosts the script and the CanvasGroup.
+            var hostGO = new GameObject("MissionTitleCard", typeof(RectTransform));
+            hostGO.transform.SetParent(canvas.transform, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+            var cg = hostGO.AddComponent<CanvasGroup>();
+
+            // Visual child — toggled on by Play(), off by the fade-out tail.
+            var visualGO = new GameObject("Visual", typeof(RectTransform));
+            visualGO.transform.SetParent(hostGO.transform, false);
+            var visualRT = visualGO.GetComponent<RectTransform>();
+            visualRT.anchorMin = Vector2.zero; visualRT.anchorMax = Vector2.one;
+            visualRT.offsetMin = Vector2.zero; visualRT.offsetMax = Vector2.zero;
 
             var bg = new GameObject("Vignette").AddComponent<Image>();
-            bg.transform.SetParent(rootGO.transform, false);
+            bg.transform.SetParent(visualGO.transform, false);
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.85f);
             var bgRT = bg.rectTransform;
             bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
             bgRT.offsetMin = Vector2.zero; bgRT.offsetMax = Vector2.zero;
 
             var day = new GameObject("Day").AddComponent<TextMeshProUGUI>();
-            day.transform.SetParent(rootGO.transform, false);
+            day.transform.SetParent(visualGO.transform, false);
             day.fontSize = 30; day.alignment = TextAlignmentOptions.Center; day.color = new Color(0.86f, 0.78f, 0.66f);
             day.rectTransform.anchorMin = new Vector2(0.2f, 0.62f); day.rectTransform.anchorMax = new Vector2(0.8f, 0.70f);
 
             var titleLabel = new GameObject("Title").AddComponent<TextMeshProUGUI>();
-            titleLabel.transform.SetParent(rootGO.transform, false);
+            titleLabel.transform.SetParent(visualGO.transform, false);
             titleLabel.fontSize = 64; titleLabel.alignment = TextAlignmentOptions.Center; titleLabel.color = new Color(0.97f, 0.85f, 0.62f);
             titleLabel.rectTransform.anchorMin = new Vector2(0.15f, 0.5f); titleLabel.rectTransform.anchorMax = new Vector2(0.85f, 0.62f);
             titleLabel.text = title;
 
             var toneLabel = new GameObject("Tone").AddComponent<TextMeshProUGUI>();
-            toneLabel.transform.SetParent(rootGO.transform, false);
+            toneLabel.transform.SetParent(visualGO.transform, false);
             toneLabel.fontSize = 26; toneLabel.fontStyle = FontStyles.Italic;
             toneLabel.alignment = TextAlignmentOptions.Center; toneLabel.color = new Color(0.86f, 0.78f, 0.66f);
             toneLabel.rectTransform.anchorMin = new Vector2(0.20f, 0.40f); toneLabel.rectTransform.anchorMax = new Vector2(0.80f, 0.48f);
             toneLabel.text = tone;
 
-            var card = rootGO.AddComponent<MissionTitleCard>();
-            card.root = rootGO;
+            var card = hostGO.AddComponent<MissionTitleCard>();
+            card.root = visualGO;
             card.canvasGroup = cg;
             card.dayLabel = day;
             card.titleLabel = titleLabel;
             card.toneLabel = toneLabel;
             card.mission = AssetDatabase.LoadAssetAtPath<MissionSO>(missionSoPath);
             cg.alpha = 0f;
+            // Hide visual until Play() fades it in. Host stays active.
+            visualGO.SetActive(false);
         }
 
         private static void AddPickleCat()
