@@ -16,7 +16,6 @@
 // "— M." matching the Help overlay quote.
 
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using HearthboundHollow.Core;
 using HearthboundHollow.UI;
@@ -32,6 +31,12 @@ namespace HearthboundHollow.Player
 
         [Tooltip("Speaker label shown above each passage. Defaults to \"Marin's Note\".")]
         public string speakerLabel = "Marin's Note";
+
+        [Header("Identity")]
+        [Tooltip("ID recorded into VillageState.readMarinNoteIds once the player " +
+                 "finishes reading every passage. Lets the save system + future " +
+                 "phases know which Marin notes the player has seen.")]
+        public string noteId = "MARIN_NOTE_01_OPENING";
 
         [Header("Pages — sequenced on each press of E")]
         [TextArea(3, 8)]
@@ -59,10 +64,6 @@ namespace HearthboundHollow.Player
         [Header("State")]
         [Tooltip("If true, the note becomes inactive after the player reads all passages.")]
         public bool retireAfterReading = true;
-
-        [Tooltip("VillageState flag set to true the first time the player finishes reading. " +
-                 "Used by other systems to know the predecessor has been introduced.")]
-        public string villageStateFlag = "marinNoteRead";
 
         // ---- runtime ----
         private int _passageIndex = 0;
@@ -109,10 +110,15 @@ namespace HearthboundHollow.Player
             _passageIndex++;
             if (_passageIndex >= passages.Length)
             {
-                // Finished. Mark state, optionally retire.
+                // Finished. Record into VillageState's purpose-built list.
                 var vs = ServiceLocator.Get<VillageState>();
-                if (vs != null && !string.IsNullOrEmpty(villageStateFlag))
-                    vs.SetFlag(villageStateFlag, true);
+                if (vs != null && !string.IsNullOrEmpty(noteId)
+                    && !vs.readMarinNoteIds.Contains(noteId))
+                {
+                    vs.readMarinNoteIds.Add(noteId);
+                    // Marin's first note is a soft warming of the predecessor trail.
+                    vs.predecessorTrailWarmth = Mathf.Clamp(vs.predecessorTrailWarmth + 5, 0, 100);
+                }
 
                 _reading = false;
                 _passageIndex = 0;
@@ -120,9 +126,11 @@ namespace HearthboundHollow.Player
                 if (retireAfterReading)
                 {
                     SetInteractable(false);
-                    // Soft fade: schedule a Hide() after a short delay so the
-                    // player can finish reading the last passage.
-                    StartCoroutine(HideAfterDelay(2.5f));
+                    // Schedule a Hide() after a short delay so the player can finish reading.
+                    if (gameObject.activeInHierarchy && isActiveAndEnabled)
+                        StartCoroutine(HideAfterDelay(2.5f));
+                    else
+                        dialogueUI.Hide();
                 }
                 Hh.Log(LogCategory.UI, "Marin's Note: player finished reading.");
             }
