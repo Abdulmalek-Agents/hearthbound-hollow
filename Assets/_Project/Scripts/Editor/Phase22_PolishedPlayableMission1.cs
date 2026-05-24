@@ -312,6 +312,11 @@ namespace HearthboundHollow.EditorTools
             // Hook EveningLedger.OnEndOfDayConfirmed → MemoryDreamSequencer.PlayDream1
             // The Mission01Director already listens to that event; we add a second
             // listener so the dream plays before the scene transition.
+            //
+            // DreamHook is the runtime class (HearthboundHollow.Mission.DreamHook).
+            // It was previously a private nested class here, but the Editor asmdef
+            // is includePlatforms=["Editor"], which made the component reference
+            // unresolvable at runtime → Dream cutscene silently never played.
             var ledger = Object.FindAnyObjectByType<EveningLedgerUI>();
             var seq = rig.GetComponent<MemoryDreamSequencer>();
             if (ledger != null && seq != null)
@@ -321,24 +326,6 @@ namespace HearthboundHollow.EditorTools
                 bridge.ledger = ledger;
                 bridge.sequencer = seq;
                 Debug.Log("[Hearthbound/Phase 22] Memory Dream hook wired to EveningLedger.");
-            }
-        }
-
-        private class DreamHook : MonoBehaviour
-        {
-            public EveningLedgerUI ledger;
-            public MemoryDreamSequencer sequencer;
-            private void OnEnable()
-            {
-                if (ledger != null) ledger.OnEndOfDayConfirmed += PlayDream;
-            }
-            private void OnDisable()
-            {
-                if (ledger != null) ledger.OnEndOfDayConfirmed -= PlayDream;
-            }
-            private void PlayDream()
-            {
-                if (sequencer != null) sequencer.PlayDream1();
             }
         }
 
