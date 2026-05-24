@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.2.1-mission-1-2-ui-activation-hotfix] — 2026-05-24
+
+**Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
+**Theme:** Phase 25 — fix the user-reported Tone Compass crash and the systemic single-layer UI wiring anti-pattern that produced it.
+
+### Fixed
+
+- **🐞 USER CRASH** — *"Coroutine couldn't be started because the the game object 'ToneCompass' is inactive!"* at `ToneCompassCard.cs:55` from `MainMenuController.OnOpenTheHollow`. The Phase 22 builder was attaching the `ToneCompassCard` script to a GameObject and then deactivating that same GameObject, which made `StartCoroutine` throw the moment `Show()` was called.
+- **Latent bug, same family:** `PauseMenuUI.Update()` and `HelpOverlayUI.Update()` were never firing in built scenes because their script-hosts were deactivated by Phase 23 → Escape and H keys did nothing. This is now fixed for any new build, and the scripts now self-heal on `Show()` / `Pause()` for the existing build.
+- **Latent bug, same family:** `MissionTitleCard.Play()` — same `StartCoroutine` risk.
+
+### Added — defensive patterns
+
+- **Two-layer wiring** in `HearthboundOneClickSetup` (BuildToneCompass, BuildPrimitiveDialogueUI, BuildPrimitiveEveningLedgerUI) and `Phase23_Mission1PolishCapstone` (BuildPauseMenu, BuildHelpOverlay, BuildSettingsPanel, AddMissionTitleCard). The script-host GameObject stays active; a child "Visual" GameObject carries the visible UI and is what gets toggled.
+- **Self-heal Show()** in every UI overlay (`ToneCompassCard`, `MissionTitleCard`, `PauseMenuUI`, `HelpOverlayUI`, `ComfortToolsMenu`, `ChoiceCardUI`, `DialogueUI`, `EveningLedgerUI`, `TeaBrewingUI`). Each method calls `gameObject.SetActive(true)` if dormant, and guards `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Fallback paths render content without animation when coroutines are unavailable.
+
+### Decisions adopted in this release
+
+- **D-033** Procedural UI builders MUST use the two-layer pattern. Script-host stays active; visual child is toggled. Single-layer (deactivating the script-host) is forbidden.
+- **D-034** UI overlay scripts MUST self-heal in their `Show()` (or equivalent entry point). Belt-and-braces — the wiring is correct without it, but it protects against future regressions.
+
+### Files net delta (vs 0.2.0)
+
+- **Modified C# files (11):** `ToneCompassCard.cs`, `MissionTitleCard.cs`, `PauseMenuUI.cs`, `HelpOverlayUI.cs`, `ComfortToolsMenu.cs`, `ChoiceCardUI.cs`, `DialogueUI.cs`, `EveningLedgerUI.cs`, `TeaBrewingUI.cs`, `HearthboundOneClickSetup.cs`, `Phase23_Mission1PolishCapstone.cs`.
+- **Modified docs:** `Docs/PROGRESS.md`, `CHANGELOG.md`.
+- **No new files.** No new asmdef changes. No new package dependencies.
+
+### Player-facing impact
+
+| Before | After |
+|---|---|
+| Click "Open The Hollow" → game crashes immediately with a coroutine error | Click "Open The Hollow" → Tone Compass fades in. Continue is dimmed for one frame. Player reads, toggles Gentle Mode if desired, clicks Continue → Lane scene loads. |
+| Esc / H do nothing during gameplay (after the user reaches Lane via some workaround) | Esc opens the pause menu in every gameplay scene; H opens the help/controls card. |
+| Mission title cards may flicker or not appear if scene loads with a dormant host | Title cards always fade in cleanly. |
+
+### Phase 26/27 — what comes next (in-progress)
+
+- **Phase 26** — HEAT modern UI swap-in for Main Menu / Settings / Pause / Help / HUD. Uses the 59 prefabs already imported under `Assets/Heat - Complete Modern UI/`. Visual upgrade; two-layer wiring established in Phase 25 is preserved.
+- **Phase 27** — Mission 1+2 depth polish against `Docs/Depth_Bible/Mission_1_2_Focus/*`. Audit dialogue beats, surface Marin's note, polish emotional pacing.
+
+---
+
 ## [0.2.0-mission-1-2-polished-playable] — 2026-05-24
 
 **Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
