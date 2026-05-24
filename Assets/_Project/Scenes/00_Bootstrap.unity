@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &920851516
+--- !u!1 &1069127165
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,9 +127,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 920851518}
-  - component: {fileID: 920851517}
-  - component: {fileID: 920851519}
+  - component: {fileID: 1069127167}
+  - component: {fileID: 1069127166}
+  - component: {fileID: 1069127168}
   m_Layer: 0
   m_Name: _GameRoot
   m_TagString: Untagged
@@ -137,13 +137,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &920851517
+--- !u!114 &1069127166
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 920851516}
+  m_GameObject: {fileID: 1069127165}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1c191b3046e64bf3868e50f1932cc29, type: 3}
@@ -153,13 +153,13 @@ MonoBehaviour:
   mainMenuSceneName: 01_MainMenu
   bootstrapSceneName: 00_Bootstrap
   autoLoadMainMenu: 1
---- !u!4 &920851518
+--- !u!4 &1069127167
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 920851516}
+  m_GameObject: {fileID: 1069127165}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -168,19 +168,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &920851519
+--- !u!114 &1069127168
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 920851516}
+  m_GameObject: {fileID: 1069127165}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c3a2f4d5e6b7a8190c1d2e3f4a5b6c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: HearthboundHollow.Core::HearthboundHollow.Core.SettingsServiceBootstrap
---- !u!1 &1443669191
+--- !u!1 &1398526818
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -188,8 +188,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1443669193}
-  - component: {fileID: 1443669192}
+  - component: {fileID: 1398526820}
+  - component: {fileID: 1398526819}
   m_Layer: 0
   m_Name: Splash Camera
   m_TagString: MainCamera
@@ -197,13 +197,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!20 &1443669192
+--- !u!20 &1398526819
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1443669191}
+  m_GameObject: {fileID: 1398526818}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
@@ -248,13 +248,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &1443669193
+--- !u!4 &1398526820
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1443669191}
+  m_GameObject: {fileID: 1398526818}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -267,5 +267,5 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 920851518}
-  - {fileID: 1443669193}
+  - {fileID: 1069127167}
+  - {fileID: 1398526820}
