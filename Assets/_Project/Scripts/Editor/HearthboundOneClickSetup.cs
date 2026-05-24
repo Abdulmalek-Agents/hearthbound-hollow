@@ -274,24 +274,64 @@ namespace HearthboundHollow.EditorTools
             EditorSceneManager.SaveScene(scene, SceneMainMenu);
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Previously: the script-host (rootGO) and the visual root were the
+        // SAME GameObject, and rootGO.SetActive(false) was called. That
+        // deactivated the MonoBehaviour, which crashed `StartCoroutine` the
+        // moment Show() was invoked from "Open The Hollow":
+        //
+        //   "Coroutine couldn't be started because the the game object
+        //    'ToneCompass' is inactive!"
+        //
+        // Now: the GameObject hosting the ToneCompassCard script
+        // ("ToneCompass") stays ACTIVE always. A child GameObject called
+        // "ToneCompass_Visual" carries the dimming background and panel,
+        // and IT gets toggled on/off by Show()/Acknowledge(). The script
+        // can therefore run coroutines at any time.
         private static ToneCompassCard BuildToneCompass(Transform canvasRoot)
         {
-            var rootGO = new GameObject("ToneCompass");
-            rootGO.transform.SetParent(canvasRoot, false);
-            var rootImg = rootGO.AddComponent<Image>();
-            rootImg.color = new Color(0.04f, 0.03f, 0.02f, 0.92f);
-            var rt = rootImg.rectTransform;
-            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            // 1) The script-host. Stretched to fill the canvas (so a child
+            //    Image can dim the screen), but starts WITHOUT any image —
+            //    it's an empty container that just hosts the script and
+            //    stays active.
+            var hostGO = new GameObject("ToneCompass", typeof(RectTransform));
+            hostGO.transform.SetParent(canvasRoot, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+
+            // 2) The visual root — a CHILD of the host. This is what gets
+            //    toggled by Show() / Acknowledge(). It carries the dimming
+            //    overlay so when hidden, it does not steal raycasts.
+            var visualGO = new GameObject("ToneCompass_Visual", typeof(RectTransform));
+            visualGO.transform.SetParent(hostGO.transform, false);
+            var visualImg = visualGO.AddComponent<Image>();
+            visualImg.color = new Color(0.04f, 0.03f, 0.02f, 0.92f);
+            var visualRT = visualImg.rectTransform;
+            visualRT.anchorMin = Vector2.zero; visualRT.anchorMax = Vector2.one;
+            visualRT.offsetMin = Vector2.zero; visualRT.offsetMax = Vector2.zero;
 
             var panelGO = new GameObject("Panel");
-            panelGO.transform.SetParent(rootGO.transform, false);
+            panelGO.transform.SetParent(visualGO.transform, false);
             var panelImg = panelGO.AddComponent<Image>();
             panelImg.color = new Color(0.18f, 0.12f, 0.08f, 0.96f);
             var panelRT = panelImg.rectTransform;
             panelRT.anchorMin = new Vector2(0.18f, 0.18f);
             panelRT.anchorMax = new Vector2(0.82f, 0.82f);
             panelRT.offsetMin = Vector2.zero; panelRT.offsetMax = Vector2.zero;
+
+            // Title (cozy warmth)
+            var titleGO = new GameObject("Title");
+            titleGO.transform.SetParent(panelGO.transform, false);
+            var title = titleGO.AddComponent<TextMeshProUGUI>();
+            title.alignment = TextAlignmentOptions.Center;
+            title.fontSize = 40;
+            title.color = new Color(0.97f, 0.85f, 0.62f);
+            title.text = "A Word Before You Begin";
+            var titleRT = title.rectTransform;
+            titleRT.anchorMin = new Vector2(0.06f, 0.84f);
+            titleRT.anchorMax = new Vector2(0.94f, 0.94f);
+            titleRT.offsetMin = Vector2.zero; titleRT.offsetMax = Vector2.zero;
 
             var bodyGO = new GameObject("Body");
             bodyGO.transform.SetParent(panelGO.transform, false);
@@ -301,17 +341,22 @@ namespace HearthboundHollow.EditorTools
             body.color = new Color(0.95f, 0.90f, 0.78f);
             var bodyRT = body.rectTransform;
             bodyRT.anchorMin = new Vector2(0.06f, 0.28f);
-            bodyRT.anchorMax = new Vector2(0.94f, 0.92f);
+            bodyRT.anchorMax = new Vector2(0.94f, 0.82f);
             bodyRT.offsetMin = Vector2.zero; bodyRT.offsetMax = Vector2.zero;
 
             var continueBtn = MakeUIButton(panelGO.transform, "ContinueBtn", "Continue",
                 new Vector2(0.36f, 0.08f), new Vector2(0.64f, 0.20f), new Vector2(0, 0));
 
-            var compass = rootGO.AddComponent<ToneCompassCard>();
-            compass.root = rootGO;
+            // 3) Attach the script to the HOST (which is always active) and
+            //    point its `root` field at the CHILD visual GameObject.
+            var compass = hostGO.AddComponent<ToneCompassCard>();
+            compass.root = visualGO;
             compass.bodyText = body;
             compass.continueButton = continueBtn;
-            rootGO.SetActive(false);
+
+            // Hide the visual at start. The host stays active, so the script's
+            // Awake/Update/Start all still run.
+            visualGO.SetActive(false);
             return compass;
         }
 
@@ -523,10 +568,20 @@ namespace HearthboundHollow.EditorTools
             return BuildPrimitiveDialogueUI(canvasRoot);
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Two-layer pattern. Host stays active so PresentLine's typewriter
+        // coroutine runs from a live MonoBehaviour. The "Visual" child holds
+        // the parchment background and is what gets toggled.
         private static DialogueUI BuildPrimitiveDialogueUI(Transform canvasRoot)
         {
-            var rootGO = new GameObject("DialogueBox", typeof(RectTransform));
-            rootGO.transform.SetParent(canvasRoot, false);
+            var hostGO = new GameObject("DialogueBox", typeof(RectTransform));
+            hostGO.transform.SetParent(canvasRoot, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+
+            var rootGO = new GameObject("Visual", typeof(RectTransform));
+            rootGO.transform.SetParent(hostGO.transform, false);
             var bg = rootGO.AddComponent<Image>();
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.85f);
             var rt = bg.rectTransform;
@@ -584,12 +639,13 @@ namespace HearthboundHollow.EditorTools
             tplLabelRT.anchorMin = Vector2.zero; tplLabelRT.anchorMax = Vector2.one;
             tplLabelRT.offsetMin = new Vector2(16, 4); tplLabelRT.offsetMax = new Vector2(-16, -4);
 
-            var dlg = rootGO.AddComponent<DialogueUI>();
+            var dlg = hostGO.AddComponent<DialogueUI>();
             dlg.root = rootGO;
             dlg.speakerName = speakerName;
             dlg.lineText = lineText;
             dlg.choiceContainer = choicesGO.transform;
             dlg.choiceButtonPrefab = choiceTemplate;
+            // Host stays active. Only the visual is hidden.
             rootGO.SetActive(false);
             return dlg;
         }
@@ -608,10 +664,18 @@ namespace HearthboundHollow.EditorTools
             return BuildPrimitiveEveningLedgerUI(canvasRoot);
         }
 
+        // ── Phase 25 hotfix ─────────────────────────────────────────
+        // Two-layer pattern. Host stays active.
         private static EveningLedgerUI BuildPrimitiveEveningLedgerUI(Transform canvasRoot)
         {
-            var rootGO = new GameObject("EveningLedger", typeof(RectTransform));
-            rootGO.transform.SetParent(canvasRoot, false);
+            var hostGO = new GameObject("EveningLedger", typeof(RectTransform));
+            hostGO.transform.SetParent(canvasRoot, false);
+            var hostRT = hostGO.GetComponent<RectTransform>();
+            hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
+            hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
+
+            var rootGO = new GameObject("Visual", typeof(RectTransform));
+            rootGO.transform.SetParent(hostGO.transform, false);
             var bg = rootGO.AddComponent<Image>();
             bg.color = new Color(0.03f, 0.02f, 0.01f, 0.94f);
             var rt = bg.rectTransform;
@@ -662,13 +726,14 @@ namespace HearthboundHollow.EditorTools
             var confirmBtn = MakeUIButton(rootGO.transform, "Btn_EndOfDay", "Sleep — End Day 1",
                 new Vector2(0.35f, 0.08f), new Vector2(0.65f, 0.18f), new Vector2(0, 0));
 
-            var ledger = rootGO.AddComponent<EveningLedgerUI>();
+            var ledger = hostGO.AddComponent<EveningLedgerUI>();
             ledger.root = rootGO;
             ledger.dayLabel = dayLabel;
             ledger.coinLabel = coinLabel;
             ledger.summaryProse = prose;
             ledger.heldMemoriesList = memList;
             ledger.confirmEndOfDayButton = confirmBtn;
+            // Host stays active. Only the visual is hidden.
             rootGO.SetActive(false);
             return ledger;
         }
