@@ -3,6 +3,9 @@
 //
 // The Comfort Tools modal. Surfaces Auto-Complete toggles, Gentle Mode,
 // color-blind palette, subtitle size, one-hand control. Per Codex 06.
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Show() now self-heals — matches the rest of the UI hotfix family.
 
 using TMPro;
 using UnityEngine;
@@ -41,7 +44,7 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             if (gentleMode != null) gentleMode.onValueChanged.AddListener(OnGentleMode);
             if (autoCompletePolish != null) autoCompletePolish.onValueChanged.AddListener(v => AutoCompletePolish = v);
             if (autoCompleteCleanse != null) autoCompleteCleanse.onValueChanged.AddListener(v => AutoCompleteCleanse = v);
@@ -55,6 +58,9 @@ namespace HearthboundHollow.UI
 
         public void Show()
         {
+            // Self-heal.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             if (root != null) root.SetActive(true);
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null && gentleMode != null) gentleMode.isOn = vs.gentleModeEnabled;
@@ -62,7 +68,7 @@ namespace HearthboundHollow.UI
 
         public void Hide()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
         }
 
         private void OnGentleMode(bool v)

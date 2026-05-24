@@ -6,6 +6,16 @@
 //
 // Display: Mission name + tone-one-line. Pulled from MissionSO when present;
 // falls back to inspector-set strings.
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Play() previously started a coroutine without guarding for an inactive
+// host. Mirrors the ToneCompass family of bugs — when Phase 23 deactivated
+// the panel-root (which was wired as the script-host), StartCoroutine
+// silently failed. Now Play() self-activates and routes through a
+// hierarchy-guarded path. If the host is inactive-in-hierarchy we just
+// snap to the fully-faded-in state and rely on Unity to advance on the
+// next active frame (rare in practice — only happens if a parent Canvas
+// is disabled, in which case we should not pretend to animate anyway).
 
 using System.Collections;
 using TMPro;
@@ -48,7 +58,10 @@ namespace HearthboundHollow.UI
         private void Awake()
         {
             if (canvasGroup != null) canvasGroup.alpha = 0f;
-            if (root != null) root.SetActive(false);
+            // Only hide a SEPARATE root child — never deactivate the script's
+            // own GameObject, otherwise Start() won't fire and the card never
+            // appears at all.
+            if (root != null && root != gameObject) root.SetActive(false);
         }
 
         private void Start()
@@ -58,8 +71,24 @@ namespace HearthboundHollow.UI
 
         public void Play()
         {
+            // Self-heal: ensure the host is active before requesting a coroutine.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             if (_co != null) StopCoroutine(_co);
-            _co = StartCoroutine(PlayCoroutine());
+            if (gameObject.activeInHierarchy && isActiveAndEnabled)
+            {
+                _co = StartCoroutine(PlayCoroutine());
+            }
+            else
+            {
+                // Defensive: snap to fully-shown state without animation.
+                ApplyContent();
+                if (root != null) root.SetActive(true);
+                if (canvasGroup != null) canvasGroup.alpha = 1f;
+                Hh.Warn(LogCategory.UI,
+                    "MissionTitleCard.Play called while inactive-in-hierarchy. " +
+                    "Snapping to shown state without animation.");
+            }
         }
 
         private IEnumerator PlayCoroutine()
@@ -82,7 +111,7 @@ namespace HearthboundHollow.UI
 
             // Fade out.
             yield return FadeTo(1f, 0f, fadeOutDuration);
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
         }
 
         private IEnumerator FadeTo(float from, float to, float duration)

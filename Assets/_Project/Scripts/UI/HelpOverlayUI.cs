@@ -8,6 +8,12 @@
 //
 // Content varies by control scheme detected at runtime: Keyboard+Mouse,
 // Gamepad, or Touch.
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Same family of bugs as PauseMenuUI — when Phase 23 deactivated the
+// script-host, Update() stopped firing and the H key did nothing. The
+// script-host now stays active; only the visual `root` child gets
+// toggled. Show() self-heals defensively.
 
 using TMPro;
 using UnityEngine;
@@ -19,6 +25,9 @@ namespace HearthboundHollow.UI
     public class HelpOverlayUI : MonoBehaviour
     {
         [Header("Root")]
+        [Tooltip("The visual root that gets toggled. SHOULD be a child of the " +
+                 "script-host GameObject — never set this to the same GameObject " +
+                 "as the script, or Update() won't run and H won't toggle.")]
         public GameObject root;
 
         [Header("Header")]
@@ -42,7 +51,9 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            if (root != null) root.SetActive(false);
+            // Hide only the visual panel — keep the host GameObject active so
+            // Update() can listen for the toggle key.
+            if (root != null && root != gameObject) root.SetActive(false);
             if (closeButton != null) closeButton.onClick.AddListener(Hide);
         }
 
@@ -67,6 +78,10 @@ namespace HearthboundHollow.UI
 
         public void Show()
         {
+            // Defensive self-heal — should never be needed once Phase 23 wiring
+            // is correct, but cheap to keep.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             if (root != null) root.SetActive(true);
             ApplyContent();
             IsOpen = true;
@@ -75,7 +90,7 @@ namespace HearthboundHollow.UI
 
         public void Hide()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             IsOpen = false;
 
             if (markTutorialCompletedOnClose)

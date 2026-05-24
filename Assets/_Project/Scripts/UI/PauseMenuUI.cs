@@ -9,6 +9,16 @@
 //
 // Cozy-by-default: does NOT block players — it's a soft pause with the option
 // to step away. Per Codex 06 (Cozy Comfort + Accessibility).
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Phase 23's procedural builder previously deactivated the script-host
+// GameObject (rootGO.SetActive(false)). That made Update() stop running
+// → the Escape key never opened the pause menu in any gameplay scene.
+//
+// The script now keeps its own GameObject ACTIVE always, and only the
+// visual `root` child is toggled on/off. Pause() self-heals if the host
+// was ever deactivated externally. The Phase 23 builder has been
+// updated to wire `root` to a child Panel (see Phase23 patch).
 
 using System;
 using TMPro;
@@ -21,6 +31,9 @@ namespace HearthboundHollow.UI
     public class PauseMenuUI : MonoBehaviour
     {
         [Header("Root")]
+        [Tooltip("The visual root that gets toggled. SHOULD be a child of the " +
+                 "script-host GameObject — never set this to the same GameObject " +
+                 "as the script, or Update() won't run and Escape won't toggle.")]
         public GameObject root;
 
         [Header("Buttons")]
@@ -51,7 +64,10 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            if (root != null) root.SetActive(false);
+            // Hide only the visual panel — keep the host GameObject active so
+            // Update() can listen for Escape.
+            if (root != null && root != gameObject) root.SetActive(false);
+
             if (titleLabel != null && string.IsNullOrEmpty(titleLabel.text))
                 titleLabel.text = "Paused";
             if (hintLabel != null && string.IsNullOrEmpty(hintLabel.text))
@@ -75,6 +91,10 @@ namespace HearthboundHollow.UI
         public void Pause()
         {
             if (IsPaused) return;
+
+            // Defensive self-heal in case something deactivated us externally.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             IsPaused = true;
             if (root != null) root.SetActive(true);
             if (pauseTimeScale)
@@ -90,7 +110,7 @@ namespace HearthboundHollow.UI
         {
             if (!IsPaused) return;
             IsPaused = false;
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             if (pauseTimeScale) Time.timeScale = _savedTimeScale;
             AudioListener.pause = false;
             Hh.Log(LogCategory.UI, "Pause menu closed.");

@@ -2,8 +2,15 @@
 // Hearthbound Hollow — UI / TeaBrewingUI
 //
 // The kettle interaction screen. The player drops a harvested herb (Lavender
-// or Valerian in M1-2) into the kettle. A 90-second timer ticks (skippable
-// with auto-complete). When done, publishes TeaBrewedEvent.
+// or Valerian in M1-2) into the kettle. A timer ticks (skippable with
+// auto-complete). When done, publishes TeaBrewedEvent.
+//
+// Default duration: 12s — per D-030 (CHANGELOG 0.2.0). Gentle Mode players
+// can extend via SettingsService.
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Show() and StartBrew() now self-heal — same defensive activation
+// pattern as the rest of the UI overlays in this release.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -32,7 +39,7 @@ namespace HearthboundHollow.UI
         public Button autoCompleteButton;
 
         [Header("Tuning")]
-        public float brewDurationSeconds = 90f;
+        public float brewDurationSeconds = 12f; // D-030: short default
         public List<MemoryHerb> availableHerbs = new();
 
         private MemoryHerb _selected;
@@ -41,20 +48,23 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             if (brewingPanel != null) brewingPanel.SetActive(false);
             if (autoCompleteButton != null) autoCompleteButton.onClick.AddListener(AutoComplete);
         }
 
         public void Show()
         {
+            // Self-heal.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             if (root != null) root.SetActive(true);
             BuildHerbButtons();
         }
 
         public void Hide()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             if (_brewCo != null) { StopCoroutine(_brewCo); _brewCo = null; }
             ClearHerbButtons();
         }
@@ -68,6 +78,7 @@ namespace HearthboundHollow.UI
                 if (herb == null) continue;
                 bool unlocked = vs != null && vs.harvestedHerbIds.Contains(herb.herbId);
                 var go = Instantiate(herbButtonPrefab, herbContainer);
+                go.SetActive(true);
                 _spawned.Add(go);
                 var label = go.GetComponentInChildren<TextMeshProUGUI>();
                 if (label != null) label.text = unlocked ? herb.displayName : $"{herb.displayName} (need to harvest)";
@@ -88,11 +99,23 @@ namespace HearthboundHollow.UI
 
         private void StartBrew(MemoryHerb herb)
         {
+            // Self-heal — Show() should have already activated us, but be safe.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             _selected = herb;
             if (brewingPanel != null) brewingPanel.SetActive(true);
             if (brewLabel != null) brewLabel.text = $"Brewing {herb.displayName}…";
             if (brewProgress != null) brewProgress.value = 0f;
-            _brewCo = StartCoroutine(BrewCoroutine());
+
+            if (gameObject.activeInHierarchy && isActiveAndEnabled)
+            {
+                _brewCo = StartCoroutine(BrewCoroutine());
+            }
+            else
+            {
+                // Defensive fallback — finish immediately so the player isn't stuck.
+                FinishBrew();
+            }
         }
 
         private IEnumerator BrewCoroutine()

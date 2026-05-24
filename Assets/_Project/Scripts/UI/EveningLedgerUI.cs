@@ -3,6 +3,10 @@
 //
 // The end-of-day summary panel. Shows accomplishments, memories held, coin
 // balance, and the 3 Save Slot rows + Autosave. Closing it advances the day.
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Show() now self-heals (activates own GameObject if dormant) — matches
+// the rest of the UI hotfix family.
 
 using System.Collections.Generic;
 using TMPro;
@@ -42,7 +46,7 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             WireButtons();
         }
 
@@ -61,6 +65,9 @@ namespace HearthboundHollow.UI
 
         public void Show(string summary, IReadOnlyList<string> heldMemoryTitles)
         {
+            // Self-heal.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             var vs = ServiceLocator.Get<VillageState>();
             if (root != null) root.SetActive(true);
             if (dayLabel != null && vs != null) dayLabel.text = $"Day {vs.currentDayIndex}";
@@ -86,7 +93,7 @@ namespace HearthboundHollow.UI
 
         public void Hide()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
         }
 
         private void SaveSlotPressed(int slot)

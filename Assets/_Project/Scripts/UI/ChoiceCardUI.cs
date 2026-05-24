@@ -3,6 +3,12 @@
 //
 // The 4-option moral choice card (Focus 02 § 5): Erase / Cleanse / Listen /
 // Defer. Each option shows a tariff preview (coin + vow integrity arrows).
+//
+// ── Phase 25 hotfix ─────────────────────────────────────────────
+// Show() now self-heals (activates own GameObject if dormant) and the
+// inactive-panel pattern is preserved. Tile prefab activation is also
+// defensive — Instantiate of an inactive template should produce an
+// active clone for display.
 
 using System;
 using System.Collections.Generic;
@@ -34,11 +40,15 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
         }
 
         public void Show(MemoryNodeSO memory, string promptText, IReadOnlyList<TariffSO> tariffs)
         {
+            // Self-heal — keep the host alive so coroutines (if any) and tile
+            // raycasts both work.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+
             _currentMemory = memory;
             if (root != null) root.SetActive(true);
             if (promptLine != null) promptLine.text = promptText;
@@ -50,6 +60,7 @@ namespace HearthboundHollow.UI
             {
                 if (tariff == null) continue;
                 var go = Instantiate(choiceTilePrefab, choiceContainer);
+                go.SetActive(true); // template prefab may be inactive
                 _spawned.Add(go);
                 WireTile(go, tariff);
             }
@@ -57,7 +68,7 @@ namespace HearthboundHollow.UI
 
         public void Hide()
         {
-            if (root != null) root.SetActive(false);
+            if (root != null && root != gameObject) root.SetActive(false);
             ClearTiles();
         }
 
