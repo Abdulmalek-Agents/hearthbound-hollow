@@ -10,6 +10,39 @@
 
 ---
 
+## 🚨 HOTFIX (2026-05-24 — after first playtest) — re-run Phase 23
+
+The user pressed Play on the polished build and **the game was not playable** — the camera didn't follow the player. Root cause:
+
+`SimpleFollowCamera` and `DreamHook` were declared as **nested classes inside Editor-only files** (Editor asmdef, `includePlatforms = ["Editor"]`). The scene builders attached these MonoBehaviours to runtime GameObjects, but at runtime Unity couldn't resolve the types → camera frozen, Dream cutscene silently broken.
+
+### What landed in the hotfix (5 commits)
+
+| Commit | File | Action |
+|---|---|---|
+| `ef65d14` | `Player/SimpleFollowCamera.cs` (new) | Runtime class in `HearthboundHollow.Player` |
+| `82da499` | `.meta` | GUID for runtime class |
+| `ac9049b` | `Mission/DreamHook.cs` (new) | Runtime class in `HearthboundHollow.Mission` |
+| `3227886` | `.meta` | GUID for runtime class |
+| `ed3a1e0` | `Editor/Phase22_*.cs` | Removed inline `private class DreamHook` |
+| `47a9aed` | `Editor/HearthboundOneClickSetup.cs` | Removed inline `public class SimpleFollowCamera` |
+
+### What the user MUST do after pulling
+
+1. Pull the latest `feat/mission-1-2-architecture`.
+2. Open Unity, wait ~5 s for recompile.
+3. Menu → **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** (one click, ~30 s).
+4. Press **Play**.
+
+The capstone rebuilds every scene from scratch. New scenes reference the runtime classes. Camera now follows. Dream cutscene now fires.
+
+### How this lesson is now in the architecture
+
+- **D-032 (NEW):** Never declare runtime MonoBehaviours inside Editor-asmdef source files. Even nested public classes break at runtime because the Editor assembly has `includePlatforms = ["Editor"]`. Runtime MonoBehaviours always go in their owning runtime asmdef (Player / Mission / UI / Audio / Core / etc.).
+- The Phase 23 diagnostic menu (`Hearthbound → 🔍 Diagnose Phase 23 Build`) was extended to verify the camera component on the Main Camera in every gameplay scene — catches this class of regression early.
+
+---
+
 ## 🎯 Current Status — POLISHED PLAYABLE MISSION 1 + 2 LANDED
 
 **Branch**: `feat/mission-1-2-architecture` (PR #7 open)
@@ -60,6 +93,13 @@ The project now ships a complete **6-scene, fully polished Mission 1 + 2 playabl
 |---|---|---|
 | `Assets/_Project/Scripts/Mission/MainMenuSaveCoordinator.cs` | Bridges UI → Save asmdef. Enables Continue button only when autosave exists; loads on click. | 86 |
 | `Assets/_Project/Scripts/Mission/PauseSaveCoordinator.cs` | Listens to `PauseMenuUI.OnSaveAndQuitRequested` and `DayEndedEvent`; writes autosave with current scene name. | 60 |
+
+### Files added (HOTFIX 2026-05-24 — runtime extraction)
+
+| File | Role | LOC |
+|---|---|---|
+| `Assets/_Project/Scripts/Player/SimpleFollowCamera.cs` | Runtime third-person follow camera. **Was previously a nested class in HearthboundOneClickSetup (Editor-only) — broke runtime.** | 35 |
+| `Assets/_Project/Scripts/Mission/DreamHook.cs` | Runtime bridge from EveningLedger.OnEndOfDayConfirmed → MemoryDreamSequencer.PlayDream1(). **Was previously a private nested class in Phase22 (Editor-only).** | 50 |
 
 ### The capstone builder (Stage 3)
 
@@ -138,7 +178,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 ---
 
-## Decisions Made (D-001 → D-031)
+## Decisions Made (D-001 → D-032)
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
@@ -157,14 +197,15 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | D-025 | Image.Type.Sliced when sprite has 9-slice border | 14 | Scales dialogue panels at any resolution |
 | D-026 | Color fallback for missing Bamao sprites | 14 | Builder never fails |
 | D-027 | Each Phase builder exposes `TryGet*Prefab()` lookups | 14 | Progressive polish chain |
-| **D-028** | **SettingsService is a plain C# class, not a ScriptableObject** | **23** | **PlayerPrefs-backed; settings survive uninstall via OS keystore** |
-| **D-029** | **MainMenuSaveCoordinator + PauseSaveCoordinator live in Mission asmdef** | **23** | **UI stays Save-free; matches DreamHook pattern from Phase 22** |
-| **D-030** | **TeaBrewingUI default duration = 12 s (was 90)** | **24** | **90 s is too long for a first-play loop; the player can still set Gentle Mode for longer timers** |
-| **D-031** | **Mission01Director.sceneAfterEndOfDay defaults to MainMenu but is overridden to "04_Mission02_Garden" by Phase 23** | **23** | **Default stays safe (no Mission 2 = no broken handoff); polish capstone wires the hand-off** |
+| D-028 | SettingsService is a plain C# class, not a ScriptableObject | 23 | PlayerPrefs-backed; settings survive uninstall via OS keystore |
+| D-029 | MainMenuSaveCoordinator + PauseSaveCoordinator live in Mission asmdef | 23 | UI stays Save-free; matches DreamHook pattern from Phase 22 |
+| D-030 | TeaBrewingUI default duration = 12 s (was 90) | 24 | 90 s is too long for a first-play loop; the player can still set Gentle Mode for longer timers |
+| D-031 | Mission01Director.sceneAfterEndOfDay defaults to MainMenu but is overridden to "04_Mission02_Garden" by Phase 23 | 23 | Default stays safe (no Mission 2 = no broken handoff); polish capstone wires the hand-off |
+| **D-032** | **Runtime MonoBehaviours NEVER live in Editor-asmdef files.** Even nested public classes break at runtime because the Editor asmdef has `includePlatforms = ["Editor"]`. Always declare runtime MonoBehaviours in their owning runtime asmdef. | **23 hotfix** | **Caught the "game not playable" regression in the first playtest. Now a hard rule across the codebase.** |
 
 ---
 
-## 🛠️ Editor Menu Items Available (cumulative — 11 total)
+## 🛠️ Editor Menu Items Available (cumulative — 12 total)
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
@@ -176,6 +217,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | `Hearthbound → Phase 15 — Build Medieval Village dressing` | Cottage/fence/well/tree prefab lookups | 15 |
 | `Hearthbound → Phase 18 — Build SFX Library` | Auto-populate SfxLibrarySO from sound pack | 18 |
 | **`Hearthbound → Phase 24 — Build Mission 2 Scenes`** | **Garden + Cottage scene builders** | **24** |
+| `Hearthbound → 🔍 Diagnose Phase 23 Build` | Read-only audit — verifies camera + components in every scene | 23 |
 | `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP | 10.7 |
 | `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn the 17 SOs | 11 |
 | `Hearthbound → Validate Mission 1-2 Seed Assets` | Audit missing seeds | 11 |
@@ -187,7 +229,8 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 1. Pull `feat/mission-1-2-architecture` (or rebase your branch on it).
 2. Wait for Unity recompile (~5–10 s; some phases may need ~30 s on first run if packages reimport).
 3. **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** — one click. Sit back for ~30 s while the capstone runs all 12 phases.
-4. Press **Play**. The flow is:
+4. (Optional) **`Hearthbound → 🔍 Diagnose Phase 23 Build`** to verify everything is wired.
+5. Press **Play**. The flow is:
    - Bootstrap → Main Menu
    - "Open The Hollow" → Tone Compass (first time)
    - Lane → walk to door → "Enter the Hollow"
@@ -213,6 +256,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 - **Phase 23** (Mission 1 polish capstone) — 9 new C# files, 1 master Editor menu, ~1,400 LOC.
 - **Phase 24** (Mission 2 scenes + director) — 2 new C# files, ~1,275 LOC.
+- **HOTFIX** — SimpleFollowCamera + DreamHook extracted to runtime asmdefs.
 - 6-scene Build Settings configured automatically by the capstone.
 - Continue button + autosave round-trip working (Continue is dim until autosave exists).
 - Pause menu in every gameplay scene (Esc).
@@ -237,11 +281,12 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 ---
 
-## 🐞 Known Issues / Follow-Ups (none blocking)
+## 🐞 Known Issues / Follow-Ups
 
 | # | Item | Severity | Status |
 |---|---|---|---|
 | Prior cycles | various | ✅ Resolved |
+| **2026-05-24 hotfix** — SimpleFollowCamera + DreamHook were nested in Editor-only files | **Blocker** | ✅ **Fixed in commits ef65d14..47a9aed** |
 | Phase 14 — sprite auto-detection picking wrong sprite | Low | 🟢 Mitigated — top 3 candidates logged per role; manual Image.sprite override available |
 | Phase 18 — empty SfxLibrary entries when pack folder names don't match keywords | Low | 🟢 Mitigated — warnings logged per missing entry; drop clips manually onto the entry |
 | Phase 23 — Pickle's PickleAI tail bone is null (placeholder sphere has no skeleton) | Cosmetic | 🟡 Acceptable for MVP — PickleAI's headBone/tailBone fields are optional; future polish replaces with real cat mesh |
@@ -250,4 +295,4 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 ---
 
-*Last updated: Phase 23 (Polish Capstone) + Phase 24 (Mission 2 Scenes) landed. Next phase: lightmap bakes + composer cue integration + Yarn Spinner full dialogue handoff (Phase 25+).*
+*Last updated: 2026-05-24 hotfix — SimpleFollowCamera + DreamHook moved to runtime asmdefs. Re-run Phase 23 in Unity to regenerate scenes.*
