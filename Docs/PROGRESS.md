@@ -10,7 +10,74 @@
 
 ---
 
-## 🚨 HOTFIX (2026-05-24 — after first playtest) — re-run Phase 23
+## 🚨 HOTFIX — Phase 25 (2026-05-24, late) — Tone Compass crash + UI activation hardening
+
+**Bug reported by user during first playtest of Phase 23 build:**
+
+```
+Coroutine couldn't be started because the the game object 'ToneCompass' is inactive!
+UnityEngine.MonoBehaviour:StartCoroutine (System.Collections.IEnumerator)
+HearthboundHollow.UI.ToneCompassCard:Show () (at Assets/_Project/Scripts/UI/ToneCompassCard.cs:55)
+HearthboundHollow.UI.MainMenuController:OnOpenTheHollow () (at Assets/_Project/Scripts/UI/MainMenuController.cs:97)
+```
+
+### Root cause — systemic anti-pattern across UI overlays
+
+Every UI overlay (`ToneCompassCard`, `MissionTitleCard`, `PauseMenuUI`, `HelpOverlayUI`, `ComfortToolsMenu`, `ChoiceCardUI`, `DialogueUI`, `EveningLedgerUI`, `TeaBrewingUI`) was wired by the Phase 22 / Phase 23 procedural builders in a **broken single-layer pattern**:
+
+```csharp
+var rootGO = new GameObject("ToneCompass");        // host & visual on the SAME GameObject
+var script = rootGO.AddComponent<ToneCompassCard>();
+script.root = rootGO;                              // root === gameObject
+rootGO.SetActive(false);                           // <-- deactivates the script's host MonoBehaviour
+```
+
+The script-host being inactive has two effects:
+1. **`StartCoroutine` throws** the moment `Show()` is called from a button click (the ToneCompass crash). The user saw this because it's the first overlay opened.
+2. **`Update()` silently stops firing** on `PauseMenuUI` and `HelpOverlayUI` → **Escape never opens the pause menu, H never opens help.** Latent bug — not yet observed because the user crashed before reaching gameplay.
+
+The MissionTitleCard's `Play()` was in the same family of risk.
+
+### The fix — two-layer wiring pattern, codebase-wide
+
+| Layer | Role | Active state |
+|---|---|---|
+| **Host GameObject** | hosts the MonoBehaviour script | **always active** — script's `Awake/Start/Update` and `StartCoroutine` all run |
+| **Visual child GameObject** | carries the dimming background, panel, text | toggled on/off by `Show()` / `Hide()` |
+
+### Files patched in Phase 25
+
+| File | Change |
+|---|---|
+| `UI/ToneCompassCard.cs` | `Awake()` no longer deactivates `gameObject`. `Show()` self-heals (`gameObject.SetActive(true)`) and guards `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Adds a fallback that enables Continue immediately when coroutines aren't viable. |
+| `UI/MissionTitleCard.cs` | Same defensive pattern in `Play()`. Snaps to fully-shown if `StartCoroutine` is unavailable. |
+| `UI/PauseMenuUI.cs` | `Awake()` only hides the visual child; host stays alive for the Esc listener. `Pause()` self-heals. |
+| `UI/HelpOverlayUI.cs` | Same — `Update()` now fires for the H key. |
+| `UI/ComfortToolsMenu.cs` | `Show()` self-heals. |
+| `UI/ChoiceCardUI.cs` | `Show()` self-heals; spawned tiles defensively `SetActive(true)` (template prefab may have been inactive). |
+| `UI/DialogueUI.cs` | `PresentLine()` self-heals; defensive fallback renders full line without typewriter when coroutine unavailable. |
+| `UI/EveningLedgerUI.cs` | `Show()` self-heals. |
+| `UI/TeaBrewingUI.cs` | `Show()` + `StartBrew()` self-heal. |
+| `Editor/HearthboundOneClickSetup.cs` | `BuildToneCompass`, `BuildPrimitiveDialogueUI`, `BuildPrimitiveEveningLedgerUI` now build with the two-layer pattern (host → visual child). |
+| `Editor/Phase23_Mission1PolishCapstone.cs` | `BuildPauseMenu`, `BuildHelpOverlay`, `BuildSettingsPanel`, `AddMissionTitleCard` now build with the two-layer pattern. The redundant `settingsPanel.SetActive(false)` in `PolishMainMenu` was removed. |
+
+### How this lesson is now in the architecture
+
+- **D-033 (NEW):** Procedural UI builders MUST use the two-layer pattern. A MonoBehaviour that needs `Update()` (key-listener) or `StartCoroutine` (animations, fades) is hosted on a GameObject that *stays active*; the visual root is a *child* GameObject that gets toggled. Single-layer (script-host == visual root, deactivated at build) is forbidden.
+- **D-034 (NEW):** UI overlay scripts MUST self-heal in their `Show()` / equivalent — they activate their own `gameObject` if dormant, and guard `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Belt-and-braces — the wiring is correct without this, but the self-heal protects against future regressions.
+
+### What the user MUST do after pulling Phase 25
+
+1. Pull `feat/mission-1-2-architecture` again.
+2. Wait for Unity recompile (~5 s).
+3. Menu → **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** — re-runs the capstone with the new two-layer wiring.
+4. Press **Play**. "Open The Hollow" → Tone Compass card fades in cleanly. Escape opens the pause menu. H opens the help card.
+
+If you want to skip the rebuild and ship the **existing** scenes (the prior build is on disk), the self-heal layer in the UI scripts means the Tone Compass will now display correctly even on the old wiring. But the pause-menu and help-overlay key listeners still need the re-build to actually fire.
+
+---
+
+## 🚨 HOTFIX (2026-05-24 — after first playtest, earlier) — re-run Phase 23
 
 The user pressed Play on the polished build and **the game was not playable** — the camera didn't follow the player. Root cause:
 
@@ -64,8 +131,9 @@ The architectural Phase 0–22 is complete and tested. **Phase 23 + 24** land in
 | ✅ 20 | Yarn Spinner Integration | ✅ Done | Yarn Spinner UPM (optional) | Mission01Director inline lines |
 | ✅ 21 | Memory Dream Cutscene | ✅ Done | `Cutscene Engine/` + Timeline | hard cut to ledger |
 | ✅ 22 | Polished Playable Mission 1 (engineering build) | ✅ Done | (all above) | replaces Phase 12 entirely |
-| 🟢 **23** | **Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off** | 🟢 **Just landed** | + new procedural UI | — |
-| 🟢 **24** | **Mission 2 Garden + Cottage Scenes — Mission02Director, herb/tea/choice/cleanse/dream flow** | 🟢 **Just landed** | + 2 new scenes | — |
+| ✅ **23** | **Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off** | ✅ **Landed** | + new procedural UI | — |
+| ✅ **24** | **Mission 2 Garden + Cottage Scenes — Mission02Director, herb/tea/choice/cleanse/dream flow** | ✅ **Landed** | + 2 new scenes | — |
+| ✅ **25** | **UI Activation Hotfix — Tone Compass crash + two-layer wiring** | ✅ **Landed (this update)** | (no new assets) | — |
 
 The project now ships a complete **6-scene, fully polished Mission 1 + 2 playable** behind a single menu click: **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`**.
 
@@ -178,7 +246,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 ---
 
-## Decisions Made (D-001 → D-032)
+## Decisions Made (D-001 → D-034)
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
@@ -202,6 +270,8 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | D-030 | TeaBrewingUI default duration = 12 s (was 90) | 24 | 90 s is too long for a first-play loop; the player can still set Gentle Mode for longer timers |
 | D-031 | Mission01Director.sceneAfterEndOfDay defaults to MainMenu but is overridden to "04_Mission02_Garden" by Phase 23 | 23 | Default stays safe (no Mission 2 = no broken handoff); polish capstone wires the hand-off |
 | **D-032** | **Runtime MonoBehaviours NEVER live in Editor-asmdef files.** Even nested public classes break at runtime because the Editor asmdef has `includePlatforms = ["Editor"]`. Always declare runtime MonoBehaviours in their owning runtime asmdef. | **23 hotfix** | **Caught the "game not playable" regression in the first playtest. Now a hard rule across the codebase.** |
+| **D-033** | **Procedural UI builders MUST use the two-layer pattern.** Script-host GameObject stays *active*; visual root is a *child* that gets toggled. Single-layer wiring (script-host == visual root, deactivated at build) is forbidden — it kills `Update()` (Esc/H listeners) and `StartCoroutine` (fade-ins, typewriters). | **25** | **Tone Compass crash + Esc/H key dead. Caught in first M1+2 playtest. Codified after the fix.** |
+| **D-034** | **UI overlay scripts MUST self-heal on entry.** `Show()`/`Pause()`/`Play()` activate own `gameObject` if dormant and guard `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Belt-and-braces. | **25** | **Defends against future regressions in builder wiring without forcing a re-build.** |
 
 ---
 
@@ -256,12 +326,13 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 - **Phase 23** (Mission 1 polish capstone) — 9 new C# files, 1 master Editor menu, ~1,400 LOC.
 - **Phase 24** (Mission 2 scenes + director) — 2 new C# files, ~1,275 LOC.
+- **Phase 25** (UI activation hotfix) — 11 files modified across UI and Editor builders. See top of file for full detail.
 - **HOTFIX** — SimpleFollowCamera + DreamHook extracted to runtime asmdefs.
 - 6-scene Build Settings configured automatically by the capstone.
 - Continue button + autosave round-trip working (Continue is dim until autosave exists).
-- Pause menu in every gameplay scene (Esc).
-- Help overlay auto-shows first run, toggle with H.
-- Mission title cards fade in on every mission scene start.
+- Pause menu in every gameplay scene (Esc) — **Phase 25 fixes the Update() listener so this actually works**.
+- Help overlay auto-shows first run, toggle with H — **same Phase 25 fix**.
+- Mission title cards fade in on every mission scene start — **Phase 25 fixes the StartCoroutine path**.
 - Ambient autumn loop in every gameplay scene, volume-gated by SettingsService.
 - Pickle the cat companion in the Hollow with PickleAI tail-flicks on polish completion.
 - Mission 1 → Mission 2 narrative hand-off (Doris's ledger now leads into the Garden).
@@ -279,6 +350,28 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 - Mobile build profile + ASTC compression — Mission 3+ scope (per Architecture § 10).
 - Mobile IAP, gacha, energy systems — **never** (per Architecture § 13).
 
+## 🟡 Next phase — Phase 26 (HEAT modern UI integration + dialogue/text polish)
+
+**Goal:** lift menus, settings, HUD, pause, and help out of the procedural-parchment placeholder into HEAT's modern UI vocabulary — *without* losing the cozy warmth.
+
+Scope:
+1. Replace the procedurally-built Main Menu buttons with HEAT `Button (Panel)` prefabs themed in our warm palette (97/85/62 amber over 18/12/08 deep cocoa).
+2. Replace the procedurally-built Settings panel with a HEAT `Modal Window` containing HEAT `Settings Element (Switch)` rows for Gentle Mode / Auto-Polish / Auto-Cleanse and a HEAT `Settings Element (Slider)` for Subtitle size.
+3. Replace the Pause Menu visual with a HEAT modal.
+4. Replace the Help Overlay with a HEAT custom-content modal.
+5. Modernize the HUD coin + day labels using HEAT `Widgets` (badge style).
+6. Author a Phase 26 capstone builder that swaps the visual children of each script-host GameObject without breaking the two-layer wiring established in Phase 25.
+
+Out of scope for Phase 26 (kept on procedural for now): in-world dialogue boxes (Bamao parchment is intentional cozy substance there); Mission Title Card (already polished); Tone Compass first-run card (intentional warm parchment).
+
+## 🟡 Next phase — Phase 27 (Mission 1+2 deeper depth polish per Mission_1_2_Focus)
+
+After Phase 26 ships:
+1. Audit Mission 1 against `Docs/Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md` — verify all 9 dialogue nodes from `Doris_M1.yarn` are wired, audit emotional beats.
+2. Audit Mission 2 against `Docs/Depth_Bible/Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md` — verify all 4 tariff branches, the 5 Dream 2 variants, and the Listen-path 4-beat narrative pause.
+3. Make the Marin signed note (`Mission_1_2_Focus/03_SCENES_*`) visible somewhere in the Hollow on Day 1 — currently only her voice exists in the Help overlay quote.
+4. Run the diagnostic menu, capture any warnings, and resolve them.
+
 ---
 
 ## 🐞 Known Issues / Follow-Ups
@@ -292,7 +385,8 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | Phase 23 — Pickle's PickleAI tail bone is null (placeholder sphere has no skeleton) | Cosmetic | 🟡 Acceptable for MVP — PickleAI's headBone/tailBone fields are optional; future polish replaces with real cat mesh |
 | Phase 24 — TeaBrewingUI auto-complete button always brews Lavender by default | Low | 🟡 Acceptable — Mission 2 only needs ONE tea to progress; pick the herb you want and click |
 | Mission02Director — uses `gerroldVillager` portrait for Marin's note lines in Garden | Cosmetic | 🟡 Acceptable — Marin has no portrait yet; the fallback is the speaker name only |
+| **2026-05-24 (late) — Phase 25 hotfix** — Tone Compass crash + Pause/Help Update() dead | **Blocker** | ✅ **Fixed** — 9 UI scripts self-heal + Phase23/OneClickSetup use two-layer wiring. See top of file. |
 
 ---
 
-*Last updated: 2026-05-24 hotfix — SimpleFollowCamera + DreamHook moved to runtime asmdefs. Re-run Phase 23 in Unity to regenerate scenes.*
+*Last updated: 2026-05-24 — Phase 25 UI activation hotfix landed. Re-run Phase 23 in Unity to regenerate scenes with correct two-layer wiring (or rely on UI script self-heal on the existing build).*
