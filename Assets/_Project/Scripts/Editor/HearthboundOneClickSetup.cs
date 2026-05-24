@@ -1,30 +1,20 @@
 // SPDX-License-Identifier: MIT
 // Hearthbound Hollow — Editor / HearthboundOneClickSetup
 //
-// Phase 12 — "Make It Playable." A single menu item that, when clicked,
-// produces a buildable, playable Mission 1 vertical slice with zero manual
-// scene authoring required by the user.
+// The scene-builder capstone. Builds a buildable, playable Mission 1 vertical
+// slice with zero manual scene authoring required by the user.
 //
 // USE: Menu → Hearthbound → Build Playable Mission 1 (One Click)
 //
-// What it does, in order:
-//   1. Verifies URP is active (calls URPSetupHelper if not).
-//   2. Verifies seed ScriptableObjects exist (calls SeedAssetGenerator if not).
-//   3. Builds 00_Bootstrap.unity         — GameManager + auto-load to MainMenu.
-//   4. Builds 01_MainMenu.unity          — "Open The Hollow" CTA + ToneCompass.
-//   5. Builds 02_Mission01_Lane.unity    — minimal lane stub with door trigger.
-//   6. Builds 03_Mission01_Hollow.unity  — the actual MVP playable scene.
-//      Contains: Player (capsule), Doris (cylinder), Workbench (cube),
-//      MemoryOrb (sphere with PolishMiniGame target), UI Canvas with
-//      DialogueUI + ChoiceCardUI + EveningLedgerUI + HUDController,
-//      Mission01Director wiring everything together.
-//   7. Adds all four scenes to Build Settings, with Bootstrap at index 0.
-//   8. Opens 00_Bootstrap.unity so the user can hit Play immediately.
+// PROGRESSIVE POLISH: The builder detects which phase outputs are present
+// and uses them automatically. The same menu produces:
+//   * Phase 12 only:  primitives + flat UI (engineering smoke-test)
+//   * + Phase 13:      BoZo characters replace capsules/cylinders
+//   * + Phase 14:      Bamao parchment UI replaces flat backgrounds
+//   * + Phase 15-21:   (future) Medieval Village, Lumen, etc.
 //
-// All visuals are Unity primitives (capsule/cylinder/cube/sphere) with bright
-// URP/Lit materials. The user can replace any of these with BoZo, Medieval
-// Village, or Bamao art later by editing the scene — none of the wiring
-// references the placeholder meshes.
+// The capstone Phase 22 will refactor this into the polished playable;
+// for now it's the running smoke-test that grows in polish each pull.
 
 using System.Collections.Generic;
 using System.IO;
@@ -98,17 +88,27 @@ namespace HearthboundHollow.EditorTools
                 EditorUtility.ClearProgressBar();
             }
 
+            var phaseList = new System.Text.StringBuilder();
+            phaseList.Append("Phases applied to this build:\n");
+            phaseList.Append("  ✓ Phase 12 — base scenes + primitives + flat UI\n");
+            if (Phase13_BoZoCharacterBuilder.TryGetPlayerPrefab() != null)
+                phaseList.Append("  ✓ Phase 13 — BoZo characters\n");
+            else
+                phaseList.Append("  ⚠ Phase 13 — BoZo not run yet (using primitive capsule/cylinder placeholders)\n");
+            if (Phase14_BamaoUIBuilder.TryGetDialogueBoxPrefab() != null)
+                phaseList.Append("  ✓ Phase 14 — Bamao parchment UI\n");
+            else
+                phaseList.Append("  ⚠ Phase 14 — Bamao UI not run yet (using flat-color UI placeholders)\n");
+
             EditorUtility.DisplayDialog(
                 "Hearthbound — Playable Mission 1 built",
-                "All 4 scenes are created and added to Build Settings:\n" +
-                "  • 00_Bootstrap (index 0 — entry point)\n" +
-                "  • 01_MainMenu\n" +
-                "  • 02_Mission01_Lane\n" +
-                "  • 03_Mission01_Hollow\n\n" +
-                "Press Play. The MainMenu loads. Click 'Open The Hollow' → walk to Doris (the green cylinder) → choose a dialogue option → walk to the workbench → polish her memory → the Evening Ledger ends Day 1.\n\n" +
-                "Controls: WASD / Arrow keys to move. Click / Space / Enter to advance dialogue. Hold left mouse and drag in slow circles to polish the orb.\n\n" +
-                "Run 'Hearthbound → Patch ASE Shaders Now' once if you haven't already.",
-                "Open Bootstrap and Play");
+                phaseList +
+                "\nAll 4 scenes are in Build Settings (Bootstrap at index 0).\n\n" +
+                "Press Play. The MainMenu loads. Click 'Open The Hollow' → walk to Doris → choose a dialogue option → " +
+                "walk to the workbench → polish her memory → the Evening Ledger ends Day 1.\n\n" +
+                "Controls: WASD / Arrow keys to move. Click / Space / Enter to advance dialogue. " +
+                "Hold left mouse and drag in slow circles to polish.",
+                "OK");
         }
 
         // ─── Prereq checks ─────────────────────────────────────────
@@ -197,7 +197,6 @@ namespace HearthboundHollow.EditorTools
             gm.mainMenuSceneName  = "01_MainMenu";
             gm.autoLoadMainMenu = true;
 
-            // Plain dark camera so the splash isn't blinding.
             var cam = new GameObject("Splash Camera");
             cam.tag = "MainCamera";
             var c = cam.AddComponent<Camera>();
@@ -219,7 +218,6 @@ namespace HearthboundHollow.EditorTools
             c.clearFlags = CameraClearFlags.SolidColor;
             c.backgroundColor = new Color(0.10f, 0.08f, 0.06f);
 
-            // Canvas
             var canvasGO = new GameObject("UI_MainMenu", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGO.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -227,7 +225,6 @@ namespace HearthboundHollow.EditorTools
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
 
-            // Title
             var titleGO = new GameObject("Title");
             titleGO.transform.SetParent(canvasGO.transform, false);
             var title = titleGO.AddComponent<TextMeshProUGUI>();
@@ -242,7 +239,6 @@ namespace HearthboundHollow.EditorTools
             titleRT.anchoredPosition = Vector2.zero;
             titleRT.sizeDelta = new Vector2(900, 200);
 
-            // Tip line
             var tipGO = new GameObject("Tip");
             tipGO.transform.SetParent(canvasGO.transform, false);
             var tip = tipGO.AddComponent<TextMeshProUGUI>();
@@ -258,29 +254,23 @@ namespace HearthboundHollow.EditorTools
             tipRT.anchoredPosition = Vector2.zero;
             tipRT.sizeDelta = new Vector2(900, 60);
 
-            // "Open The Hollow" button
             var openBtn = MakeUIButton(canvasGO.transform, "Btn_OpenTheHollow", "Open The Hollow",
                 new Vector2(0.5f, 0.35f), new Vector2(0.5f, 0.45f), new Vector2(420, 80));
 
-            // Quit button
             var quitBtn = MakeUIButton(canvasGO.transform, "Btn_Quit", "Quit",
                 new Vector2(0.5f, 0.20f), new Vector2(0.5f, 0.27f), new Vector2(300, 60));
 
-            // ToneCompass root (initially hidden inside the controller)
             var compass = BuildToneCompass(canvasGO.transform);
 
-            // MainMenuController
             var ctrlGO = new GameObject("_Controller");
             var ctrl = ctrlGO.AddComponent<MainMenuController>();
             ctrl.openTheHollowButton = openBtn;
             ctrl.quitButton = quitBtn;
-            ctrl.firstMissionScene = "03_Mission01_Hollow";  // MVP skips Lane for speed; Lane available via Build Settings if user wants
+            ctrl.firstMissionScene = "03_Mission01_Hollow";
             ctrl.tipLabel = tip;
             ctrl.toneCompass = compass;
 
-            // Event System
             EnsureEventSystem();
-
             EditorSceneManager.SaveScene(scene, SceneMainMenu);
         }
 
@@ -339,7 +329,6 @@ namespace HearthboundHollow.EditorTools
             var player = CreatePlayer();
             player.transform.position = new Vector3(0, 1.0f, -10);
 
-            // A simple door cube that loads the Hollow scene on interact.
             var doorGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
             doorGO.name = "HollowDoor";
             doorGO.transform.position = new Vector3(0, 1.5f, 8f);
@@ -347,7 +336,6 @@ namespace HearthboundHollow.EditorTools
             doorGO.GetComponent<MeshRenderer>().sharedMaterial = _matWorkbench;
             var doorScript = doorGO.AddComponent<HollowDoorInteractable>();
             doorScript.targetSceneName = "03_Mission01_Hollow";
-            // Worldspace prompt
             var label = new GameObject("Label").AddComponent<TextMeshPro>();
             label.transform.SetParent(doorGO.transform, false);
             label.transform.localPosition = new Vector3(0, 0.6f, 0);
@@ -356,9 +344,7 @@ namespace HearthboundHollow.EditorTools
             label.fontSize = 4;
             label.color = new Color(0.97f, 0.85f, 0.62f);
 
-            // Camera follow for the lane (just a fixed third-person rig)
             CreateFollowCamera(player.transform, height: 4, behind: 6, lookAheadY: 1.5f);
-
             EditorSceneManager.SaveScene(scene, SceneMission01Lane);
         }
 
@@ -373,32 +359,19 @@ namespace HearthboundHollow.EditorTools
             CreateAmbient();
             CreateGround(_matGround, size: 24f);
 
-            // Player.
+            // Player — prefers Phase 13 BoZo prefab when available.
             var player = CreatePlayer();
             player.transform.position = new Vector3(-3, 1.0f, -3);
 
-            // Doris (placeholder cylinder).
-            var doris = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            doris.name = "Doris";
-            doris.transform.position = new Vector3(2, 1f, 0);
-            doris.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
-            doris.GetComponent<MeshRenderer>().sharedMaterial = _matDoris;
-            var dorisCol = doris.GetComponent<CapsuleCollider>();
-            if (dorisCol != null) dorisCol.isTrigger = false; // physical
-            // Greeting trigger zone (separate child)
-            var dorisGreet = new GameObject("Doris_Greeting_Zone");
-            dorisGreet.transform.SetParent(doris.transform, false);
-            var greetCol = dorisGreet.AddComponent<SphereCollider>();
-            greetCol.radius = 1.6f;
-            greetCol.isTrigger = true;
+            // Doris — prefers Phase 13 BoZo Doris prefab when available, falls back to cylinder.
+            var (doris, dorisGreetingTrigger) = CreateDoris(new Vector3(2, 0f, 0));
 
-            // Workbench (cube).
+            // Workbench (placeholder cube until Phase 15 — Medieval Village).
             var bench = GameObject.CreatePrimitive(PrimitiveType.Cube);
             bench.name = "Workbench";
             bench.transform.position = new Vector3(4, 0.5f, 3);
             bench.transform.localScale = new Vector3(1.8f, 1.0f, 1.0f);
             bench.GetComponent<MeshRenderer>().sharedMaterial = _matWorkbench;
-            // Approach zone
             var benchApproach = new GameObject("Workbench_Approach_Zone");
             benchApproach.transform.SetParent(bench.transform, false);
             var approachCol = benchApproach.AddComponent<SphereCollider>();
@@ -411,17 +384,15 @@ namespace HearthboundHollow.EditorTools
             orbGO.name = "MemoryOrb_DOR-001";
             orbGO.transform.position = new Vector3(4, 1.25f, 3);
             orbGO.transform.localScale = Vector3.one * 0.45f;
-            // Each orb owns its own material instance so the MPB-driven base color doesn't bleed.
             var orbMat = new Material(_matOrb);
             orbGO.GetComponent<MeshRenderer>().sharedMaterial = orbMat;
             var orb = orbGO.AddComponent<MemoryOrbInteractable>();
             orb.orbRenderer = orbGO.GetComponent<MeshRenderer>();
             orb.memory = AssetDatabase.LoadAssetAtPath<MemoryNodeSO>(DorisMemoryPath);
 
-            // Cinemachine follow camera fallback (a plain follow cam — no Cinemachine ref).
             CreateFollowCamera(player.transform, height: 5, behind: 6, lookAheadY: 1.0f);
 
-            // ─── UI ────────────────────────────────────────────
+            // UI Canvas
             var canvasGO = new GameObject("UI_Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGO.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -429,20 +400,20 @@ namespace HearthboundHollow.EditorTools
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
 
+            // Dialogue UI — prefers Phase 14 Bamao prefab when available.
             var dialogueUI = BuildDialogueUI(canvasGO.transform);
+            // Evening Ledger — prefers Phase 14 Bamao prefab when available.
             var ledgerUI = BuildEveningLedgerUI(canvasGO.transform);
             var hud = BuildHUD(canvasGO.transform);
 
-            // ─── Polish mini-game ────────────────────────────────
             var miniGO = new GameObject("_PolishMiniGame");
             var polish = miniGO.AddComponent<PolishMiniGame>();
 
-            // ─── Mission director ────────────────────────────────
             var directorGO = new GameObject("_MissionDirector");
             var director = directorGO.AddComponent<Mission01Director>();
             director.playerController = player.GetComponent<PlayerController>();
             director.dorisTransform = doris.transform;
-            director.dorisGreetingTrigger = greetCol;
+            director.dorisGreetingTrigger = dorisGreetingTrigger;
             director.workbenchOrb = orb;
             director.workbenchApproachTrigger = approachCol;
             director.dialogueUI = dialogueUI;
@@ -452,21 +423,114 @@ namespace HearthboundHollow.EditorTools
             director.dorisMemory   = orb.memory;
 
             EnsureEventSystem();
-
             EditorSceneManager.SaveScene(scene, SceneMission01Hollow);
         }
 
-        // ─── UI builders ───────────────────────────────────────────
+        // ─── Player + Doris spawn (with Phase 13 BoZo preference) ──
+
+        private static GameObject CreatePlayer()
+        {
+            var bozoPlayer = Phase13_BoZoCharacterBuilder.TryGetPlayerPrefab();
+            if (bozoPlayer != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(bozoPlayer);
+                go.name = "Player";
+                // Ensure components present (the prefab already has them, but defensive)
+                if (go.tag != "Player") go.tag = "Player";
+                if (go.GetComponent<CharacterController>() == null)
+                {
+                    var cc = go.AddComponent<CharacterController>();
+                    cc.center = new Vector3(0, 1.0f, 0); cc.height = 1.9f; cc.radius = 0.4f;
+                }
+                if (go.GetComponent<PlayerController>() == null)
+                    go.AddComponent<PlayerController>();
+                Debug.Log("[Hearthbound/OneClick] Player → using Phase 13 BoZo prefab.");
+                return go;
+            }
+            // Fallback: primitive capsule.
+            return CreatePrimitivePlayer();
+        }
+
+        private static GameObject CreatePrimitivePlayer()
+        {
+            var go = new GameObject("Player");
+            go.tag = "Player";
+
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(go.transform, false);
+            body.transform.localPosition = new Vector3(0, 1f, 0);
+            body.GetComponent<MeshRenderer>().sharedMaterial = _matPlayer;
+            var bodyCol = body.GetComponent<CapsuleCollider>();
+            if (bodyCol != null) Object.DestroyImmediate(bodyCol);
+
+            var cc = go.AddComponent<CharacterController>();
+            cc.center = new Vector3(0, 1f, 0); cc.height = 1.9f; cc.radius = 0.4f;
+            go.AddComponent<PlayerController>();
+            return go;
+        }
+
+        private static (GameObject doris, Collider greetingTrigger) CreateDoris(Vector3 worldPos)
+        {
+            var bozoDoris = Phase13_BoZoCharacterBuilder.TryGetDorisPrefab();
+            if (bozoDoris != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(bozoDoris);
+                go.name = "Doris";
+                go.transform.position = worldPos;
+
+                // The Phase-13 prefab includes a child "Doris_Greeting_Zone" with a trigger SphereCollider.
+                var trigger = go.transform.Find("Doris_Greeting_Zone")?.GetComponent<Collider>();
+                if (trigger == null)
+                {
+                    // Defensive: add one if the prefab variant lacks it
+                    var greetGO = new GameObject("Doris_Greeting_Zone");
+                    greetGO.transform.SetParent(go.transform, false);
+                    var sphere = greetGO.AddComponent<SphereCollider>();
+                    sphere.radius = 1.6f; sphere.isTrigger = true;
+                    trigger = sphere;
+                }
+                Debug.Log("[Hearthbound/OneClick] Doris → using Phase 13 BoZo prefab.");
+                return (go, trigger);
+            }
+
+            // Fallback: primitive cylinder
+            var primDoris = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            primDoris.name = "Doris";
+            primDoris.transform.position = worldPos + Vector3.up;
+            primDoris.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
+            primDoris.GetComponent<MeshRenderer>().sharedMaterial = _matDoris;
+            var greet = new GameObject("Doris_Greeting_Zone");
+            greet.transform.SetParent(primDoris.transform, false);
+            var sphereCol = greet.AddComponent<SphereCollider>();
+            sphereCol.radius = 1.6f; sphereCol.isTrigger = true;
+            return (primDoris, sphereCol);
+        }
+
+        // ─── UI builders (with Phase 14 Bamao preference) ──────────
 
         private static DialogueUI BuildDialogueUI(Transform canvasRoot)
+        {
+            var bamaoPrefab = Phase14_BamaoUIBuilder.TryGetDialogueBoxPrefab();
+            if (bamaoPrefab != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(bamaoPrefab, canvasRoot);
+                go.name = "DialogueBox";
+                go.SetActive(false);
+                Debug.Log("[Hearthbound/OneClick] DialogueBox → using Phase 14 Bamao prefab.");
+                return go.GetComponent<DialogueUI>();
+            }
+            return BuildPrimitiveDialogueUI(canvasRoot);
+        }
+
+        private static DialogueUI BuildPrimitiveDialogueUI(Transform canvasRoot)
         {
             var rootGO = new GameObject("DialogueBox", typeof(RectTransform));
             rootGO.transform.SetParent(canvasRoot, false);
             var bg = rootGO.AddComponent<Image>();
             bg.color = new Color(0.05f, 0.04f, 0.03f, 0.85f);
             var rt = bg.rectTransform;
-            rt.anchorMin = new Vector2(0.10f, 0.06f);
-            rt.anchorMax = new Vector2(0.90f, 0.32f);
+            rt.anchorMin = new Vector2(0.10f, 0.06f); rt.anchorMax = new Vector2(0.90f, 0.32f);
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
 
             var nameGO = new GameObject("SpeakerName");
@@ -476,8 +540,7 @@ namespace HearthboundHollow.EditorTools
             speakerName.color = new Color(0.97f, 0.85f, 0.62f);
             speakerName.alignment = TextAlignmentOptions.BottomLeft;
             var nameRT = speakerName.rectTransform;
-            nameRT.anchorMin = new Vector2(0.04f, 0.78f);
-            nameRT.anchorMax = new Vector2(0.5f, 0.96f);
+            nameRT.anchorMin = new Vector2(0.04f, 0.78f); nameRT.anchorMax = new Vector2(0.5f, 0.96f);
             nameRT.offsetMin = Vector2.zero; nameRT.offsetMax = Vector2.zero;
 
             var textGO = new GameObject("LineText");
@@ -487,11 +550,9 @@ namespace HearthboundHollow.EditorTools
             lineText.color = new Color(0.92f, 0.88f, 0.78f);
             lineText.alignment = TextAlignmentOptions.TopLeft;
             var textRT = lineText.rectTransform;
-            textRT.anchorMin = new Vector2(0.04f, 0.04f);
-            textRT.anchorMax = new Vector2(0.96f, 0.74f);
+            textRT.anchorMin = new Vector2(0.04f, 0.04f); textRT.anchorMax = new Vector2(0.96f, 0.74f);
             textRT.offsetMin = Vector2.zero; textRT.offsetMax = Vector2.zero;
 
-            // Choices container (above the dialogue box)
             var choicesGO = new GameObject("ChoicesContainer", typeof(RectTransform));
             choicesGO.transform.SetParent(canvasRoot, false);
             var choicesLayout = choicesGO.AddComponent<VerticalLayoutGroup>();
@@ -500,13 +561,11 @@ namespace HearthboundHollow.EditorTools
             choicesLayout.childForceExpandHeight = false;
             choicesLayout.padding = new RectOffset(8, 8, 8, 8);
             var choicesRT = choicesGO.GetComponent<RectTransform>();
-            choicesRT.anchorMin = new Vector2(0.10f, 0.35f);
-            choicesRT.anchorMax = new Vector2(0.55f, 0.60f);
+            choicesRT.anchorMin = new Vector2(0.10f, 0.35f); choicesRT.anchorMax = new Vector2(0.55f, 0.60f);
             choicesRT.offsetMin = Vector2.zero; choicesRT.offsetMax = Vector2.zero;
 
-            // Choice button prefab template (we keep it in-scene under a hidden parent so the DialogueUI can Instantiate it).
             var choiceTemplate = new GameObject("ChoiceButtonTemplate", typeof(Image));
-            choiceTemplate.transform.SetParent(rootGO.transform, false); // hidden under the dialogue box
+            choiceTemplate.transform.SetParent(rootGO.transform, false);
             choiceTemplate.SetActive(false);
             var tplImg = choiceTemplate.GetComponent<Image>();
             tplImg.color = new Color(0.16f, 0.10f, 0.06f, 0.95f);
@@ -537,6 +596,20 @@ namespace HearthboundHollow.EditorTools
 
         private static EveningLedgerUI BuildEveningLedgerUI(Transform canvasRoot)
         {
+            var bamaoPrefab = Phase14_BamaoUIBuilder.TryGetEveningLedgerPrefab();
+            if (bamaoPrefab != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(bamaoPrefab, canvasRoot);
+                go.name = "EveningLedger";
+                go.SetActive(false);
+                Debug.Log("[Hearthbound/OneClick] EveningLedger → using Phase 14 Bamao prefab.");
+                return go.GetComponent<EveningLedgerUI>();
+            }
+            return BuildPrimitiveEveningLedgerUI(canvasRoot);
+        }
+
+        private static EveningLedgerUI BuildPrimitiveEveningLedgerUI(Transform canvasRoot)
+        {
             var rootGO = new GameObject("EveningLedger", typeof(RectTransform));
             rootGO.transform.SetParent(canvasRoot, false);
             var bg = rootGO.AddComponent<Image>();
@@ -553,8 +626,7 @@ namespace HearthboundHollow.EditorTools
             dayLabel.color = new Color(0.97f, 0.85f, 0.62f);
             dayLabel.text = "Day 1";
             var titleRT = dayLabel.rectTransform;
-            titleRT.anchorMin = new Vector2(0.0f, 0.82f);
-            titleRT.anchorMax = new Vector2(1.0f, 0.95f);
+            titleRT.anchorMin = new Vector2(0.0f, 0.82f); titleRT.anchorMax = new Vector2(1.0f, 0.95f);
             titleRT.offsetMin = Vector2.zero; titleRT.offsetMax = Vector2.zero;
 
             var proseGO = new GameObject("SummaryProse");
@@ -564,8 +636,7 @@ namespace HearthboundHollow.EditorTools
             prose.alignment = TextAlignmentOptions.Center;
             prose.color = new Color(0.92f, 0.86f, 0.74f);
             var proseRT = prose.rectTransform;
-            proseRT.anchorMin = new Vector2(0.15f, 0.55f);
-            proseRT.anchorMax = new Vector2(0.85f, 0.78f);
+            proseRT.anchorMin = new Vector2(0.15f, 0.55f); proseRT.anchorMax = new Vector2(0.85f, 0.78f);
             proseRT.offsetMin = Vector2.zero; proseRT.offsetMax = Vector2.zero;
 
             var memListGO = new GameObject("HeldMemoriesList");
@@ -575,8 +646,7 @@ namespace HearthboundHollow.EditorTools
             memList.alignment = TextAlignmentOptions.Center;
             memList.color = new Color(0.86f, 0.78f, 0.66f);
             var memListRT = memList.rectTransform;
-            memListRT.anchorMin = new Vector2(0.20f, 0.32f);
-            memListRT.anchorMax = new Vector2(0.80f, 0.50f);
+            memListRT.anchorMin = new Vector2(0.20f, 0.32f); memListRT.anchorMax = new Vector2(0.80f, 0.50f);
             memListRT.offsetMin = Vector2.zero; memListRT.offsetMax = Vector2.zero;
 
             var coinGO = new GameObject("CoinLabel");
@@ -586,8 +656,7 @@ namespace HearthboundHollow.EditorTools
             coinLabel.alignment = TextAlignmentOptions.Center;
             coinLabel.color = new Color(0.96f, 0.84f, 0.50f);
             var coinRT = coinLabel.rectTransform;
-            coinRT.anchorMin = new Vector2(0.20f, 0.23f);
-            coinRT.anchorMax = new Vector2(0.80f, 0.30f);
+            coinRT.anchorMin = new Vector2(0.20f, 0.23f); coinRT.anchorMax = new Vector2(0.80f, 0.30f);
             coinRT.offsetMin = Vector2.zero; coinRT.offsetMax = Vector2.zero;
 
             var confirmBtn = MakeUIButton(rootGO.transform, "Btn_EndOfDay", "Sleep — End Day 1",
@@ -609,8 +678,7 @@ namespace HearthboundHollow.EditorTools
             var rootGO = new GameObject("HUD", typeof(RectTransform));
             rootGO.transform.SetParent(canvasRoot, false);
             var hudRT = rootGO.GetComponent<RectTransform>();
-            hudRT.anchorMin = new Vector2(0.0f, 0.92f);
-            hudRT.anchorMax = new Vector2(1.0f, 1.0f);
+            hudRT.anchorMin = new Vector2(0.0f, 0.92f); hudRT.anchorMax = new Vector2(1.0f, 1.0f);
             hudRT.offsetMin = new Vector2(20, 0); hudRT.offsetMax = new Vector2(-20, 0);
 
             var dayGO = new GameObject("DayLabel");
@@ -640,31 +708,6 @@ namespace HearthboundHollow.EditorTools
         }
 
         // ─── Generic helpers ───────────────────────────────────────
-
-        private static GameObject CreatePlayer()
-        {
-            var go = new GameObject("Player");
-            go.tag = "Player";
-
-            // Visible body (capsule child).
-            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            body.name = "Body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localPosition = new Vector3(0, 1f, 0);
-            body.GetComponent<MeshRenderer>().sharedMaterial = _matPlayer;
-            // Remove auto collider (we use a CharacterController on the root)
-            var bodyCol = body.GetComponent<CapsuleCollider>();
-            if (bodyCol != null) Object.DestroyImmediate(bodyCol);
-
-            // Movement.
-            var cc = go.AddComponent<CharacterController>();
-            cc.center = new Vector3(0, 1f, 0);
-            cc.height = 1.9f;
-            cc.radius = 0.4f;
-
-            go.AddComponent<PlayerController>();
-            return go;
-        }
 
         private static Button MakeUIButton(Transform parent, string name, string label,
             Vector2 anchorMin, Vector2 anchorMax, Vector2 sizeDelta)
@@ -742,7 +785,6 @@ namespace HearthboundHollow.EditorTools
             var existing = Object.FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>();
             if (existing != null) return;
             var go = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
-            // InputSystemUIInputModule is in the Input System package; fall back to StandaloneInputModule if unavailable.
 #if ENABLE_INPUT_SYSTEM && UNITY_2020_2_OR_NEWER
             go.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 #else
