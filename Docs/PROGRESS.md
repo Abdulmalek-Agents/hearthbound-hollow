@@ -6,65 +6,60 @@
 ---
 
 ## Legend
-- ✅ Done & merged to main · 🟢 Done in branch (awaiting your pull) · 🟡 In progress · ⬜ Not started · 🔴 Blocked
+- ✅ Done & merged · 🟢 Done in branch (awaiting your pull) · 🟡 In progress · ⬜ Not started · 🔴 Blocked
 
 ---
 
-## ✅ Phase 0 — Architecture & Skeleton  (PR #7)
-## 🟢 Phase 1–8 — All script implementation phases complete.
-## 🟢 Phase 9 — Scenes — **NOW AUTOMATED** (was: Unity-side authoring)
-## 🟢 Phase 10 — QA & Polish (21 EditMode tests, secret-scan clean)
-## 🔧 Phase 10.5 — Studio-Code Bug Fixes  ✅
-## 🆕 Phase 11 — Quality-of-Life Tooling  ✅
-## 🔧 Phase 10.6 — Vendor-Asset Package Cycle  ✅
-## 🔧 Phase 10.7/10.8 — Render Pipeline + Shader Patcher  ✅
+## Plan correction (after Phase 10.8)
+
+**Phase 12 was a development scaffold**, not the final destination. The proper plan — explicit per the user — is to **progressively integrate real assets in Phases 13-21, then ship a polished playable Mission 1 as the capstone Phase 22**. The Phase-12 one-click primitive scene stays as an engineering smoke-test, but each subsequent phase replaces a placeholder layer with the real asset.
+
+| Phase | Title | Asset(s) integrated | Polished playable replaces |
+|---|---|---|---|
+| 13 | BoZo Character Prefabs | `BoZo_StylizedModularCharacters/` | Capsule player + cylinder Doris |
+| 14 | Bamao Parchment UI Skin | `Bamao/BamaoUIPack/` | Flat-color dialogue / ledger backgrounds |
+| 15 | Medieval Village Environment | `MeshingunStudio/Medieval Village/` | Plane + cube workbench + cube door |
+| 16 | MemoryOrb_Master Shader | `Plugins/AllIn1ShaderNodes/` | URP/Lit `_BaseColor` fallback |
+| 17 | Lumen Lighting + Cinemachine | `Packages/com.distantlands.lumen/` | Plain directional light + SimpleFollowCamera |
+| 18 | Audio Integration | `Game UI & Puzzle Sound Effects Pack/` | Silence |
+| 19 | Stylized Weather + Zephyr Wind | `Unluck Software/Stylized Weather/` + `Packages/com.distantlands.zephyr/` | Static foliage, no atmosphere |
+| 20 | Yarn Spinner Integration | Yarn Spinner UPM | Mission01Director's inline lines |
+| 21 | Memory Dream Cutscene | `Cutscene Engine/` + Unity Timeline | Hard cut to Evening Ledger |
+| **22** | **Polished Playable Mission 1** | (all of the above wired together) | Replaces the Phase-12 MVP entirely |
 
 ---
 
-## 🎮 Phase 12 — Make It Playable  🟢 Awaiting one-click menu
+## ✅ Phase 0 → 10.8 — Architecture, scripts, bug-fix cycles, URP, shader patcher  (all merged into branch)
+## 🟢 Phase 12 — Make It Playable (MVP scaffold — primitives, no real assets)
 
-The "Make It Playable" capstone. Three new components turn the entire stack into a one-click playable Mission 1:
+This is the engineering smoke-test build. Useful for verifying that the script stack runs end-to-end. It stays available via the menu so the user can re-run it any time to sanity-check.
 
-### A. `Mission01Director.cs` (runtime — Mission asmdef)
-Yarn-free runtime sequencer that orchestrates Mission 1 directly via DialogueUI.PresentLine/PresentChoices. Lets the MVP run END-TO-END before Yarn Spinner is installed.
+---
 
-Flow (matches `Mission_1_2_Focus/01_DORIS_THE_BAKER.md`, abridged):
-1. Player enters Doris's greeting trigger → 3-option reply.
-2. Doris offers the orb → 3-option price negotiation. Adjusts trust + coin.
-3. Doris hands over the orb → it becomes visible on the workbench.
-4. Player walks to workbench trigger → PolishMiniGame begins.
-5. Polish completes → tier-based Doris reaction (bright / acceptable / dim).
-6. Memory added to `VillageState.heldMemoryIds`.
-7. EveningLedger shows with clarity-keyed summary prose.
-8. Player confirms End of Day → loads back to MainMenu.
+## 🆕 Phase 13 — BoZo Character Prefabs  🟢
 
-When Yarn Spinner is installed later, this director can be replaced by `YarnDialogueRunner` without touching anything else.
+**Delivered:** `Assets/_Project/Scripts/Editor/Phase13_BoZoCharacterBuilder.cs`.
 
-### B. `MemoryOrbInteractable` URP/Lit fallback
-Until the bespoke `MemoryOrb_Master` Shader Graph is authored, the orb runs on URP/Lit which doesn't have `_Clarity`/`_PaletteTint`. Added a fallback that also drives `_BaseColor` (lerped dim→tint) and `_EmissionColor` (tint × clarity × intensity). Result: the polish mini-game produces a visible glowing orb effect immediately, no shader-graph work required.
+Menu: **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`**
 
-### C. `HearthboundOneClickSetup.cs` (Editor — `Hearthbound → Build Playable Mission 1 (One Click)`)
-Single menu item that produces a fully wired, runnable Mission 1 vertical slice with **zero manual scene authoring** by the user.
+What it builds (saved to canonical paths):
+- `Assets/_Project/Prefabs/Player/Player.prefab` (tag Player + CharacterController + PlayerController)
+- `Assets/_Project/Prefabs/NPCs/Doris.prefab` (warm cleric-amber tint + 1.6 m greeting trigger zone)
+- `Assets/_Project/Prefabs/NPCs/Gerrold.prefab` (dusk-blue bard tint + 1.8 m cottage proximity zone)
+- `Assets/_Project/Prefabs/NPCs/SilentLaneVillager.prefab` (neutral umber tint, decorative)
 
-Build steps:
-1. Verifies URP active (prompts to run URPSetupHelper if not).
-2. Verifies seed assets exist (prompts to run SeedAssetGenerator if not).
-3. Creates 4 URP/Lit materials (Ground / Player / Doris / Workbench / Orb).
-4. Builds **`00_Bootstrap.unity`** — GameManager + auto-load to MainMenu.
-5. Builds **`01_MainMenu.unity`** — Title + "Open The Hollow" CTA + Quit + ToneCompass.
-6. Builds **`02_Mission01_Lane.unity`** — Player + ground + HollowDoor interactable.
-7. Builds **`03_Mission01_Hollow.unity`** — the playable MVP scene:
-   - Player capsule with CharacterController + PlayerController + tag `Player`
-   - Doris cylinder + 1.6 m greeting trigger zone
-   - Workbench cube + 1.4 m approach trigger zone
-   - MemoryOrb sphere wired to DOR-001 SO + PolishMiniGame target (initially hidden)
-   - UI Canvas with `DialogueUI`, choices container, `EveningLedgerUI`, `HUDController`
-   - `Mission01Director` with every reference populated
-   - `SimpleFollowCamera` (no Cinemachine dep — matches D-009)
-8. Adds all 4 scenes to Build Settings (Bootstrap at index 0).
-9. Opens `00_Bootstrap.unity` so the user can press Play immediately.
+Approach: **wrapper-prefab pattern**. Each output prefab is a fresh GameObject with our components attached, plus a nested instance of the BoZo base character as a "Body" child. This means:
+- BoZo updates propagate automatically.
+- Studio code never references BoZo internals (only the wrapper).
+- Animator + rig + outfits stay intact inside the nested prefab.
 
-**Result:** push Play → MainMenu → "Open The Hollow" → walk to Doris → dialogue → walk to workbench → polish → Evening Ledger → End Day → loop back to MainMenu.
+BoZo detection: scores all prefabs under `Assets/BoZo_StylizedModularCharacters/` by structure (SkinnedMeshRenderer + Animator + path heuristics). Top 3 candidates are logged so you can see the heuristic at work. Falls back to a manual file picker if auto-detect fails.
+
+Material tinting: creates per-renderer instance materials (persists in the prefab; not just an MPB that vanishes outside play mode).
+
+Public lookups (`Phase13_BoZoCharacterBuilder.TryGet*Prefab()`) are used by `HearthboundOneClickSetup` so the scene builder prefers these when they exist.
+
+**Next phase:** Phase 14 — Bamao Parchment UI Skin.
 
 ---
 
@@ -72,25 +67,11 @@ Build steps:
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
-| D-001 | BoZo over City Characters | 0 | Critic Board rec |
-| D-002 | Yarn Spinner over OpenAI addon | 0 | GDD Pillar 1 |
-| D-003 | Don't relocate existing vendor folders | 0 | Preserves .meta GUIDs |
-| D-004 | One asmdef per Scripts/ subfolder | 0 | 80% faster iteration |
-| D-005 | InteractionPromptUI lives in Player asmdef | 5 | Avoids UI→Player dep cycle |
-| D-006 | YarnVillageStateBridge compile-guarded | 6 | Bridge compiles before Yarn install |
-| D-007 | Scene authoring is Unity-side, scripts are GitHub-side | 9 | `.unity` files have GUID refs |
-| D-008 | Drop `com.unity.textmeshpro` from manifest | 10.5 | Folded into ugui 2.0 |
-| D-009 | Cinemachine via reflection in cutscene/camera helpers | 11 | Avoids hard compile dep |
-| D-010 | Seed asset generation via Editor menu, not committed .asset files | 11 | Avoids GUID race |
-| D-011 | Explicit-pin DOTS-family packages | 10.6 | Vendor packs need them |
-| D-012 | Whole-vendor-tree audit on every CS0234 | 10.6 | Add N packages once vs whack-a-mole |
-| D-013 | URP RP asset auto-created + assigned via Editor menu | 10.7 | Manual Project Settings juggling is error-prone |
-| D-014 | Mobile-friendly URP defaults (0.85, 2×, soft off) | 10.7 | Matches ARCHITECTURE § 10 |
-| D-015 | URPSetupHelper auto-prompts on Editor startup | 10.8 | Catches "forgot to run menu" |
-| D-016 | Vendor shaders patched via AssetPostprocessor | 10.8 | Avoids 136 KB push + survives updates |
-| **D-017** | **Mission 1 MVP uses primitives (capsule/cylinder/cube/sphere) + URP/Lit fallback shader** | **12** | **Removes the "needs BoZo prefab wired manually" gate; playable Day 1** |
-| **D-018** | **Mission01Director sequences dialogue directly (no Yarn dep)** | **12** | **Makes MVP playable WITHOUT installing Yarn Spinner first** |
-| **D-019** | **Whole playable build is one Editor menu click** | **12** | **Same philosophy as D-010 + D-013 — Unity-side authoring is brittle; code is reproducible** |
+| D-001..D-019 | (see prior log) | 0–12 | (see prior entries) |
+| **D-020** | **Phase 12 MVP retained as engineering smoke-test, NOT the final playable** | **13** | **Following user's explicit plan: polished playable is the last phase. MVP remains useful for verifying scripts end-to-end.** |
+| **D-021** | **Wrapper-prefab pattern over unpacked-clone for vendor character integration** | **13** | **Survives vendor updates; isolates studio code from vendor internals; cleaner upgrade path** |
+| **D-022** | **BoZo prefab auto-detection by structural scoring (Animator + SMR + path heuristics)** | **13** | **Vendor prefab paths vary by version; brittle hard-coded paths would break on the next BoZo update** |
+| **D-023** | **One Editor menu item per phase: `Hearthbound → Phase N — <title>`** | **13** | **User can run any phase independently; HearthboundOneClickSetup invokes them in sequence for the capstone build** |
 
 ---
 
@@ -98,47 +79,33 @@ Build steps:
 
 | # | Item | Severity | Status |
 |---|---|---|---|
-| All previous bug cycles | various | ✅ Resolved |
-| Phase 12 MVP first-play UX | Low | 🟢 Self-tested via the One-Click menu's dialog. Monitor first user run. |
+| Phase-12 to 10.8 cycles | various | ✅ Resolved |
+| Phase-13 BoZo auto-detect picking wrong prefab | Low | 🟢 Mitigated — top 3 candidates logged; manual picker fallback |
 
 ---
 
-## Editor Menu Items Available (cumulative)
+## Editor Menu Items Available (cumulative — 7 total)
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
-| **`Hearthbound → Build Playable Mission 1 (One Click)`** | **🎮 The main "make it work" button — builds all scenes + wires every component** | **12** |
-| `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP + create asset bundle | 10.7 |
-| `Hearthbound → Check Render Pipeline Status` | Diagnostic dump of current GraphicsSettings + QualityLevel pipelines | 10.8 |
-| `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn all 17 ScriptableObject seed assets | 11 |
-| `Hearthbound → Validate Mission 1-2 Seed Assets` | Audit which seed assets are missing | 11 |
-| `Hearthbound → Patch ASE Shaders Now` | Force-patch BM_Lit + any other ASE shader's duplicate `_SHADOWS_SOFT` | 10.8 |
+| `Hearthbound → Build Playable Mission 1 (One Click)` | 🛠️ Engineering smoke-test build (primitives) | 12 |
+| **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`** | **🧍 Build 4 BoZo wrapper prefabs (replaces primitive characters)** | **13** |
+| `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP | 10.7 |
+| `Hearthbound → Check Render Pipeline Status` | Diagnose URP state | 10.8 |
+| `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn the 17 SOs | 11 |
+| `Hearthbound → Validate Mission 1-2 Seed Assets` | Audit missing seeds | 11 |
+| `Hearthbound → Patch ASE Shaders Now` | Force-patch BM_Lit duplicate `_SHADOWS_SOFT` | 10.8 |
 
 ---
 
-## How to play (one command)
+## How to run Phase 13 (current step)
 
 1. Pull `feat/mission-1-2-architecture`.
-2. **`Hearthbound → Build Playable Mission 1 (One Click)`**.
-3. Press Play.
-4. Walk (WASD) → talk to Doris (the green cylinder) → polish her memory → end Day 1.
+2. Wait for Unity recompile (~5 s).
+3. **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`**.
+4. Console will log "Built 4 BoZo wrapper prefabs". Check the Project window under `Assets/_Project/Prefabs/`.
+5. (Optional) Re-run `Hearthbound → Build Playable Mission 1 (One Click)` — it will now use the BoZo prefabs instead of primitive capsule/cylinder. *(Scene-builder integration update lands in commit alongside Phase 14 — for now, drop the prefabs into a scene manually to verify they look right.)*
 
 ---
 
-## Phase 13+ Roadmap (after MVP confirmed playable)
-
-| # | Deliverable | Notes |
-|---|---|---|
-| 13 | Mission 2 (widower's request, herb garden, cleanse + moral choice) | Mission02Director + 04_Mission02_Garden + 05_Mission02_Cottage scenes |
-| 14 | BoZo character reskin pass (Doris cleric, Gerrold bard) | Replace the placeholder cylinders |
-| 15 | Medieval Village environment dressing pass | Replace the cube workbench + cube door |
-| 16 | Bamao parchment UI skin | Replace the flat-color UI backgrounds |
-| 17 | Lumen god-ray + ambient pass | Replace the directional + ambient lighting |
-| 18 | Yarn Spinner integration | Mission01Director becomes a fallback; Yarn .yarn files take over |
-| 19 | Memory Dream Timeline assets | Timeline cinematic for Dream 1 + 5 Dream 2 variants |
-| 20 | Composer + VO drop-in | Audio cues replace silence |
-| 21 | 20-person internal playtest (Mission_1_2_Focus § 08 § 6.2) | Greenlight gate |
-
----
-
-*Last updated: Phase 12 — Make It Playable. PR #7 has a complete playable Mission 1 MVP behind one menu click.*
+*Last updated: Phase 13 — BoZo Character Prefabs landed. Phase 14 (Bamao Parchment UI) next.*
