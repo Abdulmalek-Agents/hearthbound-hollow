@@ -2,6 +2,86 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.2.0-mission-1-2-polished-playable] — 2026-05-24
+
+**Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
+**Theme:** Phase 23 (Mission 1 polish capstone) + Phase 24 (Mission 2 scenes) — the polished, fully player-facing Mission 1 + 2 build.
+
+### Added — Phase 23 (Mission 1 polish capstone, ~1,400 LOC)
+
+#### New runtime scripts
+- **`Core/SettingsService.cs`** — PlayerPrefs-backed audio/comfort/accessibility settings (12 keys). `EffectiveVolume(AudioChannel)` helper. `OnSettingsChanged` event so subscribers can hot-refresh.
+- **`Core/SettingsServiceBootstrap.cs`** — Tiny MonoBehaviour at execution order -900 that registers SettingsService with ServiceLocator at boot.
+- **`UI/PauseMenuUI.cs`** — Esc-toggled pause overlay. Resume / Settings (event) / Save & Quit / Quit to Desktop. Pauses Time.timeScale + AudioListener. Defensive restore on OnDestroy.
+- **`UI/HelpOverlayUI.cs`** — H-toggled controls reference card with in-fiction Marin quote. Auto-shows on first start (`VillageState.tutorialCompleted == false`); marks tutorial complete on first close.
+- **`UI/MissionTitleCard.cs`** — CanvasGroup fade-in title card. Pulls displayName + toneOneLine from MissionSO. Skippable on click/space/enter. Uses `Time.unscaledDeltaTime` so it runs even when the pause menu is up.
+- **`Audio/AmbientAudio.cs`** — Looping ambient bed. Resolves AudioClip via `SfxLibrarySO` entry id (or direct clip). Volume gated by `SettingsService.EffectiveVolume(Ambient)`; hot-refreshes on `OnSettingsChanged`.
+- **`Mission/MainMenuSaveCoordinator.cs`** — Bridges UI → Save asmdef. Awake: ensures SaveService is registered. Start: enables Continue button only if autosave (slot -1) exists. On click: `SaveService.Load(-1, vs)` + `GameManager.LoadScene(vs.lastSceneName ?? fallback)`.
+- **`Mission/PauseSaveCoordinator.cs`** — Listens to `PauseMenuUI.OnSaveAndQuitRequested` + `DayEndedEvent`. Captures active scene name into `VillageState.lastSceneName` and writes autosave.
+
+#### Updated
+- **`UI/MainMenuController.cs`** — Emits `OnContinueRequested` + `OnSettingsRequested` events (replacing direct save-service calls). Adds `SetContinueEnabled(bool)` for the coordinator to call. Continue button starts dim. 7 cozy tip strings (was 5). Settings opens the panel + `ComfortToolsMenu` when wired.
+
+#### Editor capstone
+- **`Editor/Phase23_Mission1PolishCapstone.cs`** (~670 LOC). Menu: **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`**.
+  - Runs Phase 22 (which chains Phases 13–21).
+  - Runs Phase 24 (Mission 2 scenes).
+  - Post-processes 6 scenes:
+    - Bootstrap: adds `SettingsServiceBootstrap` on `_GameRoot`.
+    - MainMenu: builds Settings panel (procedural Bamao-tone) with `ComfortToolsMenu` (Gentle Mode toggle, Auto-Polish toggle, Auto-Cleanse toggle, Subtitle Size slider) + adds `MainMenuSaveCoordinator`.
+    - Lane: spawns `_AmbientAudio` (autumn loop, 0.40 base) + `PauseMenu` + `HelpOverlay` + `MissionTitleCard` ("Day 1 — Opening the Hollow").
+    - Hollow: spawns ambient (0.30 hearth-quiet) + Pause + Help + TitleCard + **Pickle the cat** (sphere primitive with PickleAI wired to player + orb) + sets `Mission01Director.sceneAfterEndOfDay = "04_Mission02_Garden"` (the M1→M2 hand-off).
+    - Garden: ambient (0.45 outdoor wind) + Pause + Help.
+    - Cottage: ambient (0.25 hearth-quiet) + Pause + Help.
+  - Updates Build Settings to 6 scenes in correct order.
+  - Opens Bootstrap so the user can Press Play immediately.
+
+### Added — Phase 24 (Mission 2 Garden + Cottage scenes, ~1,275 LOC)
+
+- **`Mission/Mission02Director.cs`** (479 LOC) — single runtime orchestrator that handles both Mission 2 scenes via `SceneRole` enum.
+  - **Garden flow**: title card → Marin's intro → herb harvest (HerbHarvestedEvent listener) → kettle activation → TeaBrewingUI → TeaBrewedEvent → garden exit unlocks → loads Cottage scene.
+  - **Cottage flow**: title card → Gerrold greeting (3 lines + 3-option reply, +0/+3/+6 trust ripple) → ChoiceCardUI with 4 tariffs.
+  - **Branch logic**: Erase → CleanseMiniGame (gentleMode) → Dream 2 Variant A. Cleanse → CleanseMiniGame → Dream 2 Variant B/C (depending on CleanseOutcome). Listen → no mini-game + 4-beat narrative pause + Variant D. Defer → no mini-game + Variant E.
+  - **Outcome-specific Evening Ledger** — 5 distinct passages (one for each cleanse-outcome and each non-cleanse branch).
+- **`Editor/Phase24_Mission2SceneBuilder.cs`** (795 LOC) — Menu: **`Hearthbound → Phase 24 — Build Mission 2 Scenes`**. Builds both scenes from scratch:
+  - Garden: ground, 2 plants (Lavender + Valerian), Kettle interactable, Garden_Exit_Trigger, UI (DialogueUI + TeaBrewingUI + MissionTitleCard).
+  - Cottage: wood floor, 3 walls, Gerrold (BoZo Bard or cylinder fallback), table, hidden GER-007 orb, _CleanseMiniGame, _MemoryDreamRig + PlayableDirector, UI (DialogueUI + ChoiceCardUI + EveningLedgerUI + MissionTitleCard).
+  - Adds both scenes to Build Settings as indices 4 and 5.
+  - Mission02Director is wired with every reference (4 tariffs, Gerrold villager, GER-007 memory, cleanse game, dream sequencer).
+
+### Decisions adopted in this release
+- **D-028** SettingsService is a plain C# class, not a ScriptableObject — PlayerPrefs persists across sessions.
+- **D-029** MainMenuSaveCoordinator + PauseSaveCoordinator live in Mission asmdef — UI stays Save-free. Matches the DreamHook pattern from Phase 22.
+- **D-030** TeaBrewingUI default duration = 12 s (was 90 s) — first-play loop is tight; players who want longer timers can toggle Gentle Mode.
+- **D-031** Mission01Director.sceneAfterEndOfDay defaults to "01_MainMenu" but is overridden to "04_Mission02_Garden" by Phase 23 — default stays safe (no Mission 2 = no broken hand-off); polish capstone wires the hand-off only when Mission 2 scenes exist.
+
+### Files net delta (vs 0.1.1)
+- **+11 C# files**: SettingsService, SettingsServiceBootstrap, PauseMenuUI, HelpOverlayUI, MissionTitleCard, AmbientAudio, MainMenuSaveCoordinator, PauseSaveCoordinator, Mission02Director, Phase23_Mission1PolishCapstone, Phase24_Mission2SceneBuilder.
+- **+11 .meta files** (one per script).
+- **Modified**: MainMenuController.cs (events + Continue dimming + SetContinueEnabled API).
+
+### Build Settings (after Phase 23 runs)
+| Index | Scene |
+|---|---|
+| 0 | `Assets/_Project/Scenes/00_Bootstrap.unity` |
+| 1 | `Assets/_Project/Scenes/01_MainMenu.unity` |
+| 2 | `Assets/_Project/Scenes/02_Mission01_Lane.unity` |
+| 3 | `Assets/_Project/Scenes/03_Mission01_Hollow.unity` |
+| 4 | `Assets/_Project/Scenes/04_Mission02_Garden.unity` |
+| 5 | `Assets/_Project/Scenes/05_Mission02_Cottage.unity` |
+
+### Player-facing controls
+| Action | Key |
+|---|---|
+| Move | WASD / Arrow keys / Gamepad left stick |
+| Interact | E / Gamepad south |
+| Advance line | Click / Space / Enter |
+| Polish orb | Hold left mouse, draw slow circles |
+| Pause | Escape |
+| Help | H |
+
+---
+
 ## [0.1.1-mission-1-2-bugfix-and-tooling] — 2026-05-24
 
 **Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
@@ -109,4 +189,4 @@ All notable changes to this project will be documented here. Entries follow the 
 
 ---
 
-*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.2.0 when Mission 3 design begins; 1.0.0 when the 20-person greenlight playtest passes.*
+*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 when Mission 3 design begins; 1.0.0 when the 20-person greenlight playtest passes.*
