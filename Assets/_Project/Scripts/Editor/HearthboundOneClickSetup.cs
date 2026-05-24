@@ -818,23 +818,15 @@ namespace HearthboundHollow.EditorTools
         }
     }
 
-    // ─── Small follow-camera that doesn't require Cinemachine ─────
-
-    [DisallowMultipleComponent]
-    public class SimpleFollowCamera : MonoBehaviour
-    {
-        public Transform target;
-        public float height = 4.5f;
-        public float behind = 5.5f;
-        public float lookAheadY = 1.2f;
-        public float damping = 6f;
-
-        private void LateUpdate()
-        {
-            if (target == null) return;
-            var desired = target.position + Vector3.up * height + (-target.forward) * behind;
-            transform.position = Vector3.Lerp(transform.position, desired, Time.deltaTime * damping);
-            transform.LookAt(target.position + Vector3.up * lookAheadY);
-        }
-    }
+    // SimpleFollowCamera was previously declared here as a public nested
+    // class. That broke runtime scene loads because the Editor asmdef has
+    // includePlatforms = ["Editor"] — the class wasn't shipped to the
+    // player. It now lives at:
+    //
+    //     Assets/_Project/Scripts/Player/SimpleFollowCamera.cs
+    //     namespace HearthboundHollow.Player
+    //
+    // The Editor builders import `HearthboundHollow.Player` so existing
+    // AddComponent<SimpleFollowCamera>() calls resolve to the runtime
+    // class automatically.
 }
