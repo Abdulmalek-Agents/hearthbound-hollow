@@ -10,61 +10,61 @@
 
 ---
 
-## ✅ Phase 0 — Architecture & Skeleton  (PR #7) — All 7 items 🟢.
-## 🟢 Phase 1–8 — All implementation phases complete.
-## ⬜ Phase 9 — Scenes (Unity-side authoring — `Docs/SCENE_ASSEMBLY_GUIDE.md`)
+## ✅ Phase 0 — Architecture & Skeleton  (PR #7)
+## 🟢 Phase 1–8 — All script implementation phases complete.
+## 🟢 Phase 9 — Scenes — **NOW AUTOMATED** (was: Unity-side authoring)
 ## 🟢 Phase 10 — QA & Polish (21 EditMode tests, secret-scan clean)
+## 🔧 Phase 10.5 — Studio-Code Bug Fixes  ✅
+## 🆕 Phase 11 — Quality-of-Life Tooling  ✅
+## 🔧 Phase 10.6 — Vendor-Asset Package Cycle  ✅
+## 🔧 Phase 10.7/10.8 — Render Pipeline + Shader Patcher  ✅
 
 ---
 
-## 🔧 Phase 10.5 — Studio-Code Bug Fix Cycle  ✅ Resolved
-- CS1739, CS0234/CS0246 in MiniGames, "Invalid dependencies", preempt CS0234 in Yarn bridge.
+## 🎮 Phase 12 — Make It Playable  🟢 Awaiting one-click menu
 
-## 🆕 Phase 11 — Quality-of-Life Tooling  ✅
-- SeedAssetGenerator (17 SOs), HearthboundInput.inputactions, ListenSceneSequencer, +13 tests.
+The "Make It Playable" capstone. Three new components turn the entire stack into a one-click playable Mission 1:
 
-## 🔧 Phase 10.6 — Vendor-Asset Package Cycle  ✅ Resolved
-- Added: `com.unity.visualscripting 1.9.7`, `mathematics 1.3.2`, `collections 2.5.7`, `burst 1.8.24`.
+### A. `Mission01Director.cs` (runtime — Mission asmdef)
+Yarn-free runtime sequencer that orchestrates Mission 1 directly via DialogueUI.PresentLine/PresentChoices. Lets the MVP run END-TO-END before Yarn Spinner is installed.
 
-## 🔧 Phase 10.7 — Render Pipeline Activation  🟢 Awaiting menu run
-- `URPSetupHelper.cs` Editor menu auto-creates URP-Mobile asset + renderer, assigns to GraphicsSettings + all QualitySettings levels.
+Flow (matches `Mission_1_2_Focus/01_DORIS_THE_BAKER.md`, abridged):
+1. Player enters Doris's greeting trigger → 3-option reply.
+2. Doris offers the orb → 3-option price negotiation. Adjusts trust + coin.
+3. Doris hands over the orb → it becomes visible on the workbench.
+4. Player walks to workbench trigger → PolishMiniGame begins.
+5. Polish completes → tier-based Doris reaction (bright / acceptable / dim).
+6. Memory added to `VillageState.heldMemoryIds`.
+7. EveningLedger shows with clarity-keyed summary prose.
+8. Player confirms End of Day → loads back to MainMenu.
 
-## 🔧 Phase 10.8 — Render Pipeline Auto-Prompt + Shader Patch  🟢
+When Yarn Spinner is installed later, this director can be replaced by `YarnDialogueRunner` without touching anything else.
 
-**Two persisting issues addressed:**
+### B. `MemoryOrbInteractable` URP/Lit fallback
+Until the bespoke `MemoryOrb_Master` Shader Graph is authored, the orb runs on URP/Lit which doesn't have `_Clarity`/`_PaletteTint`. Added a fallback that also drives `_BaseColor` (lerped dim→tint) and `_EmissionColor` (tint × clarity × intensity). Result: the polish mini-game produces a visible glowing orb effect immediately, no shader-graph work required.
 
-### 🅰 Microdetail SetupWizard error (persisted)
+### C. `HearthboundOneClickSetup.cs` (Editor — `Hearthbound → Build Playable Mission 1 (One Click)`)
+Single menu item that produces a fully wired, runnable Mission 1 vertical slice with **zero manual scene authoring** by the user.
 
-Root cause was: the user pulled the script but didn't run the menu, so URP was still inactive on next compile.
+Build steps:
+1. Verifies URP active (prompts to run URPSetupHelper if not).
+2. Verifies seed assets exist (prompts to run SeedAssetGenerator if not).
+3. Creates 4 URP/Lit materials (Ground / Player / Doris / Workbench / Orb).
+4. Builds **`00_Bootstrap.unity`** — GameManager + auto-load to MainMenu.
+5. Builds **`01_MainMenu.unity`** — Title + "Open The Hollow" CTA + Quit + ToneCompass.
+6. Builds **`02_Mission01_Lane.unity`** — Player + ground + HollowDoor interactable.
+7. Builds **`03_Mission01_Hollow.unity`** — the playable MVP scene:
+   - Player capsule with CharacterController + PlayerController + tag `Player`
+   - Doris cylinder + 1.6 m greeting trigger zone
+   - Workbench cube + 1.4 m approach trigger zone
+   - MemoryOrb sphere wired to DOR-001 SO + PolishMiniGame target (initially hidden)
+   - UI Canvas with `DialogueUI`, choices container, `EveningLedgerUI`, `HUDController`
+   - `Mission01Director` with every reference populated
+   - `SimpleFollowCamera` (no Cinemachine dep — matches D-009)
+8. Adds all 4 scenes to Build Settings (Bootstrap at index 0).
+9. Opens `00_Bootstrap.unity` so the user can press Play immediately.
 
-**New approach** — `URPSetupHelper` now has:
-1. `[InitializeOnLoad]` startup hook — on every Editor open (or script recompile), checks `GraphicsSettings.defaultRenderPipeline`. If it's not a `UniversalRenderPipelineAsset`, surfaces a 3-button dialog:
-   - "Set up URP now" → runs the helper immediately
-   - "Don't ask again" → persists in EditorPrefs
-   - "Skip for now" → defers
-2. New diagnostic menu — `Hearthbound → Check Render Pipeline Status` — prints the current GraphicsSettings + per-QualityLevel render pipeline bindings.
-3. Stronger activation — sets `defaultRenderPipeline = null` then back to the URP asset to force a pipeline reload (catches caching).
-
-**Also corrected the post-setup dialog instruction text for Unity 6.0.4:**
-- Old (Unity 2022 legacy): "Edit → Rendering → Materials → Convert All Built-in Materials to URP"
-- **New (Unity 6.0.4 correct):** "Window → Rendering → Render Pipeline Converter → Built-in to URP → Material Upgrade → Convert Assets"
-
-### 🅱 BM_Lit shader duplicate `_SHADOWS_SOFT` warning
-
-```
-Shader error in 'Hidden/Universal/BM_Lit': Keyword '_SHADOWS_SOFT' is
-duplicated in several directives.
-```
-
-Root cause: LightMap Fusion's `BM_Lit.shader` (Amplify Shader Editor template) ships with both the pre-URP-14.0.9 and >=URP-14.0.9 `_SHADOWS_SOFT` multi_compile directives, gated by `/*ase_srp_cond_*/` comments that Unity treats as plain C-style comments — both compile.
-
-**Fix:** `Editor/BMLitShaderPatcher.cs` — `AssetPostprocessor` that patches the shader on import:
-- Generic — scans any `.shader` file for the legacy `<140009` block and removes it.
-- Idempotent — safe to re-run; checks if pattern is still present.
-- Handles both CRLF (vendor default) and LF (some git checkouts).
-- Survives vendor updates — re-applies on the next import.
-
-Manual menu: `Hearthbound → Patch ASE Shaders Now` — scans project-wide and patches any matches.
+**Result:** push Play → MainMenu → "Open The Hollow" → walk to Doris → dialogue → walk to workbench → polish → Evening Ledger → End Day → loop back to MainMenu.
 
 ---
 
@@ -72,22 +72,25 @@ Manual menu: `Hearthbound → Patch ASE Shaders Now` — scans project-wide and 
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
-| D-001 | BoZo over City Characters | 0 | Critic Board rec; cozy tone; ⅓ mobile cost |
-| D-002 | Yarn Spinner over OpenAI addon | 0 | GDD Pillar 1; hand-authored only |
-| D-003 | Don't relocate existing vendor folders | 0 | Preserves .meta GUIDs; avoids 5 GB reimport |
+| D-001 | BoZo over City Characters | 0 | Critic Board rec |
+| D-002 | Yarn Spinner over OpenAI addon | 0 | GDD Pillar 1 |
+| D-003 | Don't relocate existing vendor folders | 0 | Preserves .meta GUIDs |
 | D-004 | One asmdef per Scripts/ subfolder | 0 | 80% faster iteration |
 | D-005 | InteractionPromptUI lives in Player asmdef | 5 | Avoids UI→Player dep cycle |
 | D-006 | YarnVillageStateBridge compile-guarded | 6 | Bridge compiles before Yarn install |
-| D-007 | Scene authoring is Unity-side, scripts are GitHub-side | 9 | `.unity` files reference GUIDs not yet on disk |
-| D-008 | Drop `com.unity.textmeshpro` from manifest | 10.5 | Unity 6 folded TMP into `com.unity.ugui` 2.0 |
-| D-009 | Cinemachine via reflection in ListenSceneSequencer | 11 | Avoids hard compile dep |
-| D-010 | Seed asset generation via Editor menu, not committed .asset files | 11 | Avoids GUID/.meta race conditions |
-| D-011 | Explicit-pin DOTS-family packages | 10.6 | Vendor packs need them; pin prevents drift |
+| D-007 | Scene authoring is Unity-side, scripts are GitHub-side | 9 | `.unity` files have GUID refs |
+| D-008 | Drop `com.unity.textmeshpro` from manifest | 10.5 | Folded into ugui 2.0 |
+| D-009 | Cinemachine via reflection in cutscene/camera helpers | 11 | Avoids hard compile dep |
+| D-010 | Seed asset generation via Editor menu, not committed .asset files | 11 | Avoids GUID race |
+| D-011 | Explicit-pin DOTS-family packages | 10.6 | Vendor packs need them |
 | D-012 | Whole-vendor-tree audit on every CS0234 | 10.6 | Add N packages once vs whack-a-mole |
-| D-013 | URP Render Pipeline asset auto-created via Editor menu | 10.7 | Manual Project Settings juggling is error-prone |
-| D-014 | Mobile-friendly URP defaults (0.85 scale, 2× MSAA, soft shadows off) | 10.7 | Matches ARCHITECTURE.md § 10 mobile budget |
-| **D-015** | **URPSetupHelper auto-prompts on Editor startup if URP not active** | **10.8** | **Catches "pulled script, forgot to run menu" case** |
-| **D-016** | **Vendor shaders patched via AssetPostprocessor, not in-repo edits** | **10.8** | **Avoids 136 KB content-arg push; survives vendor updates** |
+| D-013 | URP RP asset auto-created + assigned via Editor menu | 10.7 | Manual Project Settings juggling is error-prone |
+| D-014 | Mobile-friendly URP defaults (0.85, 2×, soft off) | 10.7 | Matches ARCHITECTURE § 10 |
+| D-015 | URPSetupHelper auto-prompts on Editor startup | 10.8 | Catches "forgot to run menu" |
+| D-016 | Vendor shaders patched via AssetPostprocessor | 10.8 | Avoids 136 KB push + survives updates |
+| **D-017** | **Mission 1 MVP uses primitives (capsule/cylinder/cube/sphere) + URP/Lit fallback shader** | **12** | **Removes the "needs BoZo prefab wired manually" gate; playable Day 1** |
+| **D-018** | **Mission01Director sequences dialogue directly (no Yarn dep)** | **12** | **Makes MVP playable WITHOUT installing Yarn Spinner first** |
+| **D-019** | **Whole playable build is one Editor menu click** | **12** | **Same philosophy as D-010 + D-013 — Unity-side authoring is brittle; code is reproducible** |
 
 ---
 
@@ -95,10 +98,8 @@ Manual menu: `Hearthbound → Patch ASE Shaders Now` — scans project-wide and 
 
 | # | Item | Severity | Status |
 |---|---|---|---|
-| Phase-10.5 studio compile errors | High | ✅ Resolved |
-| Phase-10.6 vendor compile errors | High | ✅ Resolved (4 packages + audit) |
-| Phase-10.7/10.8 Microdetail SetupWizard error | Medium | 🟢 Resolved — auto-prompt on Editor open |
-| Phase-10.8 BM_Lit duplicate `_SHADOWS_SOFT` warning | Low | 🟢 Resolved — AssetPostprocessor patches on import |
+| All previous bug cycles | various | ✅ Resolved |
+| Phase 12 MVP first-play UX | Low | 🟢 Self-tested via the One-Click menu's dialog. Monitor first user run. |
 
 ---
 
@@ -106,25 +107,38 @@ Manual menu: `Hearthbound → Patch ASE Shaders Now` — scans project-wide and 
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
-| Hearthbound → Setup URP Pipeline (one-time) | Activate URP + create asset bundle | 10.7 |
-| **Hearthbound → Check Render Pipeline Status** | **Diagnostic: print current GraphicsSettings + QualityLevel pipelines** | **10.8** |
-| Hearthbound → Create Mission 1-2 Seed Assets | Spawn all 17 ScriptableObject seed assets | 11 |
-| Hearthbound → Validate Mission 1-2 Seed Assets | Audit which seed assets are missing | 11 |
-| **Hearthbound → Patch ASE Shaders Now** | **Force-patch the BM_Lit (or any ASE) shader's duplicate `_SHADOWS_SOFT`** | **10.8** |
+| **`Hearthbound → Build Playable Mission 1 (One Click)`** | **🎮 The main "make it work" button — builds all scenes + wires every component** | **12** |
+| `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP + create asset bundle | 10.7 |
+| `Hearthbound → Check Render Pipeline Status` | Diagnostic dump of current GraphicsSettings + QualityLevel pipelines | 10.8 |
+| `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn all 17 ScriptableObject seed assets | 11 |
+| `Hearthbound → Validate Mission 1-2 Seed Assets` | Audit which seed assets are missing | 11 |
+| `Hearthbound → Patch ASE Shaders Now` | Force-patch BM_Lit + any other ASE shader's duplicate `_SHADOWS_SOFT` | 10.8 |
 
 ---
 
-## Unity 6 — Correct Menu Paths Reference
+## How to play (one command)
 
-For the user's future reference, since Unity 6 (6000.x) reorganized several menus:
+1. Pull `feat/mission-1-2-architecture`.
+2. **`Hearthbound → Build Playable Mission 1 (One Click)`**.
+3. Press Play.
+4. Walk (WASD) → talk to Doris (the green cylinder) → polish her memory → end Day 1.
 
-| Task | Unity 2022 legacy path | **Unity 6.0.4 correct path** |
+---
+
+## Phase 13+ Roadmap (after MVP confirmed playable)
+
+| # | Deliverable | Notes |
 |---|---|---|
-| Convert materials to URP | `Edit → Rendering → Materials → Convert All Built-in Materials to URP` | **`Window → Rendering → Render Pipeline Converter`** → "Built-in to URP" |
-| Open Test Runner | `Window → General → Test Runner` | Same |
-| Lighting bake settings | `Window → Rendering → Lighting` | Same |
-| Profiler | `Window → Analysis → Profiler` | Same |
+| 13 | Mission 2 (widower's request, herb garden, cleanse + moral choice) | Mission02Director + 04_Mission02_Garden + 05_Mission02_Cottage scenes |
+| 14 | BoZo character reskin pass (Doris cleric, Gerrold bard) | Replace the placeholder cylinders |
+| 15 | Medieval Village environment dressing pass | Replace the cube workbench + cube door |
+| 16 | Bamao parchment UI skin | Replace the flat-color UI backgrounds |
+| 17 | Lumen god-ray + ambient pass | Replace the directional + ambient lighting |
+| 18 | Yarn Spinner integration | Mission01Director becomes a fallback; Yarn .yarn files take over |
+| 19 | Memory Dream Timeline assets | Timeline cinematic for Dream 1 + 5 Dream 2 variants |
+| 20 | Composer + VO drop-in | Audio cues replace silence |
+| 21 | 20-person internal playtest (Mission_1_2_Focus § 08 § 6.2) | Greenlight gate |
 
 ---
 
-*Last updated: Phase 10.8 — Editor-startup URP prompt + shader auto-patcher. PR #7 open.*
+*Last updated: Phase 12 — Make It Playable. PR #7 has a complete playable Mission 1 MVP behind one menu click.*
