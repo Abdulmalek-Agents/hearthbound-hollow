@@ -10,56 +10,91 @@
 
 ---
 
-## Plan correction (after Phase 10.8)
+## Roadmap (proper order — polished playable as Phase 22 capstone)
 
-**Phase 12 was a development scaffold**, not the final destination. The proper plan — explicit per the user — is to **progressively integrate real assets in Phases 13-21, then ship a polished playable Mission 1 as the capstone Phase 22**. The Phase-12 one-click primitive scene stays as an engineering smoke-test, but each subsequent phase replaces a placeholder layer with the real asset.
-
-| Phase | Title | Asset(s) integrated | Polished playable replaces |
+| Phase | Title | Asset(s) | Replaces |
 |---|---|---|---|
-| 13 | BoZo Character Prefabs | `BoZo_StylizedModularCharacters/` | Capsule player + cylinder Doris |
-| 14 | Bamao Parchment UI Skin | `Bamao/BamaoUIPack/` | Flat-color dialogue / ledger backgrounds |
-| 15 | Medieval Village Environment | `MeshingunStudio/Medieval Village/` | Plane + cube workbench + cube door |
-| 16 | MemoryOrb_Master Shader | `Plugins/AllIn1ShaderNodes/` | URP/Lit `_BaseColor` fallback |
-| 17 | Lumen Lighting + Cinemachine | `Packages/com.distantlands.lumen/` | Plain directional light + SimpleFollowCamera |
-| 18 | Audio Integration | `Game UI & Puzzle Sound Effects Pack/` | Silence |
-| 19 | Stylized Weather + Zephyr Wind | `Unluck Software/Stylized Weather/` + `Packages/com.distantlands.zephyr/` | Static foliage, no atmosphere |
-| 20 | Yarn Spinner Integration | Yarn Spinner UPM | Mission01Director's inline lines |
-| 21 | Memory Dream Cutscene | `Cutscene Engine/` + Unity Timeline | Hard cut to Evening Ledger |
-| **22** | **Polished Playable Mission 1** | (all of the above wired together) | Replaces the Phase-12 MVP entirely |
+| ✅ 0–10.8 | Architecture, scripts, bug-fix cycles, URP, shader patcher | (foundation) | — |
+| ✅ 12 | Make It Playable MVP (smoke-test) | primitives + URP/Lit | — (the baseline) |
+| 🟢 **13** | **BoZo Character Prefabs** | `BoZo_StylizedModularCharacters/` | capsule + cylinder |
+| 🟢 **14** | **Bamao Parchment UI Skin** | `Bamao/BamaoUIPack/` | flat-color UI |
+| ⬜ 15 | Medieval Village Environment | `MeshingunStudio/Medieval Village/` | plane + cubes |
+| ⬜ 16 | MemoryOrb_Master Shader Graph | `Plugins/AllIn1ShaderNodes/` | URP/Lit fallback |
+| ⬜ 17 | Lumen Lighting + Cinemachine | `Packages/com.distantlands.lumen/` | plain directional + SimpleFollowCamera |
+| ⬜ 18 | Audio Integration | `Game UI & Puzzle Sound Effects Pack/` | silence |
+| ⬜ 19 | Stylized Weather + Zephyr Wind | `Unluck Software/Stylized Weather/` + `com.distantlands.zephyr/` | static foliage |
+| ⬜ 20 | Yarn Spinner Integration | Yarn Spinner UPM | Mission01Director inline lines |
+| ⬜ 21 | Memory Dream Cutscene | `Cutscene Engine/` + Timeline | hard cut to ledger |
+| ⬜ **22** | **Polished Playable Mission 1** | (all above) | replaces Phase 12 entirely |
 
 ---
 
-## ✅ Phase 0 → 10.8 — Architecture, scripts, bug-fix cycles, URP, shader patcher  (all merged into branch)
-## 🟢 Phase 12 — Make It Playable (MVP scaffold — primitives, no real assets)
-
-This is the engineering smoke-test build. Useful for verifying that the script stack runs end-to-end. It stays available via the menu so the user can re-run it any time to sanity-check.
+## ✅ Phase 0–10.8 — Foundation complete (architecture, scripts, bug-fix cycles, URP, shader patcher)
+## ✅ Phase 12 — MVP playable smoke-test (primitives)
 
 ---
 
 ## 🆕 Phase 13 — BoZo Character Prefabs  🟢
 
-**Delivered:** `Assets/_Project/Scripts/Editor/Phase13_BoZoCharacterBuilder.cs`.
+**Delivered:** `Assets/_Project/Scripts/Editor/Phase13_BoZoCharacterBuilder.cs`
 
 Menu: **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`**
 
-What it builds (saved to canonical paths):
-- `Assets/_Project/Prefabs/Player/Player.prefab` (tag Player + CharacterController + PlayerController)
-- `Assets/_Project/Prefabs/NPCs/Doris.prefab` (warm cleric-amber tint + 1.6 m greeting trigger zone)
-- `Assets/_Project/Prefabs/NPCs/Gerrold.prefab` (dusk-blue bard tint + 1.8 m cottage proximity zone)
-- `Assets/_Project/Prefabs/NPCs/SilentLaneVillager.prefab` (neutral umber tint, decorative)
+Builds 4 wrapper prefabs from the BoZo base character via structural scoring (Animator + SMR + path heuristics; top 3 candidates logged; manual fallback picker):
 
-Approach: **wrapper-prefab pattern**. Each output prefab is a fresh GameObject with our components attached, plus a nested instance of the BoZo base character as a "Body" child. This means:
-- BoZo updates propagate automatically.
-- Studio code never references BoZo internals (only the wrapper).
-- Animator + rig + outfits stay intact inside the nested prefab.
+- `Assets/_Project/Prefabs/Player/Player.prefab` — tag Player + CharacterController + PlayerController
+- `Assets/_Project/Prefabs/NPCs/Doris.prefab` — warm amber tint + 1.6 m greeting trigger
+- `Assets/_Project/Prefabs/NPCs/Gerrold.prefab` — dusk-blue bard tint + 1.8 m cottage trigger
+- `Assets/_Project/Prefabs/NPCs/SilentLaneVillager.prefab` — neutral umber
 
-BoZo detection: scores all prefabs under `Assets/BoZo_StylizedModularCharacters/` by structure (SkinnedMeshRenderer + Animator + path heuristics). Top 3 candidates are logged so you can see the heuristic at work. Falls back to a manual file picker if auto-detect fails.
+Wrapper-prefab pattern: nested BoZo prefab as "Body" child → vendor updates propagate, studio code stays isolated.
 
-Material tinting: creates per-renderer instance materials (persists in the prefab; not just an MPB that vanishes outside play mode).
+---
 
-Public lookups (`Phase13_BoZoCharacterBuilder.TryGet*Prefab()`) are used by `HearthboundOneClickSetup` so the scene builder prefers these when they exist.
+## 🆕 Phase 14 — Bamao Parchment UI Skin  🟢
 
-**Next phase:** Phase 14 — Bamao Parchment UI Skin.
+**Delivered (2 files):**
+
+### A. `Assets/_Project/Scripts/Editor/Phase14_BamaoUIBuilder.cs`
+
+Menu: **`Hearthbound → Phase 14 — Build Bamao UI Prefabs`**
+
+Builds 4 UI prefabs at `Assets/_Project/Prefabs/UI/`:
+
+| Prefab | Role |
+|---|---|
+| `UI_DialogueBox_Bamao.prefab` | Parchment background + portrait slot + speaker/line TMP + choices container + choice-tile template (hidden child) |
+| `UI_ChoiceTile_Bamao.prefab` | Scroll-frame button standalone (for reuse outside dialogue) |
+| `UI_EveningLedger_Bamao.prefab` | Open-book layout, two-page reading: Day label, summary prose, held memories list, coin, 3 save slots + autosave + end-of-day confirm |
+| `UI_TooltipFrame_Bamao.prefab` | Codex examine-tooltip frame |
+
+Sprite detection: scores every Sprite under `Assets/Bamao/` by name keywords + path heuristics + dimension thresholds + 9-slice readiness (+8 score boost for sprites with non-zero border). Top 3 candidates per role are logged. Falls through to warm-tint color fallback if no match found.
+
+`Image.type = Sliced` when sprite has 9-slice borders, `Simple` otherwise.
+
+Bamao theme palette (matches Asset_Analysis_Mission1-2 § 5 S-4 "Hearthbound" preset):
+- Parchment tint: `(0.98, 0.94, 0.82)`
+- Ink color: `(0.22, 0.16, 0.10)`
+- Speaker ink: `(0.42, 0.24, 0.10)`
+- Gold ember: `(0.92, 0.70, 0.34)`
+
+### B. `Assets/_Project/Scripts/Editor/HearthboundOneClickSetup.cs` (updated)
+
+Scene builder is now **progressively polishing**:
+
+```
+Phase 12 alone   → primitives + flat UI
++ Phase 13 ran   → BoZo characters replace capsule/cylinder
++ Phase 14 ran   → Bamao parchment UI replaces flat backgrounds
++ Phase 15+      → (future)
+```
+
+Each role first tries `PhaseN_Builder.TryGet*Prefab()`; falls back to the primitive builder if not found. The post-build dialog reports which phases were applied:
+
+> ✓ Phase 12 — base scenes + primitives + flat UI  
+> ✓ Phase 13 — BoZo characters  
+> ✓ Phase 14 — Bamao parchment UI  
+> ⚠ Phase 15 — Medieval Village not run yet …
 
 ---
 
@@ -67,11 +102,11 @@ Public lookups (`Phase13_BoZoCharacterBuilder.TryGet*Prefab()`) are used by `Hea
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
-| D-001..D-019 | (see prior log) | 0–12 | (see prior entries) |
-| **D-020** | **Phase 12 MVP retained as engineering smoke-test, NOT the final playable** | **13** | **Following user's explicit plan: polished playable is the last phase. MVP remains useful for verifying scripts end-to-end.** |
-| **D-021** | **Wrapper-prefab pattern over unpacked-clone for vendor character integration** | **13** | **Survives vendor updates; isolates studio code from vendor internals; cleaner upgrade path** |
-| **D-022** | **BoZo prefab auto-detection by structural scoring (Animator + SMR + path heuristics)** | **13** | **Vendor prefab paths vary by version; brittle hard-coded paths would break on the next BoZo update** |
-| **D-023** | **One Editor menu item per phase: `Hearthbound → Phase N — <title>`** | **13** | **User can run any phase independently; HearthboundOneClickSetup invokes them in sequence for the capstone build** |
+| D-001..D-023 | (see prior log) | 0–13 | (see prior entries) |
+| **D-024** | **Bamao sprite auto-detection by structural scoring (name + path + size + 9-slice border)** | **14** | **Bamao ships 300+ sprites; structural scoring picks robustly across asset-pack versions** |
+| **D-025** | **Image.Type.Sliced when sprite has 9-slice border, Simple otherwise** | **14** | **Lets Bamao's 9-slice authoring scale dialogue panels at any resolution without distortion** |
+| **D-026** | **Color fallback for missing Bamao sprites — UI still functions** | **14** | **Builder never fails; user can manually drop sprites via Inspector to upgrade** |
+| **D-027** | **Each Phase builder exposes `TryGet*Prefab()` lookups; HearthboundOneClickSetup chains them** | **14** | **Progressive polish — same one-click menu produces a better-looking scene as more phases land** |
 
 ---
 
@@ -79,17 +114,18 @@ Public lookups (`Phase13_BoZoCharacterBuilder.TryGet*Prefab()`) are used by `Hea
 
 | # | Item | Severity | Status |
 |---|---|---|---|
-| Phase-12 to 10.8 cycles | various | ✅ Resolved |
-| Phase-13 BoZo auto-detect picking wrong prefab | Low | 🟢 Mitigated — top 3 candidates logged; manual picker fallback |
+| Prior cycles | various | ✅ Resolved |
+| Phase 14 — sprite auto-detection picking wrong sprite | Low | 🟢 Mitigated — top 3 candidates logged per role; manual Image.sprite override available in Inspector |
 
 ---
 
-## Editor Menu Items Available (cumulative — 7 total)
+## Editor Menu Items Available (cumulative — 8 total)
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
-| `Hearthbound → Build Playable Mission 1 (One Click)` | 🛠️ Engineering smoke-test build (primitives) | 12 |
-| **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`** | **🧍 Build 4 BoZo wrapper prefabs (replaces primitive characters)** | **13** |
+| `Hearthbound → Build Playable Mission 1 (One Click)` | 🛠️ Build all scenes (auto-uses any Phase 13/14 prefabs) | 12 |
+| `Hearthbound → Phase 13 — Build BoZo Character Prefabs` | 🧍 BoZo character wrappers | 13 |
+| **`Hearthbound → Phase 14 — Build Bamao UI Prefabs`** | **📜 Bamao parchment UI prefabs** | **14** |
 | `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP | 10.7 |
 | `Hearthbound → Check Render Pipeline Status` | Diagnose URP state | 10.8 |
 | `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn the 17 SOs | 11 |
@@ -98,14 +134,15 @@ Public lookups (`Phase13_BoZoCharacterBuilder.TryGet*Prefab()`) are used by `Hea
 
 ---
 
-## How to run Phase 13 (current step)
+## How to run Phases 13 + 14 (current step)
 
 1. Pull `feat/mission-1-2-architecture`.
 2. Wait for Unity recompile (~5 s).
-3. **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`**.
-4. Console will log "Built 4 BoZo wrapper prefabs". Check the Project window under `Assets/_Project/Prefabs/`.
-5. (Optional) Re-run `Hearthbound → Build Playable Mission 1 (One Click)` — it will now use the BoZo prefabs instead of primitive capsule/cylinder. *(Scene-builder integration update lands in commit alongside Phase 14 — for now, drop the prefabs into a scene manually to verify they look right.)*
+3. **`Hearthbound → Phase 13 — Build BoZo Character Prefabs`** — generates 4 BoZo wrappers.
+4. **`Hearthbound → Phase 14 — Build Bamao UI Prefabs`** — generates 4 UI prefabs.
+5. **`Hearthbound → Build Playable Mission 1 (One Click)`** — re-builds the scene with BoZo characters + Bamao UI in place of primitives.
+6. Press Play. The MainMenu loads; click "Open The Hollow" → BoZo Doris greets you, parchment dialogue box appears, parchment evening ledger ends Day 1.
 
 ---
 
-*Last updated: Phase 13 — BoZo Character Prefabs landed. Phase 14 (Bamao Parchment UI) next.*
+*Last updated: Phase 14 — Bamao Parchment UI Skin landed + HearthboundOneClickSetup integration. Phase 15 (Medieval Village Environment) next.*
