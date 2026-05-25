@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4044906285762984574}
+  - component: {fileID: 6691830625075204037}
   m_Layer: 0
   m_Name: Doris
   m_TagString: Untagged
@@ -33,6 +34,21 @@ Transform:
   - {fileID: 3901972152184746437}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6691830625075204037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3631949891173730250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83aacc741b23f4d4c8ea31a0863b4d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HearthboundHollow.Mission::HearthboundHollow.Mission.NpcAnimatorBridge
+  villager: {fileID: 11400000, guid: a800ad485f003423d94790d33f8bf49e, type: 2}
+  animator: {fileID: 4940001852473169917}
+  isTalkingParam: IsTalking
 --- !u!1 &6418888987907782387
 GameObject:
   m_ObjectHideFlags: 0
@@ -94,6 +110,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4044906285762984574}
     m_Modifications:
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.6520514
+      objectReference: {fileID: 0}
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.08991554
+      objectReference: {fileID: 0}
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.75046307
+      objectReference: {fileID: 0}
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.059577
+      objectReference: {fileID: 0}
+    - target: {fileID: 6147143813860675873, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: fe00fdc3b410d40669e3e36785f245dc, type: 2}
     - target: {fileID: 7288174367802448652, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
       propertyPath: m_Name
       value: Body
@@ -147,6 +183,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+--- !u!95 &4940001852473169917 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6147143813860675873, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+  m_PrefabInstance: {fileID: 1279412861957342940}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &9200423501016598378 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7957609120742801846, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
