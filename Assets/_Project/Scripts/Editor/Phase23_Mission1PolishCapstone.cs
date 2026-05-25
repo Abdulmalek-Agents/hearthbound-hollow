@@ -315,6 +315,7 @@ namespace HearthboundHollow.EditorTools
             title.fontSize = 48; title.alignment = TextAlignmentOptions.Center; title.color = new Color(0.97f, 0.85f, 0.62f);
             title.rectTransform.anchorMin = new Vector2(0, 0.82f); title.rectTransform.anchorMax = new Vector2(1, 0.95f);
             title.text = "Paused";
+            UIAutoFitText.ApplyToButtonLabel(title, minSize: 28, maxSize: 56);
 
             var hint = new GameObject("Hint").AddComponent<TextMeshProUGUI>();
             hint.transform.SetParent(panel.transform, false);
@@ -322,6 +323,7 @@ namespace HearthboundHollow.EditorTools
             hint.alignment = TextAlignmentOptions.Center; hint.color = new Color(0.86f, 0.78f, 0.66f);
             hint.rectTransform.anchorMin = new Vector2(0, 0.72f); hint.rectTransform.anchorMax = new Vector2(1, 0.81f);
             hint.text = "Take a breath. The Hollow will wait.";
+            UIAutoFitText.ApplyToLabel(hint, minSize: 14, maxSize: 22);
 
             var resume = MakeButton(panel.transform, "Btn_Resume",          "Resume",
                 new Vector2(0.10f, 0.56f), new Vector2(0.90f, 0.66f));
@@ -380,6 +382,7 @@ namespace HearthboundHollow.EditorTools
             title.fontSize = 36; title.alignment = TextAlignmentOptions.Center; title.color = new Color(0.97f, 0.85f, 0.62f);
             title.rectTransform.anchorMin = new Vector2(0, 0.85f); title.rectTransform.anchorMax = new Vector2(1, 0.95f);
             title.text = "Welcome to the Hollow";
+            UIAutoFitText.ApplyToButtonLabel(title, minSize: 22, maxSize: 40);
 
             var subtitle = new GameObject("Subtitle").AddComponent<TextMeshProUGUI>();
             subtitle.transform.SetParent(panel.transform, false);
@@ -387,11 +390,13 @@ namespace HearthboundHollow.EditorTools
             subtitle.alignment = TextAlignmentOptions.Center; subtitle.color = new Color(0.86f, 0.78f, 0.66f);
             subtitle.rectTransform.anchorMin = new Vector2(0, 0.78f); subtitle.rectTransform.anchorMax = new Vector2(1, 0.84f);
             subtitle.text = "A quick word from Marin's notes …";
+            UIAutoFitText.ApplyToLabel(subtitle, minSize: 14, maxSize: 22);
 
             var body = new GameObject("Body").AddComponent<TextMeshProUGUI>();
             body.transform.SetParent(panel.transform, false);
-            body.fontSize = 22; body.alignment = TextAlignmentOptions.TopLeft; body.color = new Color(0.92f, 0.88f, 0.78f);
+            body.fontSize = 20; body.alignment = TextAlignmentOptions.TopLeft; body.color = new Color(0.92f, 0.88f, 0.78f);
             body.rectTransform.anchorMin = new Vector2(0.10f, 0.18f); body.rectTransform.anchorMax = new Vector2(0.90f, 0.76f);
+            UIAutoFitText.ApplyToLabel(body, minSize: 14, maxSize: 24);
 
             var close = MakeButton(panel.transform, "Btn_Close", "Close (H)",
                 new Vector2(0.35f, 0.06f), new Vector2(0.65f, 0.14f));
@@ -502,9 +507,10 @@ namespace HearthboundHollow.EditorTools
 
             var labelGO = new GameObject("Label").AddComponent<TextMeshProUGUI>();
             labelGO.transform.SetParent(go.transform, false);
-            labelGO.fontSize = 22; labelGO.alignment = TextAlignmentOptions.Left; labelGO.color = new Color(0.92f, 0.88f, 0.78f);
+            labelGO.fontSize = 20; labelGO.alignment = TextAlignmentOptions.Left; labelGO.color = new Color(0.92f, 0.88f, 0.78f);
             labelGO.rectTransform.anchorMin = new Vector2(0.10f, 0); labelGO.rectTransform.anchorMax = new Vector2(1, 1);
             labelGO.text = label;
+            UIAutoFitText.ApplyToLabel(labelGO, minSize: 13, maxSize: 22);
 
             var toggle = go.AddComponent<Toggle>();
             toggle.targetGraphic = bgImg;
@@ -524,9 +530,10 @@ namespace HearthboundHollow.EditorTools
 
             var labelGO = new GameObject("Label").AddComponent<TextMeshProUGUI>();
             labelGO.transform.SetParent(go.transform, false);
-            labelGO.fontSize = 22; labelGO.alignment = TextAlignmentOptions.Left; labelGO.color = new Color(0.92f, 0.88f, 0.78f);
+            labelGO.fontSize = 20; labelGO.alignment = TextAlignmentOptions.Left; labelGO.color = new Color(0.92f, 0.88f, 0.78f);
             labelGO.rectTransform.anchorMin = new Vector2(0, 0.5f); labelGO.rectTransform.anchorMax = new Vector2(0.40f, 1);
             labelGO.text = label;
+            UIAutoFitText.ApplyToLabel(labelGO, minSize: 13, maxSize: 22);
 
             var sliderGO = new GameObject("Slider", typeof(Slider), typeof(Image));
             sliderGO.transform.SetParent(go.transform, false);
@@ -580,21 +587,24 @@ namespace HearthboundHollow.EditorTools
 
             var day = new GameObject("Day").AddComponent<TextMeshProUGUI>();
             day.transform.SetParent(visualGO.transform, false);
-            day.fontSize = 30; day.alignment = TextAlignmentOptions.Center; day.color = new Color(0.86f, 0.78f, 0.66f);
+            day.fontSize = 28; day.alignment = TextAlignmentOptions.Center; day.color = new Color(0.86f, 0.78f, 0.66f);
             day.rectTransform.anchorMin = new Vector2(0.2f, 0.62f); day.rectTransform.anchorMax = new Vector2(0.8f, 0.70f);
+            UIAutoFitText.ApplyToButtonLabel(day, minSize: 16, maxSize: 32);
 
             var titleLabel = new GameObject("Title").AddComponent<TextMeshProUGUI>();
             titleLabel.transform.SetParent(visualGO.transform, false);
-            titleLabel.fontSize = 64; titleLabel.alignment = TextAlignmentOptions.Center; titleLabel.color = new Color(0.97f, 0.85f, 0.62f);
-            titleLabel.rectTransform.anchorMin = new Vector2(0.15f, 0.5f); titleLabel.rectTransform.anchorMax = new Vector2(0.85f, 0.62f);
+            titleLabel.fontSize = 56; titleLabel.alignment = TextAlignmentOptions.Center; titleLabel.color = new Color(0.97f, 0.85f, 0.62f);
+            titleLabel.rectTransform.anchorMin = new Vector2(0.10f, 0.5f); titleLabel.rectTransform.anchorMax = new Vector2(0.90f, 0.62f);
             titleLabel.text = title;
+            UIAutoFitText.ApplyToButtonLabel(titleLabel, minSize: 28, maxSize: 64);
 
             var toneLabel = new GameObject("Tone").AddComponent<TextMeshProUGUI>();
             toneLabel.transform.SetParent(visualGO.transform, false);
-            toneLabel.fontSize = 26; toneLabel.fontStyle = FontStyles.Italic;
+            toneLabel.fontSize = 22; toneLabel.fontStyle = FontStyles.Italic;
             toneLabel.alignment = TextAlignmentOptions.Center; toneLabel.color = new Color(0.86f, 0.78f, 0.66f);
-            toneLabel.rectTransform.anchorMin = new Vector2(0.20f, 0.40f); toneLabel.rectTransform.anchorMax = new Vector2(0.80f, 0.48f);
+            toneLabel.rectTransform.anchorMin = new Vector2(0.15f, 0.40f); toneLabel.rectTransform.anchorMax = new Vector2(0.85f, 0.48f);
             toneLabel.text = tone;
+            UIAutoFitText.ApplyToLabel(toneLabel, minSize: 14, maxSize: 26);
 
             var card = hostGO.AddComponent<MissionTitleCard>();
             card.root = visualGO;
@@ -653,11 +663,12 @@ namespace HearthboundHollow.EditorTools
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
             var labelGO = new GameObject("Label").AddComponent<TextMeshProUGUI>();
             labelGO.transform.SetParent(btnGO.transform, false);
-            labelGO.fontSize = 24; labelGO.alignment = TextAlignmentOptions.Center; labelGO.color = new Color(0.97f, 0.85f, 0.62f);
+            labelGO.fontSize = 22; labelGO.alignment = TextAlignmentOptions.Center; labelGO.color = new Color(0.97f, 0.85f, 0.62f);
             labelGO.text = label;
             var lRT = labelGO.rectTransform;
             lRT.anchorMin = Vector2.zero; lRT.anchorMax = Vector2.one;
             lRT.offsetMin = new Vector2(12, 4); lRT.offsetMax = new Vector2(-12, -4);
+            UIAutoFitText.ApplyToButtonLabel(labelGO, minSize: 14, maxSize: 24);
             return btnGO.GetComponent<Button>();
         }
 
