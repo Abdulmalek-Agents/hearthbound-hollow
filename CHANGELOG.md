@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.5.2-advance-prompt-and-dream-canvas-hide] — 2026-05-25
+
+**Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.5.1)
+**Theme:** Phase 31.1 — make the dialogue's "click to advance" affordance visible, and stop the DreamCanvas bleeding into normal gameplay.
+
+### User report (second screenshot)
+
+> *"the game is stucked here please fix"*
+
+Doris's `(stands back and watches)` line was fully rendered but the player
+had no visible cue that they needed to click/press Space. Compounded by
+the DreamCanvas (letterbox bars + dream prose) being permanently visible
+and potentially intercepting clicks.
+
+### Phase 31.1 — Advance prompt + Dream canvas hide
+
+- **`UI/DialogueUI.cs`** — New `advancePrompt` field (italic TMP label
+  `"Click or [Space] ▸"` in the dialogue box's lower-right corner).
+  `Awake()` auto-creates it if the prefab is missing it. `Update()`
+  PingPongs alpha 0.55 ↔ 1.0 at 1.4 Hz whenever the box is visible,
+  typewriter is idle, and no choices are showing. New public
+  `SkipTypewriter()` method exposed for future Yarn/director use
+  (not wired into Update — auto-skip would race WaitForAdvance and
+  double-advance on the same Space press).
+- **`Cutscene/MemoryDreamSequencer.cs`** — New `dreamCanvas` field,
+  auto-discovered in `Awake()` and **force-hidden** until `PlayDream1`
+  / `PlayDream2`. Re-hidden in `OnDirectorStopped`. All child
+  `Graphic.raycastTarget` zeroed so the letterbox bars can never
+  intercept dialogue clicks.
+- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** — Now also bakes the
+  `AdvancePrompt` label into the saved DialogueBox prefab (so existing
+  prefabs get it without waiting for runtime self-heal).
+
+**D-049 (NEW):** Any blocking dialogue UI must expose a visible advance
+affordance. The advance polling loop runs in the director, not the UI —
+the UI must show the player that the director is waiting on them.
+**D-050 (NEW):** Cutscene/cinematic overlays must be hidden by default
+and shown only while the cutscene plays. Full-screen overlays that are
+not the active UI must zero child `Graphic.raycastTarget`.
+
+---
+
 ## [0.5.1-dialogue-choice-card-repair] — 2026-05-25
 
 **Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.5.0)

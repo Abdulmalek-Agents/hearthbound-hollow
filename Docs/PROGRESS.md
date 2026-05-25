@@ -10,6 +10,75 @@
 
 ---
 
+## 🆕 Phase 31.1 — "Press [Space] ▸" prompt + DreamCanvas auto-hide  🟢 (2026-05-25)
+
+**User report after the Phase 31 pull (second screenshot):**
+
+> *"the game is stucked here please fix"*
+
+The screenshot showed:
+- Doris's line `(stands back and watches)` fully rendered in the dialogue
+  box, but no visible "click to advance" affordance — players didn't know
+  the dialogue was waiting on them.
+- A black letterbox bar at the top of the screen with the italicised
+  prose *"The kitchen at first light. Flour on the table. Her mother's
+  apron on the hook."* — this is the **DreamCanvas** (Doris's First
+  Loaves dream), which was supposed to appear only during the end-of-day
+  Memory Dream cutscene but was visible all the time.
+
+### Root causes (two parallel bugs)
+
+**A — Missing advance prompt.** `DialogueUI` has always relied on the
+caller's polling loop (`Mission01Director.WaitForAdvance`, Yarn runner)
+to read `Input.GetMouseButtonDown(0)` / Space / Enter / E. There was no
+visible UI element telling the player they had to click. The previous
+Doris greeting lines worked because the player was already mashing
+LMB to dismiss the onboarding overlay, but a slow narrative line like
+`(stands back and watches)` exposed the missing affordance.
+
+**B — DreamCanvas always visible.** `Phase21_MemoryDreamCutsceneBuilder`
+created the dream rig prefab with the `DreamCanvas` (full-screen
+GraphicRaycaster + two letterbox bars + dream prose label) active by
+default. The Timeline's `ActivationTrack` had no binding, so it never
+flipped the canvas. The canvas overlay was permanently on, the bars +
+prose bled into normal gameplay, and the GraphicRaycaster could
+intercept dialogue clicks.
+
+### Fix (one PR — touches 2 runtime files + the Phase 31 capstone)
+
+| File | Change |
+|---|---|
+| `UI/DialogueUI.cs` | New `advancePrompt` field — a small italic TMP label `"Click or [Space] ▸"` in the dialogue box's lower-right. `Awake()` auto-creates it if the prefab is missing it (so existing prefabs heal at runtime). `Update()` PingPongs its alpha 0.55 ↔ 1.0 at 1.4 Hz **whenever the box is visible, the typewriter is idle, and no choices are showing** — i.e. exactly when the director is blocked on a click. New public `SkipTypewriter()` method (exposed for future Yarn integration; not wired into Update to avoid the frame-order race where a single Space press both skips AND advances on the same frame). |
+| `Cutscene/MemoryDreamSequencer.cs` | New `dreamCanvas` field — auto-discovered in `Awake()` and **force-hidden** until `PlayDream1` / `PlayDream2` is called. Re-hidden in `OnDirectorStopped`. Belt-and-braces: every `Graphic` under the dream canvas has `raycastTarget = false` so the letterbox bars can never intercept dialogue clicks even if the canvas is shown. |
+| `Editor/Phase31_DialogueChoiceCardRepair.cs` | `RepairDialogueBoxPrefab` now also calls new `EnsureAdvancePromptOnPrefab()` so the prompt is baked into the saved prefab (avoids frame-0 flash). |
+
+### Why skip-typewriter is exposed but not auto-wired
+
+A first draft of Phase 31.1 had `Update()` call `SkipTypewriter()` on
+Space/click. That created a same-frame race: `Update()` runs, sets
+`IsBusy = false`; `Mission01Director.WaitForAdvance` then reads the same
+`Input.GetKeyDown(Space)` and yield-breaks — robbing the player of the
+chance to read the fully-rendered line. Unity's input snapshot lasts
+the entire frame, so without a flag protocol shared with every caller,
+auto-skip is unsafe. The public method is kept for future Yarn /
+director integration that explicitly opts in.
+
+### Decisions adopted
+
+- **D-049 (NEW):** Any blocking dialogue UI must expose a **visible
+  advance affordance**. The advance polling loop runs in the director,
+  not the UI — so the UI must show the player that the director is
+  waiting on them. Codified in `DialogueUI.advancePrompt` +
+  `IsWaitingForAdvance`.
+- **D-050 (NEW):** Cutscene / cinematic overlays (letterbox, dream
+  prose, fade) MUST be **hidden by default** and explicitly shown when
+  the cutscene plays. Codified in `MemoryDreamSequencer.Awake()`.
+  Full-screen UI raycasters that are not themselves the active UI MUST
+  zero their child `Graphic.raycastTarget` so they cannot intercept
+  clicks meant for gameplay UI.
+
+---
+
 ## 🆕 Phase 31 — Dialogue Choice Card Repair  🟢 (2026-05-25)
 
 **User report after first Phase 30 playtest (screenshot attached):**
