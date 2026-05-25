@@ -4,44 +4,34 @@
 // PHASE 26 UPGRADE (2026-05-24):
 // ─────────────────────────────────────────────────────────────────────────
 // The cozy walk-only baseline of v0.2.0 has been generalised into a robust
-// third-person character controller suitable for a Mixamo-Humanoid rig:
+// third-person character controller suitable for a Mixamo-Humanoid rig.
+// See the Phase 26 release notes for the WASD/Sprint/Jump/Animator surface.
 //
-//   • Camera-relative WASD movement (uses MainCamera.forward when present;
-//     falls back to world-axis input when no camera is wired — preserves the
-//     old behaviour for headless EditMode tests).
-//   • Smooth acceleration + analog-input ramp (gamepad sticks feel right).
-//   • Toggleable SPRINT (Left Shift / Gamepad LStick click). Off in
-//     Gentle Mode and during locked dialogue.
-//   • Optional JUMP (Space / Gamepad south). Off in Gentle Mode.
-//     Coyote-time + jump-buffer windows for forgiving feel.
-//   • Manual gravity integration on CharacterController.Move() so jumps and
-//     ledge falls work; SimpleMove is no longer used (it owned gravity
-//     internally and conflicted with the jump impulse).
-//   • Smooth turn-toward-velocity rotation, with optional "always face
-//     camera-forward" mode for over-the-shoulder shots (deferred for now).
-//   • Animator parameter bridge with safe defaults — sets:
-//       Speed         (float 0..2  : 0=idle, 1=walk, 2=run)
-//       MoveX, MoveY  (floats -1..1 for blend trees that need split axes)
-//       VelocityY     (float, for jump up/down blend)
-//       IsGrounded    (bool)
-//       IsSprinting   (bool)
-//       Jump          (trigger)
-//   • Public API preserved (`MovementLocked`, `CurrentFocus`,
-//     `CurrentMoveInput`, `TryActivateFocus`) so existing
-//     Mission01Director / Mission02Director references still compile.
+// PHASE 27.2 HOTFIX (2026-05-25) — "half body in floor" intrinsic fix:
+// ─────────────────────────────────────────────────────────────────────────
+// The user reported the BoZo character's lower half sinks into the floor at
+// spawn, then "pops up" momentarily on WASD. The cause is a mismatch between
+// where the CharacterController capsule bottom sits in local space and where
+// the BoZo mesh's actual feet live (BoZo's mesh origin is around the hips,
+// not the feet). Phase 27.1 shipped a separate `PlayerGroundClamp` component
+// to fix this, but the fix only applied to scenes whose Player had the
+// component attached — which required re-running the Phase 26 capstone.
 //
-// Compatibility notes:
-//   • Existing scenes were saved with the old serialized field set. All new
-//     fields default to safe values so re-opening an old scene does not
-//     regress (no jumps will fire because `enableJump` defaults to true
-//     but `Space` only does anything if grounded).
-//   • The Phase 26 Editor builder re-wires the runtime Animator parameter
-//     names. If a scene still references the old "Speed" param it keeps
-//     working — Speed is the canonical walk/run scalar in both the old
-//     and new controller.
+// Phase 27.2 embeds the fix **directly inside PlayerController** so it
+// applies the moment the user pulls the updated script — no Editor menu
+// re-run required. On Start() (and again in the first LateUpdate so the
+// Animator has had one frame to pose), the controller measures where the
+// BoZo body mesh actually is, computes where the CC capsule bottom is, and
+// shifts the Body child's localPosition.y to make them align. After this
+// the visible mesh's feet sit exactly on the collider's footprint, so when
+// gravity settles the CC onto the floor the feet land on the floor too.
 //
-// See Docs/ANIMATION_REQUIREMENTS.md for the matching Animator Controller
-// graph + the Mixamo / BoZo animation source map.
+// The separate PlayerGroundClamp component is still supported (its presence
+// is detected and the controller skips the intrinsic clamp to avoid double-
+// shifting). Existing scenes whose Player has the PlayerGroundClamp keep
+// working; new scenes / pulled code without it get the intrinsic fix.
+//
+// See Docs/ANIMATION_REQUIREMENTS.md for the Animator graph + Mixamo source map.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -120,6 +110,29 @@ namespace HearthboundHollow.Player
         [Tooltip("Enable the sprint modifier (Left Shift / LStick click).")]
         [SerializeField] private bool enableSprint = true;
 
+        // ───── Body-to-ground intrinsic alignment (Phase 27.2 hotfix) ─
+
+        [Header("Body alignment (Phase 27.2 hotfix — fix for half-body-in-floor)")]
+        [Tooltip("Run AlignBodyToCcBottom() automatically on Start so the visible " +
+                 "BoZo mesh feet land on the CharacterController capsule bottom " +
+                 "even when BoZo's mesh origin isn't at the feet. If a separate " +
+                 "PlayerGroundClamp component is attached, this is skipped to " +
+                 "avoid double-shifting.")]
+        [SerializeField] private bool autoAlignBodyOnStart = true;
+
+        [Tooltip("Optional explicit reference to the visible body child. If null, " +
+                 "the controller auto-finds a child named 'Body' (matches the " +
+                 "Phase 13 BoZo wrapper layout), and otherwise falls back to the " +
+                 "first child carrying renderers.")]
+        [SerializeField] private Transform bodyOverride;
+
+        [Tooltip("Manual fudge added to the alignment shift — positive lifts the " +
+                 "mesh, negative pushes it further into the floor. Useful for " +
+                 "cozy scenes where the character should plant a couple of cm " +
+                 "into grass.")]
+        [Range(-0.2f, 0.2f)]
+        [SerializeField] private float bodyAlignBias = 0f;
+
         // ───── Interaction raycast ─────────────────────────────────
 
         [Header("Interaction raycast")]
@@ -193,6 +206,11 @@ namespace HearthboundHollow.Player
         private float _jumpBufferTimer;
         private bool  _wasGroundedLastFrame;
 
+        // Body-alignment internals (Phase 27.2 hotfix)
+        private Transform _resolvedBody;
+        private bool _didLateAlignReshot;
+        private bool _externalClampDetected;
+
         // ───── Lifecycle ───────────────────────────────────────────
 
         private void Awake()
@@ -213,6 +231,12 @@ namespace HearthboundHollow.Player
             _animIsGroundedHash  = Animator.StringToHash(animIsGroundedParam);
             _animIsSprintingHash = Animator.StringToHash(animIsSprintingParam);
             _animJumpHash        = Animator.StringToHash(animJumpTriggerParam);
+
+            // Body alignment — detect a separate PlayerGroundClamp so we don't
+            // double-shift the same Body. The clamp component lives in this
+            // same namespace so a direct GetComponent works (no reflection).
+            _externalClampDetected = GetComponent<PlayerGroundClamp>() != null;
+            _resolvedBody = ResolveBodyTransform();
         }
 
         private void OnEnable()
@@ -232,6 +256,29 @@ namespace HearthboundHollow.Player
             }
         }
 
+        private void Start()
+        {
+            // Phase 27.2 hotfix — align the visible BoZo mesh feet with the
+            // CharacterController capsule bottom. Skipped if an explicit
+            // PlayerGroundClamp component is on the same GameObject (it owns
+            // the alignment in that case to avoid double-shifting).
+            if (autoAlignBodyOnStart && !_externalClampDetected)
+                AlignBodyToCcBottom();
+        }
+
+        private void LateUpdate()
+        {
+            // Second pass on the first LateUpdate so the Animator has had a
+            // chance to apply its bind-pose / first-frame transform. Without
+            // this, a Mixamo clip with a baked initial offset could leave a
+            // small residual mismatch on the very first rendered frame.
+            if (autoAlignBodyOnStart && !_externalClampDetected && !_didLateAlignReshot)
+            {
+                AlignBodyToCcBottom();
+                _didLateAlignReshot = true;
+            }
+        }
+
         private void OnDisable()
         {
             if (interactAction != null && interactAction.action != null)
@@ -243,6 +290,98 @@ namespace HearthboundHollow.Player
         private static void EnableAction(InputActionReference r)
         {
             if (r != null && r.action != null && !r.action.enabled) r.action.Enable();
+        }
+
+        // ───── Body-to-ground alignment (Phase 27.2 hotfix) ────────
+
+        /// <summary>
+        /// Shifts the visible body child's localPosition.y so the lowest
+        /// renderer-bounds Y aligns with the CharacterController capsule
+        /// bottom. Idempotent — re-calling it shifts only by any residual
+        /// delta (0 if already aligned). Safe to call any time.
+        /// </summary>
+        public void AlignBodyToCcBottom()
+        {
+            if (_resolvedBody == null) _resolvedBody = ResolveBodyTransform();
+            if (_resolvedBody == null) return;
+
+            var renderers = _resolvedBody.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0) return;
+
+            float meshBottomWorldY = ComputeMeshBottomWorldY(renderers);
+            float ccBottomWorldY = ComputeCcBottomWorldY();
+
+            float diff = ccBottomWorldY - meshBottomWorldY + bodyAlignBias;
+            if (Mathf.Abs(diff) < 0.0001f) return; // already aligned
+
+            var lp = _resolvedBody.localPosition;
+            _resolvedBody.localPosition = new Vector3(lp.x, lp.y + diff, lp.z);
+
+            Hh.Log(LogCategory.State,
+                $"PlayerController: aligned Body Δy={diff:F3} m " +
+                $"(meshBottomY={meshBottomWorldY:F3}, ccBottomY={ccBottomWorldY:F3}, bias={bodyAlignBias:F3}).");
+        }
+
+        private Transform ResolveBodyTransform()
+        {
+            if (bodyOverride != null) return bodyOverride;
+
+            // Phase 13 BoZo wrapper convention: child named "Body".
+            var t = transform.Find("Body");
+            if (t != null) return t;
+
+            // Fallback — first child that owns a renderer.
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                var c = transform.GetChild(i);
+                if (c.GetComponentInChildren<Renderer>(true) != null) return c;
+            }
+            return null;
+        }
+
+        private float ComputeCcBottomWorldY()
+        {
+            // The CC capsule's geometric bottom in world space, with NO
+            // skinWidth offset — skinWidth is a penetration tolerance, not an
+            // offset of the collision surface. The visible mesh feet should
+            // align with this point: when the CC settles on the floor, the
+            // capsule bottom touches the floor and the mesh feet do too.
+            if (_cc != null)
+                return transform.position.y + _cc.center.y - _cc.height * 0.5f;
+            return transform.position.y;
+        }
+
+        private float ComputeMeshBottomWorldY(Renderer[] renderers)
+        {
+            // Walk every renderer's pose-independent localBounds so the
+            // answer is deterministic — it doesn't shift between bind and
+            // idle poses or with the Animator's first-frame state.
+            float minY = float.PositiveInfinity;
+            foreach (var r in renderers)
+            {
+                if (r == null) continue;
+
+                Bounds lb;
+                if (r is SkinnedMeshRenderer smr)
+                    lb = smr.localBounds;
+                else if (r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null)
+                    lb = mf.sharedMesh.bounds;
+                else
+                    lb = r.bounds; // last-resort world bounds
+
+                // Project the 8 corners through the renderer's local-to-world.
+                Vector3 c = lb.center, e = lb.extents;
+                for (int sx = -1; sx <= 1; sx += 2)
+                    for (int sy = -1; sy <= 1; sy += 2)
+                        for (int sz = -1; sz <= 1; sz += 2)
+                        {
+                            var w = r.transform.TransformPoint(
+                                new Vector3(c.x + sx * e.x, c.y + sy * e.y, c.z + sz * e.z));
+                            if (w.y < minY) minY = w.y;
+                        }
+            }
+            if (float.IsPositiveInfinity(minY)) minY = _resolvedBody.position.y;
+            return minY;
         }
 
         // ───── Frame update ────────────────────────────────────────
@@ -385,24 +524,19 @@ namespace HearthboundHollow.Player
 
         private static bool IsGentleMode()
         {
-            // Gentle Mode is the SettingsService bool — we route through
-            // ServiceLocator so this class stays decoupled from the Settings
-            // implementation. Defensive: when SettingsService isn't registered
-            // (EditMode tests, smoke scenes) we treat it as "not gentle".
             var s = ServiceLocator.Get<SettingsService>();
             return s != null && s.GentleMode;
         }
 
         private Vector3 ResolveWorldSpaceInput(Vector3 planarLocal)
         {
-            // No input → no work.
             if (planarLocal.sqrMagnitude < 0.0001f) return Vector3.zero;
 
             Transform cam = cameraReference != null ? cameraReference
                           : Camera.main != null ? Camera.main.transform
                           : null;
 
-            if (cam == null) return planarLocal.normalized; // world-axis fallback
+            if (cam == null) return planarLocal.normalized;
 
             Vector3 fwd = cam.forward; fwd.y = 0; fwd.Normalize();
             Vector3 right = cam.right;  right.y = 0; right.Normalize();
@@ -415,8 +549,6 @@ namespace HearthboundHollow.Player
         {
             if (animator == null) return;
 
-            // Speed: 0 = idle, 1 = walk, 2 = run. The blend tree thresholds
-            // are 0 / 1 / 2 in Phase 26's builder.
             float walkMag = Mathf.Clamp01(rawXY.magnitude);
             float runScale = IsSprinting ? 2f : 1f;
             float speedParam = walkMag * runScale;
@@ -480,18 +612,46 @@ namespace HearthboundHollow.Player
 
         // ───── Editor convenience ──────────────────────────────────
 
-        /// <summary>Allow the Phase 26 builder + scene helpers to point the controller at a camera.</summary>
         public void SetCameraReference(Transform t) => cameraReference = t;
 
-        /// <summary>Allow the builder + tests to swap the Animator at runtime.</summary>
         public void SetAnimator(Animator a) => animator = a;
 
 #if UNITY_EDITOR
+        [ContextMenu("Align Body to CC Bottom (Phase 27.2 hotfix)")]
+        private void EditorAlignBodyToCcBottom()
+        {
+            if (_cc == null) _cc = GetComponent<CharacterController>();
+            _resolvedBody = ResolveBodyTransform();
+            AlignBodyToCcBottom();
+        }
+
         private void OnDrawGizmosSelected()
         {
             var origin = interactOrigin != null ? interactOrigin : transform;
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(origin.position + origin.forward * (interactRange * 0.5f), interactRadius + interactRange * 0.5f);
+
+            // Visual debug — CC capsule bottom (green disk).
+            var cc = GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                float yc = transform.position.y + cc.center.y - cc.height * 0.5f;
+                Gizmos.color = new Color(0.4f, 1f, 0.4f, 0.85f);
+                DrawDisk(new Vector3(transform.position.x, yc, transform.position.z), cc.radius + 0.05f);
+            }
+        }
+
+        private static void DrawDisk(Vector3 centre, float radius)
+        {
+            const int segs = 32;
+            Vector3 prev = centre + new Vector3(radius, 0, 0);
+            for (int i = 1; i <= segs; i++)
+            {
+                float a = (i / (float)segs) * Mathf.PI * 2f;
+                var next = centre + new Vector3(Mathf.Cos(a) * radius, 0, Mathf.Sin(a) * radius);
+                Gizmos.DrawLine(prev, next);
+                prev = next;
+            }
         }
 #endif
     }
