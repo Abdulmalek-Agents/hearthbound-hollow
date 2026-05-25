@@ -97,9 +97,19 @@ namespace HearthboundHollow.EditorTools
                 // Step 7: Phase 31 — Dialogue choice-card layout repair so
                 // the choice tiles render full-width, wrap long labels, and
                 // the narration line hides while a decision is on screen.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 31 (Dialogue Choice Repair) …", 0.95f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 31 (Dialogue Choice Repair) …", 0.93f);
                 if (TryRun("Phase 31 — Dialogue Choice Card Repair",
                           "HearthboundHollow.EditorTools.Phase31_DialogueChoiceCardRepair", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 8: Phase 32 — Mission 1 Polish v2 (cottage assembler,
+                // Lane v2, Hollow Interior v2, cozy URP volumes). Optional
+                // — skips gracefully if not shipped on this branch.
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 32 (Mission 1 Polish v2) …", 0.96f);
+                if (TryRun("Phase 32 — Mission 1 Polish v2",
+                          "HearthboundHollow.EditorTools.Phase32_MissionOnePolishCapstone", "Build"))
                     ran++;
                 else
                     skipped++;
@@ -196,6 +206,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Marin's Note dropped on the Hollow workbench (if Narrative Hooks shipped)");
             sb.AppendLine("  • Lane — OnboardingOverlay (6-step walkthrough on first play)");
             sb.AppendLine("  • Every gameplay scene — ControlHintsHUD (always-visible key chips)");
+            sb.AppendLine("  • Phase 32 v2 — 8 cottages + Hollow facade + cozy URP volume (if shipped)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
