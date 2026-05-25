@@ -16,9 +16,9 @@ This is the **single source of truth** for the technical implementation of Missi
 | **Villager art** | BoZo (chibi) — A-12 | Critic Board rec; matches "cozy by candlelight" pillar; lower mobile cost |
 | **Dialogue** | Yarn Spinner (free, git URL) | GDD § 9 Pillar 1: "Every line could be in a novel" — AI-gen disallowed |
 | **Render Pipeline** | URP-Mobile | All Tier S/A assets URP-optimized; 60 fps on mid-range Android |
-| **Player controller** | Custom `PlayerController` (Phase 26) — CharacterController-based, WASD, optional Sprint + Jump, camera-relative, Animator-aware | Character Controller Pro (A-13) is imported as reference but **not** wired — our controller is leaner + Mixamo-ready (D-035/D-036) |
-| **Camera** | `SmoothFollowCamera` (Phase 26) — spring-damped follow + RMB-orbit + scroll-zoom + wall-clip; Cinemachine prefab optional via Phase 17 | Cinemachine adds a hard package dep to every gameplay scene; our camera ships cinematic-feel cozy default and both can coexist (D-038) |
-| **Player Animator** | Procedurally-built `Hearthbound_Player.controller` (Phase 26) — Humanoid avatar, 1D blend tree on `Speed`, Jump/Fall/Land states | Mixamo-retargetable; BoZo's existing M_Idle/M_Walk are the fallback (D-036) |
+| **Player controller** | Custom `PlayerController` (Phase 26) — CharacterController-based, WASD, optional Sprint + Jump, camera-relative, Animator-aware | Character Controller Pro (A-13) is imported as reference but **not** wired — our controller is leaner + Mixamo-ready (D-036/D-037) |
+| **Camera** | `SmoothFollowCamera` (Phase 26) — spring-damped follow + RMB-orbit + scroll-zoom + wall-clip; Cinemachine prefab optional via Phase 17 | Cinemachine adds a hard package dep to every gameplay scene; our camera ships cinematic-feel cozy default and both can coexist (D-039) |
+| **Player Animator** | Procedurally-built `Hearthbound_Player.controller` (Phase 26) — Humanoid avatar, 1D blend tree on `Speed`, Jump/Fall/Land states | Mixamo-retargetable; BoZo's existing M_Idle/M_Walk are the fallback (D-037) |
 | **Save** | JSON local + 3-rolling-slot + autosave | Mobile-safe; no cloud in M1-2 |
 | **OpenAI dialogue addon** | DO NOT USE | Tagged `Reference – Do Not Use In Build` |
 
@@ -43,10 +43,12 @@ The build is sliced into micro-phases, each producing a buildable, mergeable, mi
 | **10–12** | URP, shader patcher, MVP smoke-test | ✅ |
 | **13–21** | Asset-driven builders (BoZo, Bamao, MeshingunStudio, AllIn1, Lumen, audio, weather, Yarn, dreams) | ✅ |
 | **22** | Polished Playable Mission 1 (engineering capstone) | ✅ |
-| **23** | Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off | ✅ |
+| **23** | Mission 1 Polish Capstone | ✅ |
 | **24** | Mission 2 Garden + Cottage scenes | ✅ |
 | **25** | UI activation hotfix — two-layer wiring + self-heal Show() in every overlay | ✅ |
-| **26** | **Player Controller + Animation — WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator** | ✅ |
+| **26 (Narrative Hooks)** | Marin's Note interactable + Phase26_NarrativeHooks editor menu | ✅ |
+| **26.1** | Asmdef-locality hotfix — MarinNoteInteractable moved to Mission asmdef | ✅ |
+| **26 (Player Controller + Animation)** | **PlayerController WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator** | ✅ |
 | **QA** | secret-scan, unit tests, README, CHANGELOG, PR to main | 🟡 In progress |
 
 ---
@@ -231,7 +233,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 | R-6 First-launch >5 min | Tone Compass skippable from frame 1; Gentle Mode 4 s timeout |
 | Save corruption | Atomic write + fsync + rename; 3 rolling slots |
 | Scaling rework | All 14 VillageState dimensions + Echo Web + Vignette schema present at default values |
-| **Controller perception** | **Sprint + Jump available but off in Gentle Mode (D-035)** — playtester who reaches for Shift/Space doesn't bounce off a "broken" controller |
+| **Controller perception** | **Sprint + Jump available but off in Gentle Mode (D-036)** — playtester who reaches for Shift/Space doesn't bounce off a "broken" controller |
 | **Mixamo unavailable** | **Phase 26 falls back to BoZo's existing 2 anims (Idle/Walk) and the AnimatorController degrades gracefully** — game ships polished without any Mixamo downloads |
 
 ---
@@ -241,7 +243,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 **Nothing below this line ships in this branch:**
 - Weave / Sever / Listen / Read / Translate / Identify / Compose / Search / Negotiate / Compose Verse mini-games
 - Procedural villagers (only Doris + Gerrold + 1 silent lane villager)
-- Predecessor (Marin) arc — only one signed note ("— M.")
+- Predecessor (Marin) full arc — only Marin's signed note + workbench note exist
 - Echo Hologram, Locked Room, Forgotten Year, Vance Arc, Mariska, Memory Bees, Composting, Borrowed Memory
 - Letter-Bird Network, Pen-Pal Villages, Dream Cinema community, ARG, Photo Mode
 - Hollow upgrades beyond Level 1
@@ -266,16 +268,17 @@ Every PR to this branch updates `Docs/PROGRESS.md` with:
 
 ## 15. Decisions Index (cross-ref → PROGRESS.md)
 
-D-001 → D-039 are catalogued in `Docs/PROGRESS.md`. Newest:
+D-001 → D-040 are catalogued in `Docs/PROGRESS.md`. Newest:
 
-- **D-033** *(Phase 25 hotfix)* Procedural UI builders MUST use the two-layer pattern (script-host stays active, visual child toggles).
-- **D-034** *(Phase 25 hotfix)* UI overlay scripts MUST self-heal in `Show()` (defensive `SetActive(true)`).
-- **D-035** *(Phase 26)* Sprint + Jump are opt-in runtime flags on PlayerController. Gentle Mode disables both.
-- **D-036** *(Phase 26)* Player Animator is a single 1D blend tree on Speed (0/1/2 = Idle/Walk/Run).
-- **D-037** *(Phase 26)* Animator parameter names are configurable strings on PlayerController.
-- **D-038** *(Phase 26)* SmoothFollowCamera is the M1+M2 default; Cinemachine prefab from Phase 17 coexists.
-- **D-039** *(Phase 26)* Animations live in Assets/_Project/Animations/ (Mixamo subfolder optional).
+- **D-033** *(Phase 25 hotfix)* Procedural UI builders MUST use the two-layer pattern.
+- **D-034** *(Phase 25 hotfix)* UI overlay scripts MUST self-heal in `Show()`.
+- **D-035** *(Phase 26.1 hotfix)* Asmdef-locality check — every new runtime script must live in an asmdef that declares the dependencies it uses.
+- **D-036** *(Phase 26 Player Controller + Animation)* Sprint + Jump are opt-in runtime flags on PlayerController. Gentle Mode disables both.
+- **D-037** *(Phase 26 Player Controller + Animation)* Player Animator is a single 1D blend tree on Speed (0/1/2 = Idle/Walk/Run).
+- **D-038** *(Phase 26 Player Controller + Animation)* Animator parameter names are configurable strings on PlayerController.
+- **D-039** *(Phase 26 Player Controller + Animation)* SmoothFollowCamera is the M1+M2 default; Cinemachine prefab from Phase 17 coexists.
+- **D-040** *(Phase 26 Player Controller + Animation)* Animations live in Assets/_Project/Animations/ (Mixamo subfolder optional).
 
 ---
 
-*Document version 1.2 — Phase 26 update (D-035..D-039 after Phase 25 claimed D-033/D-034).*
+*Document version 1.3 — final Phase 26 renumber (D-036..D-040 after Phase 26.1 claimed D-035).*
