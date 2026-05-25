@@ -49,11 +49,32 @@ namespace HearthboundHollow.UI
         [Range(20, 120)] public int charsPerSecond = 45;
         [Range(0f, 1f)] public float postLineLinger = 0.5f;
 
+        [Header("Advance prompt (auto-created if null)")]
+        [Tooltip("Pulsing 'Press [Space] to continue ▸' label that appears " +
+                 "in the dialogue box's lower-right when the line is fully " +
+                 "rendered and no choices are showing. Created at runtime " +
+                 "if absent so existing prefabs get the affordance without " +
+                 "needing a rebuild.")]
+        public TextMeshProUGUI advancePrompt;
+
         private Coroutine _typeCoroutine;
         private Action<int> _choiceCallback;
         private readonly List<GameObject> _spawnedButtons = new();
+        private string _fullLineText;     // for click-to-skip-typewriter
 
         public bool IsBusy { get; private set; }
+
+        /// <summary>
+        /// True while the dialogue box is visible, the typewriter is idle,
+        /// and no choices are showing. The Mission director / Yarn runner
+        /// is currently blocking on an advance click. Used by the in-box
+        /// prompt to know when to pulse.
+        /// </summary>
+        public bool IsWaitingForAdvance =>
+            (root == null || root.activeSelf) &&
+            !IsBusy &&
+            _spawnedButtons.Count == 0 &&
+            _fullLineText != null;
 
         private void Awake()
         {
@@ -71,6 +92,36 @@ namespace HearthboundHollow.UI
             // settings (older Phase 14 builds wrote childControlWidth = 0
             // which caused tiles to render as ~100 px squares).
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
+
+            // Phase 31.1 — auto-create the advance prompt if the prefab is
+            // missing it. User playtest showed players didn't know they
+            // had to click to advance past "(stands back and watches)" —
+            // dialogue felt frozen. The visible "Press [Space] ▸" hint
+            // makes the affordance unmistakable.
+            EnsureAdvancePromptExists();
+            if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+        }
+
+        private void EnsureAdvancePromptExists()
+        {
+            if (advancePrompt != null) return;
+            var parent = root != null ? root.transform : transform;
+            var go = new GameObject("AdvancePrompt", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = (RectTransform)go.transform;
+            // Bottom-right inside the dialogue box.
+            rt.anchorMin = new Vector2(0.70f, 0.02f);
+            rt.anchorMax = new Vector2(0.98f, 0.16f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            advancePrompt = go.AddComponent<TextMeshProUGUI>();
+            advancePrompt.text = "Click or [Space] ▸";
+            advancePrompt.fontSize = 18;
+            advancePrompt.fontStyle = FontStyles.Italic;
+            advancePrompt.alignment = TextAlignmentOptions.MidlineRight;
+            advancePrompt.color = new Color(0.42f, 0.24f, 0.10f, 0.85f);
+            advancePrompt.raycastTarget = false; // don't intercept clicks
+            UIAutoFitText.ApplyToButtonLabel(advancePrompt, minSize: 12, maxSize: 20);
         }
 
         public void PresentLine(string speaker, string text, Sprite portrait)
@@ -94,6 +145,12 @@ namespace HearthboundHollow.UI
             ClearChoices();
             if (_typeCoroutine != null) StopCoroutine(_typeCoroutine);
 
+            // Phase 31.1 — cache full text so a click during typewriter can
+            // instantly skip to the fully-rendered line.
+            _fullLineText = text ?? string.Empty;
+
+            if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+
             if (gameObject.activeInHierarchy && isActiveAndEnabled)
             {
                 _typeCoroutine = StartCoroutine(TypeCoroutine(text));
@@ -107,6 +164,19 @@ namespace HearthboundHollow.UI
                     "DialogueUI.PresentLine called while inactive-in-hierarchy. " +
                     "Rendered full line without typewriter.");
             }
+        }
+
+        /// <summary>
+        /// Immediately complete the running typewriter (showing the full
+        /// line) without advancing past it. Director's WaitForAdvance then
+        /// catches the *next* click to actually move on. Idempotent.
+        /// </summary>
+        public void SkipTypewriter()
+        {
+            if (!IsBusy || _fullLineText == null) return;
+            if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
+            if (lineText != null) lineText.text = _fullLineText;
+            IsBusy = false;
         }
 
         public void PresentChoices(IReadOnlyList<string> choices, Action<int> onChoiceSelected)
@@ -123,6 +193,8 @@ namespace HearthboundHollow.UI
             // for the choices, and leaving the previous spoken line visible
             // underneath made the tiles look like floating fragments.
             if (lineText != null) lineText.gameObject.SetActive(false);
+            if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+            _fullLineText = null;
 
             if (choiceContainer == null || choiceButtonPrefab == null) return;
 
@@ -162,6 +234,8 @@ namespace HearthboundHollow.UI
             // does not surprise the player with an empty parchment body.
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
+            if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+            _fullLineText = null;
             if (root != null && root != gameObject) root.SetActive(false);
             IsBusy = false;
         }
@@ -182,6 +256,8 @@ namespace HearthboundHollow.UI
             // lands in its expected slot.
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
+            if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+            _fullLineText = null;
             cb?.Invoke(index);
         }
 
@@ -204,8 +280,44 @@ namespace HearthboundHollow.UI
         // the corresponding choice without forcing the player to mouse over
         // small tiles. Defensive: only fires while choices are on-screen and
         // a callback is registered.
+        // Phase 31.1 — also drives the visible "Click or [Space] ▸" advance
+        // hint pulse, and lets a click during typewriter skip to the fully-
+        // rendered line so dialogue feels snappy instead of stuck.
         private void Update()
         {
+            // Skip the typewriter on click/Space while a line is mid-type.
+            // The Mission director's WaitForAdvance will catch the *next*
+            // click to advance past the fully rendered line. This double-
+            // tap pattern is the standard cozy-RPG dialogue UX.
+            if (IsBusy && _fullLineText != null)
+            {
+                if (Input.GetMouseButtonDown(0) ||
+                    Input.GetKeyDown(KeyCode.Space) ||
+                    Input.GetKeyDown(KeyCode.Return) ||
+                    Input.GetKeyDown(KeyCode.E))
+                {
+                    SkipTypewriter();
+                }
+            }
+
+            // Pulse the advance prompt when the line is fully rendered and
+            // no choices are showing — i.e. the director is blocked on a
+            // click. Sinusoidal 0.55–1.0 alpha at ~1.4 Hz.
+            if (advancePrompt != null)
+            {
+                bool waiting = IsWaitingForAdvance;
+                if (waiting != advancePrompt.gameObject.activeSelf)
+                    advancePrompt.gameObject.SetActive(waiting);
+                if (waiting)
+                {
+                    float t = Mathf.PingPong(Time.unscaledTime * 1.4f, 1f);
+                    var c = advancePrompt.color;
+                    c.a = Mathf.Lerp(0.55f, 1.0f, t);
+                    advancePrompt.color = c;
+                }
+            }
+
+            // Number-key shortcuts for the spawned choice tiles.
             if (_choiceCallback == null || _spawnedButtons.Count == 0) return;
             int picked = -1;
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) picked = 0;

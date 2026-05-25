@@ -144,6 +144,12 @@ namespace HearthboundHollow.EditorTools
                     notes.Add("UI_DialogueBox: ChoiceButtonTemplate not found — Phase 14 default may be missing.");
                 }
 
+                // Phase 31.1 — make sure the AdvancePrompt label exists on
+                // the prefab so the "Click or [Space] ▸" hint is baked into
+                // saved assets (the runtime self-heal in DialogueUI.Awake
+                // also creates it, but baking it avoids a frame-0 flash).
+                if (EnsureAdvancePromptOnPrefab(instance)) changed = true;
+
                 if (changed)
                 {
                     PrefabUtility.SaveAsPrefabAsset(instance, DialogueBoxPrefab);
@@ -358,6 +364,42 @@ namespace HearthboundHollow.EditorTools
 
             if (changed) EditorUtility.SetDirty(tile);
             return changed;
+        }
+
+        // ─── AdvancePrompt repair (Phase 31.1) ────────────────────
+
+        private static bool EnsureAdvancePromptOnPrefab(GameObject root)
+        {
+            if (root == null) return false;
+            var existing = FindChildRecursive(root.transform, "AdvancePrompt");
+            if (existing != null) return false;
+
+            var dlg = root.GetComponentInChildren<DialogueUI>(includeInactive: true);
+            var parent = dlg != null && dlg.root != null ? dlg.root.transform : root.transform;
+
+            var go = new GameObject("AdvancePrompt", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = new Vector2(0.70f, 0.02f);
+            rt.anchorMax = new Vector2(0.98f, 0.16f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.text = "Click or [Space] ▸";
+            tmp.fontSize = 18;
+            tmp.fontStyle = FontStyles.Italic;
+            tmp.alignment = TextAlignmentOptions.MidlineRight;
+            tmp.color = new Color(0.42f, 0.24f, 0.10f, 0.85f);
+            tmp.raycastTarget = false;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = 12;
+            tmp.fontSizeMax = 20;
+            tmp.overflowMode = TextOverflowModes.Ellipsis;
+
+            if (dlg != null) dlg.advancePrompt = tmp;
+            EditorUtility.SetDirty(go);
+            if (dlg != null) EditorUtility.SetDirty(dlg);
+            return true;
         }
 
         // ─── Transform helper ─────────────────────────────────────
