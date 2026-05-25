@@ -43,6 +43,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using HearthboundHollow.Core;
+using HearthboundHollow.Memory;     // CleanseOutcome enum lives here (Phase 34.1 fix)
 using HearthboundHollow.MiniGames;
 using HearthboundHollow.Player;
 using HearthboundHollow.UI;
