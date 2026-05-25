@@ -41,6 +41,11 @@ namespace HearthboundHollow.UI
         private void Awake()
         {
             if (root != null && root != gameObject) root.SetActive(false);
+
+            // Phase 29 — force word-wrap + auto-size on header labels so the
+            // moral-choice card never clips long memory titles or the prompt.
+            UIAutoFitText.ApplyToLabel(promptLine, minSize: 14, maxSize: 24);
+            UIAutoFitText.ApplyToButtonLabel(memoryTitle, minSize: 18, maxSize: 32);
         }
 
         public void Show(MemoryNodeSO memory, string promptText, IReadOnlyList<TariffSO> tariffs)
@@ -82,6 +87,11 @@ namespace HearthboundHollow.UI
             if (cost != null) cost.text = tariff.costPreviewProse;
             if (icon != null) { icon.sprite = tariff.choiceIcon; icon.color = tariff.choiceColor; }
             if (btn != null) btn.onClick.AddListener(() => Confirm(tariff.choice));
+
+            // Phase 29 — defensive autofit on instantiated tile labels so the
+            // tariff displayLabel + costPreviewProse can never overflow.
+            UIAutoFitText.ApplyToLabel(label, minSize: 14, maxSize: 22);
+            UIAutoFitText.ApplyToLabel(cost,  minSize: 12, maxSize: 18);
         }
 
         private void Confirm(MoralChoice choice)
