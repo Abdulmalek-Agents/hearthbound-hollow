@@ -2,6 +2,119 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.3.0-player-controller-and-animation] — 2026-05-24
+
+**Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
+**Theme:** Phase 26 — Complete WASD player controller (sprint + jump + camera-relative input) + smooth follow camera (mouse orbit, scroll zoom, wall-clip) + Mixamo-ready Humanoid Animator Controller (1D blend tree, jump/fall/land states).
+
+### Added — Phase 26 runtime (≈580 LOC)
+
+#### New runtime scripts
+
+- **`Player/SmoothFollowCamera.cs`** (230 LOC) — Spring-damped position (`SmoothDamp`), slerped rotation, mouse-orbit gated by Right Mouse Button or `AllowLook` action, scroll-wheel zoom (`distanceMin/Max`), sphere-cast wall-clip protection. Cinemachine-agnostic — works whether Cinemachine is installed or not.
+
+#### Rewritten runtime scripts
+
+- **`Player/PlayerController.cs`** (350 LOC, was 150) — Major upgrade:
+  - Camera-relative WASD input (uses `MainCamera.forward` when present; falls back to world-axis input when not — preserves headless EditMode test behaviour).
+  - Smooth acceleration + deceleration (configurable rates).
+  - **Sprint** (Shift / Gamepad LStick click). Toggleable via `enableSprint`; auto-disabled in Gentle Mode.
+  - **Jump** (Space / Gamepad south). Toggleable via `enableJump`; auto-disabled in Gentle Mode. Manual gravity integration on `CharacterController.Move()` (replaces `SimpleMove`). Coyote-time 0.15 s + jump-buffer 0.12 s for forgiving feel.
+  - Animator parameter bridge — drives 7 params every frame: `Speed`, `MoveX`, `MoveY`, `VelocityY`, `IsGrounded`, `IsSprinting`, `Jump` (trigger).
+  - Public API preserved (`MovementLocked`, `CurrentFocus`, `CurrentMoveInput`, `TryActivateFocus`) — Mission01Director / Mission02Director compile unchanged.
+
+- **`Player/SimpleFollowCamera.cs`** — header updated to mark it as the legacy fallback; body unchanged for backward compatibility with scenes saved before Phase 26.
+- **`UI/HelpOverlayUI.cs`** (130 LOC, was 117) — Body text now built at Show() time so toggling Gentle Mode hot-refreshes. Documents Sprint, Jump, Look (RMB), Zoom (scroll). Gentle Mode strips Sprint/Jump from the card.
+
+### Added — Phase 26 editor tooling (≈400 LOC)
+
+- **`Editor/PlayerAnimatorControllerBuilder.cs`** (200 LOC) — Builds `Assets/_Project/Animations/Hearthbound_Player.controller` procedurally:
+  - 7 parameters (Speed/MoveX/MoveY/VelocityY/IsGrounded/IsSprinting/Jump).
+  - 4 states: Locomotion (1D blend tree on Speed), Jump, Fall, Land.
+  - Auto-detects best AnimationClip per role with Mixamo > BoZo > demo scoring.
+  - Menu: `Hearthbound → Phase 26 — Build Player Animator Controller`.
+- **`Editor/Phase26_PlayerControllerAndAnimation.cs`** (200 LOC) — Single-click capstone:
+  - Runs the AnimatorController builder.
+  - Loads Player prefab, ensures Animator + controller wired (Apply Root Motion = false).
+  - Walks Lane/Hollow/Garden/Cottage scenes:
+    - Upgrades `SimpleFollowCamera` → `SmoothFollowCamera` (copies target + framing).
+    - Wires `PlayerController.cameraReference` to the upgraded camera.
+    - Ensures the scene's Player has the new Animator + controller.
+  - Menu: `Hearthbound → 🏃 Phase 26 — Player Controller + Animation`.
+
+### Added — Tests (≈140 LOC)
+
+- **`Tests/EditMode/PlayerControllerTests.cs`** — 7 NUnit tests locking the public surface:
+  - `MovementLocked` default + setter roundtrip
+  - Defaults (`IsSprinting`, `IsGrounded`, `CurrentVelocity`, `CurrentMoveInput`)
+  - `SetCameraReference` / `SetAnimator` smoke
+  - `SmoothFollowCamera` defaults sanity
+  - `SnapToTargetImmediate` doesn't throw
+- EditMode tests asmdef updated to reference `HearthboundHollow.Player`.
+
+### Added — Input Actions (≈90 LOC)
+
+- **`Settings/HearthboundInput.inputactions`** — 5 new actions:
+  - **Sprint** — Left/Right Shift; Gamepad left-stick click
+  - **Jump** — Space; Gamepad south
+  - **CameraLook** (Vector2) — Mouse delta; Gamepad right stick (scaled)
+  - **CameraZoom** (Axis) — Mouse scroll Y; Gamepad LB/RB 1D composite
+  - **AllowLook** — Right Mouse Button; Gamepad right-stick click
+- Existing actions and 3 control schemes (Keyboard&Mouse / Gamepad / Touch) preserved.
+
+### Added — Documentation (≈280 LOC)
+
+- **`Docs/ANIMATION_REQUIREMENTS.md`** — Complete reference: animator state graph, parameter contract, clip roster, Mixamo download list (6 FBXs), Humanoid retargeting steps, Asset Store alternatives (Mixamo Animation Pack, ACS, Easy Character Movement 2, Synty), performance notes, validation checklist, design decisions D-035 → D-039.
+- **`Docs/PROGRESS.md`** — Phase 26 entry + decisions table renumbered to D-035..D-039 + updated menu list.
+- **`Docs/ARCHITECTURE.md`** — § 0 controller/camera/animator rows + § 4.4 PlayerController surface + § 4.5 SmoothFollowCamera + § 15 Decisions Index covering D-033..D-039.
+- **`README.md`** — controls table + 2-click quickstart.
+
+### Decisions adopted in this release
+
+> ℹ️ Phase 25 (UI activation hotfix, landed in parallel) consumed D-033 + D-034. Phase 26's decisions therefore start at D-035.
+
+- **D-035** Sprint + Jump are opt-in runtime flags (`enableSprint`, `enableJump`). Gentle Mode disables both. Cozy GDD doesn't ask for them; we add them so playtesters who reach for Shift/Space don't perceive the controller as broken.
+- **D-036** Player Animator is a single 1D blend tree on `Speed`, not a 2D tree. Cozy character always faces movement direction.
+- **D-037** Animator parameter names are configurable strings on the `PlayerController` Inspector — swapping to a community controller is a name-retype, no code rewrite.
+- **D-038** `SmoothFollowCamera` is the M1+M2 default. Phase 17 still creates a Cinemachine prefab when the package is present; the two coexist (Phase 26 doesn't touch the Cinemachine path).
+- **D-039** Animations live in `Assets/_Project/Animations/` (Mixamo subfolder optional) — single search path keeps auto-detection deterministic.
+
+### Files net delta (vs 0.2.1)
+
+- **+4 C# files:** SmoothFollowCamera, PlayerAnimatorControllerBuilder, Phase26_PlayerControllerAndAnimation, PlayerControllerTests.
+- **+1 doc:** ANIMATION_REQUIREMENTS.md.
+- **Rewritten:** PlayerController.cs (350 LOC, was 150), HelpOverlayUI.cs, HearthboundInput.inputactions, EditMode tests asmdef.
+- **Updated:** SimpleFollowCamera.cs header comment, PROGRESS.md, CHANGELOG.md (this entry), ARCHITECTURE.md, README.md.
+
+### Build Settings — unchanged
+
+Six scenes; Phase 26 doesn't add new ones.
+
+### Player-facing controls
+
+| Action | Key / Stick |
+|---|---|
+| Move | WASD / Arrow keys / Gamepad left stick |
+| **Sprint** | **Left Shift / Gamepad LStick click** (Gentle Mode disables) |
+| **Jump** | **Space / Gamepad south** (Gentle Mode disables) |
+| Interact | E / Gamepad south |
+| Advance line | Click / Space / Enter |
+| Polish orb | Hold left mouse, draw slow circles |
+| **Camera look** | **Hold Right Mouse + drag / Gamepad right stick** |
+| **Camera zoom** | **Mouse scroll / Gamepad LB-RB** |
+| Pause | Escape |
+| Help | H |
+
+### How the user uses it
+
+1. Pull the branch. Unity recompiles.
+2. `Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`. *[unchanged]*
+3. `Hearthbound → 🏃 Phase 26 — Player Controller + Animation`. *[NEW, ~5 s]*
+4. (Optional) Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per `Docs/ANIMATION_REQUIREMENTS.md` § 3 and re-run Phase 26.
+5. Press Play. WASD moves camera-relative; Shift sprints; Space jumps; Right Mouse + drag orbits camera; scroll zooms.
+
+---
+
 ## [0.2.1-mission-1-2-ui-activation-hotfix] — 2026-05-24
 
 **Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
@@ -36,11 +149,6 @@ All notable changes to this project will be documented here. Entries follow the 
 | Click "Open The Hollow" → game crashes immediately with a coroutine error | Click "Open The Hollow" → Tone Compass fades in. Continue is dimmed for one frame. Player reads, toggles Gentle Mode if desired, clicks Continue → Lane scene loads. |
 | Esc / H do nothing during gameplay (after the user reaches Lane via some workaround) | Esc opens the pause menu in every gameplay scene; H opens the help/controls card. |
 | Mission title cards may flicker or not appear if scene loads with a dormant host | Title cards always fade in cleanly. |
-
-### Phase 26/27 — what comes next (in-progress)
-
-- **Phase 26** — HEAT modern UI swap-in for Main Menu / Settings / Pause / Help / HUD. Uses the 59 prefabs already imported under `Assets/Heat - Complete Modern UI/`. Visual upgrade; two-layer wiring established in Phase 25 is preserved.
-- **Phase 27** — Mission 1+2 depth polish against `Docs/Depth_Bible/Mission_1_2_Focus/*`. Audit dialogue beats, surface Marin's note, polish emotional pacing.
 
 ---
 
@@ -85,22 +193,14 @@ All notable changes to this project will be documented here. Entries follow the 
   - **Cottage flow**: title card → Gerrold greeting (3 lines + 3-option reply, +0/+3/+6 trust ripple) → ChoiceCardUI with 4 tariffs.
   - **Branch logic**: Erase → CleanseMiniGame (gentleMode) → Dream 2 Variant A. Cleanse → CleanseMiniGame → Dream 2 Variant B/C (depending on CleanseOutcome). Listen → no mini-game + 4-beat narrative pause + Variant D. Defer → no mini-game + Variant E.
   - **Outcome-specific Evening Ledger** — 5 distinct passages (one for each cleanse-outcome and each non-cleanse branch).
-- **`Editor/Phase24_Mission2SceneBuilder.cs`** (795 LOC) — Menu: **`Hearthbound → Phase 24 — Build Mission 2 Scenes`**. Builds both scenes from scratch:
-  - Garden: ground, 2 plants (Lavender + Valerian), Kettle interactable, Garden_Exit_Trigger, UI (DialogueUI + TeaBrewingUI + MissionTitleCard).
-  - Cottage: wood floor, 3 walls, Gerrold (BoZo Bard or cylinder fallback), table, hidden GER-007 orb, _CleanseMiniGame, _MemoryDreamRig + PlayableDirector, UI (DialogueUI + ChoiceCardUI + EveningLedgerUI + MissionTitleCard).
-  - Adds both scenes to Build Settings as indices 4 and 5.
-  - Mission02Director is wired with every reference (4 tariffs, Gerrold villager, GER-007 memory, cleanse game, dream sequencer).
+- **`Editor/Phase24_Mission2SceneBuilder.cs`** (795 LOC) — Menu: **`Hearthbound → Phase 24 — Build Mission 2 Scenes`**. Builds both scenes from scratch.
 
 ### Decisions adopted in this release
-- **D-028** SettingsService is a plain C# class, not a ScriptableObject — PlayerPrefs persists across sessions.
-- **D-029** MainMenuSaveCoordinator + PauseSaveCoordinator live in Mission asmdef — UI stays Save-free. Matches the DreamHook pattern from Phase 22.
-- **D-030** TeaBrewingUI default duration = 12 s (was 90 s) — first-play loop is tight; players who want longer timers can toggle Gentle Mode.
-- **D-031** Mission01Director.sceneAfterEndOfDay defaults to "01_MainMenu" but is overridden to "04_Mission02_Garden" by Phase 23 — default stays safe (no Mission 2 = no broken hand-off); polish capstone wires the hand-off only when Mission 2 scenes exist.
-
-### Files net delta (vs 0.1.1)
-- **+11 C# files**: SettingsService, SettingsServiceBootstrap, PauseMenuUI, HelpOverlayUI, MissionTitleCard, AmbientAudio, MainMenuSaveCoordinator, PauseSaveCoordinator, Mission02Director, Phase23_Mission1PolishCapstone, Phase24_Mission2SceneBuilder.
-- **+11 .meta files** (one per script).
-- **Modified**: MainMenuController.cs (events + Continue dimming + SetContinueEnabled API).
+- **D-028** SettingsService is a plain C# class, not a ScriptableObject.
+- **D-029** MainMenuSaveCoordinator + PauseSaveCoordinator live in Mission asmdef.
+- **D-030** TeaBrewingUI default duration = 12 s (was 90).
+- **D-031** Mission01Director.sceneAfterEndOfDay defaults to MainMenu but is overridden to "04_Mission02_Garden" by Phase 23.
+- **D-032** Runtime MonoBehaviours never live in Editor-asmdef files (hotfix decision).
 
 ### Build Settings (after Phase 23 runs)
 | Index | Scene |
@@ -112,16 +212,6 @@ All notable changes to this project will be documented here. Entries follow the 
 | 4 | `Assets/_Project/Scenes/04_Mission02_Garden.unity` |
 | 5 | `Assets/_Project/Scenes/05_Mission02_Cottage.unity` |
 
-### Player-facing controls
-| Action | Key |
-|---|---|
-| Move | WASD / Arrow keys / Gamepad left stick |
-| Interact | E / Gamepad south |
-| Advance line | Click / Space / Enter |
-| Polish orb | Hold left mouse, draw slow circles |
-| Pause | Escape |
-| Help | H |
-
 ---
 
 ## [0.1.1-mission-1-2-bugfix-and-tooling] — 2026-05-24
@@ -130,54 +220,27 @@ All notable changes to this project will be documented here. Entries follow the 
 **Theme:** Bug-fix cycle (Phase 10.5) + quality-of-life tooling (Phase 11).
 
 ### Fixed
-- **CS1739 in SaveService.cs** — `VillageStateSavedEvent` ctor parameter is named `autosave`, not `isAutosave`. Switched the call site to positional argument.
-- **CS0234 / CS0246 in MiniGames** — `PolishMiniGame`, `CleanseMiniGame`, and `MiniGameBase` use `MemoryOrbInteractable` (in `HearthboundHollow.Player`). The MiniGames asmdef was missing the Player reference. Added.
-- **CS0234 (preemptive) in Dialogue** — When the user installs Yarn Spinner, `YarnVillageStateBridge.SaveAutopoint()` activates and references `HearthboundHollow.Save.SaveService`. The Dialogue asmdef now references Save proactively so no rework is needed at Yarn-install time.
-- **"Project has invalid dependencies"** — Unity 6 folded `com.unity.textmeshpro` into `com.unity.ugui` 2.0; the standalone package no longer resolves. Removed from `Packages/manifest.json`. The `Unity.TextMeshPro` assembly name is still valid (asmdefs that reference it continue to compile).
+- **CS1739 in SaveService.cs** — `VillageStateSavedEvent` ctor parameter is named `autosave`, not `isAutosave`.
+- **CS0234 / CS0246 in MiniGames** — MiniGames asmdef missing Player reference.
+- **CS0234 (preemptive) in Dialogue** — Dialogue asmdef now references Save proactively.
+- **"Project has invalid dependencies"** — Removed `com.unity.textmeshpro` from manifest (folded into UGUI 2.0 in Unity 6).
 
 ### Added — Editor tooling (Phase 11)
-- **`Editor/SeedAssetGenerator.cs`** — Menu item `Hearthbound → Create Mission 1-2 Seed Assets` creates all 17 canonical ScriptableObject assets at the expected paths:
-  - `VillageState.asset`
-  - `Mission01_OpeningTheHollow.asset`, `Mission02_TheWidowersRequest.asset`
-  - `Doris.asset`, `Gerrold.asset`, `SilentLane.asset`
-  - `Lavender.asset`, `Valerian.asset`
-  - `DOR-001_FirstLoaves.asset`, `GER-007_SeventhMorning.asset`
-  - `ECHO_DOR001_GER007.asset`
-  - `MemoryMap_Doris.asset`, `MemoryMap_Gerrold.asset`
-  - `Tariff_Erase.asset`, `Tariff_Cleanse.asset`, `Tariff_Listen.asset`, `Tariff_Defer.asset`
-  - Saves ~30 minutes of right-click → Create per asset.
-  - Idempotent: skips assets that already exist; safe to re-run.
-- **`Editor/HearthboundHollow.Editor.asmdef`** — Editor-only assembly so menu code does not ship in runtime builds.
-- **Menu item `Hearthbound → Validate Mission 1-2 Seed Assets`** — Logs which seed assets are missing.
+- `Editor/SeedAssetGenerator.cs` — generates the 17 canonical ScriptableObjects.
+- `Editor/HearthboundHollow.Editor.asmdef` — Editor-only assembly.
+- Menu items: `Hearthbound → Create Mission 1-2 Seed Assets`, `Hearthbound → Validate Mission 1-2 Seed Assets`.
 
 ### Added — Runtime (Phase 11)
-- **`Cutscene/ListenSceneSequencer.cs`** — Mission 2 Listen-path Timeline driver. Plays the 3-min Listen cutscene, then routes to Memory Dream 2 Variant D. Cinemachine priority is set via reflection so the Cutscene asmdef does not take a hard `com.unity.cinemachine` compile dep (D-009).
-- **`Settings/HearthboundInput.inputactions`** — Pre-configured Input Actions asset:
-  - **Move** (Vector2): WASD, Arrow keys, Gamepad left stick
-  - **Interact** (Button): E key, Gamepad south button
-  - **PointerPosition** (Vector2): mouse / touch position
-  - **PointerActive** (Button): left mouse / touch press
-  - **Pause** (Button): Escape, Gamepad start
-  - Three control schemes: Keyboard&Mouse, Gamepad, Touch (mobile-ready).
+- `Cutscene/ListenSceneSequencer.cs` — Mission 2 Listen-path Timeline driver.
+- `Settings/HearthboundInput.inputactions` — Move / Interact / PointerPosition / PointerActive / Pause across K&M / Gamepad / Touch.
 
 ### Added — Tests (Phase 11)
-- **`Tests/EditMode/SaveAndRippleTests.cs`** — +13 NUnit tests, bringing EditMode coverage from 8 to 21:
-  - `SaveServiceRoundTripTests` (5): round-trip, autosave slot, missing slot, empty label, delete slot
-  - `RippleEngineTests` (4): Erase tariff, Listen tariff, coin clamp, integrity clamp
-  - `MemoryNodeTests` (2): EffectiveTint override + tone fallback
-  - `VillagerMemoryRuntimeTests` (2): Reveal + idempotency
-- EditMode tests asmdef updated to reference `HearthboundHollow.Mission` (for RippleEngine).
+- `Tests/EditMode/SaveAndRippleTests.cs` — +13 NUnit tests, bringing EditMode coverage from 8 to 21.
 
-### Decisions adopted in this release
-- **D-008** Drop `com.unity.textmeshpro` from manifest — Unity 6 folded TMP into `com.unity.ugui` 2.0.
-- **D-009** ListenSceneSequencer integrates Cinemachine via reflection — Cutscene asmdef stays Cinemachine-agnostic.
-- **D-010** Seed assets are generated by Editor menu, not committed as .asset files — avoids GUID/.meta race conditions; idempotent + safe to re-run.
-
-### Files net delta (vs v0.1.0)
-- **+4 C# files**: ListenSceneSequencer, SeedAssetGenerator, SaveAndRippleTests (+CoreTests still present).
-- **+1 asmdef**: HearthboundHollow.Editor.
-- **+1 Input Actions asset**: HearthboundInput.inputactions.
-- **Modified**: SaveService.cs, manifest.json, MiniGames asmdef, Dialogue asmdef, EditMode tests asmdef, PROGRESS.md, CHANGELOG.md.
+### Decisions adopted
+- D-008 Drop `com.unity.textmeshpro` from manifest.
+- D-009 ListenSceneSequencer integrates Cinemachine via reflection.
+- D-010 Seed assets generated by Editor menu, not committed.
 
 ---
 
@@ -199,16 +262,7 @@ All notable changes to this project will be documented here. Entries follow the 
 - 10 production + 2 test, full dependency graph.
 
 ### Added — Scripts (32 files, ~4 k lines)
-- **Core (7):** Hh, EventBus, ServiceLocator, GameEvents, VillageState, MissionSO, GameManager
-- **Memory (8):** EmotionalTone, MoralChoice, VillagerSO, MemoryNodeSO, MemoryConnectionSO, VillagerMemoryMapSO, MemoryHerb, TariffSO
-- **Player (9):** Interactable, PlayerController, MemoryOrbInteractable, HollowDoorInteractable, HerbHarvestInteractable, KettleInteractable, DayCycleManager, LumenLightController, InteractionPromptUI
-- **MiniGames (3):** MiniGameBase, PolishMiniGame, CleanseMiniGame
-- **UI (9):** DialogueUI, ChoiceCardUI, EveningLedgerUI, TeaBrewingUI, CodexUI, ComfortToolsMenu, ToneCompassCard, HUDController, MainMenuController
-- **Dialogue (1):** YarnVillageStateBridge (compile-guarded)
-- **Cutscene (1):** MemoryDreamSequencer
-- **Save (2):** SaveService, VillageStateSnapshot
-- **Mission (3):** MissionRunner, RippleEngine, PickleAI
-- **Tests (1):** CoreTests (8 NUnit tests)
+- **Core (7), Memory (8), Player (9), MiniGames (3), UI (9), Dialogue (1), Cutscene (1), Save (2), Mission (3), Tests (1).** See `PROGRESS.md` for the full list.
 
 ### Added — Yarn dialogue (5 files)
 - `Doris_M1.yarn` (9 nodes), `Gerrold_M2.yarn` (10 nodes), `Marin_Notes.yarn` (3 nodes), `Pickle.yarn` (4 nodes), `Codex.yarn` (6 nodes).
@@ -222,13 +276,6 @@ All notable changes to this project will be documented here. Entries follow the 
 - D-006 YarnVillageStateBridge compile-guarded
 - D-007 Scenes are Unity-side; scripts are GitHub-side
 
-### Deferred (per Krieg Discipline)
-- Weave / Sever / Listen / Read / Translate / Identify / Compose / Search / Negotiate / Compose Verse mini-games — Mission 3+.
-- Procedural villagers beyond Doris+Gerrold+lane silent — Mission 3+.
-- Predecessor (Marin) full arc, Echo Hologram, Locked Room, Forgotten Year, Vance Arc, Mariska — Mission 3+.
-- Letter-Bird Network, Pen-Pal Villages, Dream Cinema community, ARG, Photo Mode — post-launch.
-- Mobile IAP, gacha, energy — **never**.
-
 ---
 
-*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 when Mission 3 design begins; 1.0.0 when the 20-person greenlight playtest passes.*
+*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 with Phase 26 (player controller + animation). 1.0.0 when the 20-person greenlight playtest passes.*
