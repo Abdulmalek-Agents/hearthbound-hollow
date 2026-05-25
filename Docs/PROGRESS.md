@@ -10,7 +10,94 @@
 
 ---
 
-## 🚨 HOTFIX — Phase 27.1 (2026-05-25) — "Half body in floor" sink
+## 🆕 Phase 30 — Onboarding + Control Hints HUD  🟢 (2026-05-25)
+
+**User request after the first playtest:**
+
+> *"Create the onboarding and control guidance UI so enhance the whole gameplay."*
+
+### What shipped
+
+| File | Role | LOC |
+|---|---|---|
+| `Assets/_Project/Scripts/UI/OnboardingOverlay.cs` | **NEW**. 6-step multi-card walkthrough (Welcome → WASD → E → LMB polish → Pause/Help → Ready). Data-driven `Step[]`, optional input expectations (auto-advance on `press_wasd` / `press_e` / etc.), skippable from frame 1, pauses `Time.timeScale` while open. | 350 |
+| `Assets/_Project/Scripts/Mission/ControlHintsHUD.cs` | **NEW**. Always-visible parchment chip strip (Move · Interact · Help) at bottom-left of every gameplay scene. The [E] chip emphasises to full alpha + swaps caption to the interactable's `PromptText` when one is in range. | 155 |
+| `Assets/_Project/Scripts/Editor/Phase30_OnboardingAndHintsCapstone.cs` | **NEW**. `Hearthbound → 🎓 Phase 30 — Build Onboarding + Hints HUD` — idempotent Editor builder that drops the OnboardingOverlay on the Lane scene canvas and the ControlHintsHUD on every gameplay scene. | 380 |
+| `Assets/_Project/Scripts/Core/VillageState.cs` | Added `onboardingCompleted` bool (cleared by `ResetToDefault()` so fresh saves see the walkthrough). | (updated) |
+| `Assets/_Project/Scripts/Editor/Phase27_BuildEverything.cs` | Master capstone now chains Phase 29 + Phase 30. Six sub-capstones in one click. | (updated) |
+
+### Behaviour
+
+- **First-time players** see the 6-step OnboardingOverlay on top of the Lane scene as soon as the cursor warms up. They can press `Next →` / Space / Enter to advance, or `Skip Tutorial` / Esc to dismiss.
+- **Step 2 (WASD)** auto-advances after the player presses any WASD or arrow key, so the walkthrough feels responsive rather than read-it-and-click.
+- **VillageState.onboardingCompleted** persists with the save — the overlay never re-shows on subsequent sessions of the same save.
+- The **ControlHintsHUD** sits at the bottom-left at `alpha = 0.45` (readable but not loud) until an interactable comes into range, then the [E] chip flicks to `alpha = 1` and the caption becomes the interactable's prompt ("Greet Doris", "Polish memory", "Enter the Hollow", …).
+
+### Decisions adopted
+
+- **D-043 (NEW):** Onboarding is **per-save** (gated by `VillageState.onboardingCompleted`), not per-play. Fresh saves repeat the walkthrough by design.
+- **D-044 (NEW):** Context-aware HUD chips live in the **Mission** asmdef (not UI), because they query `PlayerController.CurrentFocus` and UI asmdef has no Player reference. Codifies D-035 for the new HUD.
+
+---
+
+## 🆕 Phase 29 — UI Polish (text-never-clips) + Player Rig Doctor  🟢 (2026-05-25)
+
+**User report after the first Phase 27 playtest:**
+
+> *"The cards and UI is not appearing well and text is cut."*
+> *"Half body still sunk in floor after Phase 27.2."*
+
+### Two parallel threads
+
+**29a — UIAutoFitText + word-wrap on every cozy UI label.**
+
+| File | Change |
+|---|---|
+| `Scripts/UI/UIAutoFitText.cs` (NEW) | Single helper + two static methods (`ApplyToLabel`, `ApplyToButtonLabel`) that force `enableWordWrapping = true` + `enableAutoSizing` between configured min/max + `OverflowMode.Ellipsis` fallback. |
+| `Scripts/UI/DialogueUI.cs` | Awake() autofit on `lineText` (16–28) + `speakerName` (18–32). |
+| `Scripts/UI/ChoiceCardUI.cs` | Awake() autofit on header; `WireTile()` autofit on every instantiated tile. |
+| `Scripts/UI/EveningLedgerUI.cs` | Awake() autofit on day / coin / summary / heldMemories / save-slot labels. |
+| `Scripts/UI/HelpOverlayUI.cs` | Awake() autofit on title / subtitle / body. |
+| `Scripts/UI/ToneCompassCard.cs` | Awake() autofit on bodyText + gentleModeLabel. |
+| `Scripts/Editor/Phase14_BamaoUIBuilder.cs` | **Critical**: relocates the DialogueBox `ChoicesContainer` from off-prefab-bounds (1.05–2.10 anchorY = ABOVE the prefab) to INSIDE the dialogue box (0.08–0.78). This was the root cause of choice tiles rendering off-screen. Also applies autofit at prefab build time. |
+| `Scripts/Editor/Phase23_Mission1PolishCapstone.cs` | UIAutoFitText applied to every procedurally-built TMP in the PauseMenu / HelpOverlay / Settings panel / MissionTitleCard / buttons / toggles / sliders. |
+
+**29b — Player Rig Doctor (foot-bone anchor fix).**
+
+Phase 28 switched to live `Renderer.bounds.min.y` after Animator update, fixing the worst cases. But some BoZo CharacterCreator variants still left a 5–30 cm residual sink because the world AABB is padded for culling. Phase 29's **`Phase29_PlayerRigDoctor.cs`** auto-discovers a foot bone (Mixamo / BoZo / generic humanoid naming heuristics) and wires it as the `PlayerGroundClamp.footAnchor`, which the clamp prefers over bounds scanning. Result: a surgical, foolproof anchor at the actual toe position.
+
+Also:
+- Force-disables `applyRootMotion` on every Player Animator.
+- Verifies the Animator's Avatar is set to a Humanoid avatar.
+- Sanity-checks the GameObject scale chain.
+- Auto-adds a Ground BoxCollider to scenes that don't have one.
+
+### Decisions adopted
+
+- **D-041 (Phase 28 amendment)** — Mesh-bottom MUST be measured from world-space `Renderer.bounds`, never from `SkinnedMeshRenderer.localBounds`. Padded culling AABBs make localBounds unreliable on most rigs.
+- **D-042 (NEW)** — Any TMP label created by a builder script MUST go through `UIAutoFitText.ApplyToLabel` / `ApplyToButtonLabel` before the prefab is saved.
+
+---
+
+## 🆕 Phase 28 — Definitive body alignment (live world bounds + continuous window)  🟢 (2026-05-25)
+
+**User reported during first playtest that the Phase 27.2 fix didn't fully resolve the sink** — half the body was *still* in the floor on a BoZo CharacterCreator rig.
+
+### Root cause
+
+`SkinnedMeshRenderer.localBounds` on those rigs is a **padded culling AABB**, not the actual bind-pose bottom. It's sized big enough to contain any stretched pose so the renderer is never frustum-culled mid-animation. The Phase 27.2 clamp read this padded bottom and consequently lifted the body by *less* than the rig actually needed — leaving the visible feet ≈ 30-50 cm in the floor.
+
+### Fix (2 commits — both `PlayerGroundClamp.cs` and `PlayerController.cs` upgraded symmetrically)
+
+1. **Switch to live world bounds**: `Renderer.bounds.min.y` (post-Animator pose) instead of `SkinnedMeshRenderer.localBounds`. This reflects the *actual* visible feet position right now.
+2. **Continuous correction window** — runs alignment every frame for the first 0.75 s of play. The Animator's bind→idle blend can take several frames to settle and a Mixamo clip with a baked initial offset can leave a residual mismatch; one-shot LateUpdate alignment wasn't enough on slower idle clips.
+3. **Configurable tolerance** (default 0.5 cm) to prevent FP chatter.
+4. **Optional `footAnchor` Transform override** — drag a toe bone for surgical precision on rigs with weird padded localBounds. Phase 29's Player Rig Doctor auto-discovers this.
+5. **Filter out non-mesh renderers** (ParticleSystemRenderer / LineRenderer / TrailRenderer) — their huge AABBs would corrupt the min-Y scan.
+
+---
+
+## 🚨 HOTFIX — Phase 27.1 (2026-05-25) — "Half body in floor" sink (superseded by Phase 28)
 
 **Bug reported by user during first Phase 26 + 27 playtest:**
 
@@ -258,25 +345,36 @@ Moved the file to `Assets/_Project/Scripts/Mission/MarinNoteInteractable.cs` wit
 | ✅ 26.1 | Asmdef-locality hotfix | ✅ Done |
 | ✅ 26 (Player Controller + Animation) | WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator | ✅ Done |
 | ✅ 27 | Build EVERYTHING capstone + NPC animator pipeline + diagnostic + footstep hooks | ✅ Done |
-| ✅ **27.1** | **"Half body in floor" sink hotfix — PlayerGroundClamp + Phase 13 CC re-tune** | ✅ **Done** |
+| ✅ 27.1 / 27.2 | "Half body in floor" preliminary hotfixes (PlayerGroundClamp) | ✅ Done |
+| ✅ **28** | **Definitive body alignment — live world bounds + continuous correction window** | ✅ **Done** |
+| ✅ **29a** | **UIAutoFitText + word-wrap on every cozy UI label + ChoicesContainer reposition** | ✅ **Done** |
+| ✅ **29b** | **Player Rig Doctor — foot-bone anchor auto-discovery + Animator sanity pass** | ✅ **Done** |
+| ✅ **30** | **OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (persistent chips)** | ✅ **Done** |
 
-The project ships behind a **single menu click**: `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`.
+The project ships behind a **single menu click**: `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`. Phase 27 now chains six sub-capstones — Phase 23, Phase 26 (PC+Anim), Phase 26 (NPC), Phase 26 (Narrative Hooks), Phase 29 (Rig Doctor), Phase 30 (Onboarding + Hints).
 
 ---
 
-## Decisions Made (D-001 → D-041)
+## Decisions Made (D-001 → D-044)
 
-D-001..D-040 cover BoZo art, asmdef discipline, UI two-layer + self-heal, asmdef-locality, sprint/jump opt-in, Animator + camera defaults, and animation locations. **D-041 (NEW, Phase 27.1 hotfix)** mandates runtime ground-clamp when the character mesh origin isn't at the feet — build-time CC defaults are best-effort, runtime auto-correct is the truth.
+D-001..D-041 cover BoZo art, asmdef discipline, UI two-layer + self-heal, asmdef-locality, sprint/jump opt-in, Animator + camera defaults, and animation locations.
+
+- **D-041 (Phase 28 amendment)** — Mesh-bottom MUST be measured from world-space `Renderer.bounds`, never from `SkinnedMeshRenderer.localBounds`. Padded culling AABBs make localBounds unreliable on most rigs.
+- **D-042 (NEW, Phase 29)** — Any TMP label created by a builder script MUST go through `UIAutoFitText.ApplyToLabel` / `ApplyToButtonLabel` before the prefab is saved.
+- **D-043 (NEW, Phase 30)** — Onboarding is **per-save** (gated by `VillageState.onboardingCompleted`), not per-play. Fresh saves repeat the walkthrough by design.
+- **D-044 (NEW, Phase 30)** — Context-aware HUD chips live in the **Mission** asmdef (not UI), because they query `PlayerController.CurrentFocus` and UI asmdef has no Player reference. Codifies D-035 for the new HUD.
 
 See `CHANGELOG.md` for per-release decision tables.
 
 ---
 
-## 🛠️ Editor Menu Items Available (cumulative — 17 total)
+## 🛠️ Editor Menu Items Available (cumulative — 19 total)
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
-| **`Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`** | **🎉 MASTER: chains every Phase 23/26 sub-capstone in one click** | **27** |
+| **`Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`** | **🎉 MASTER: chains every Phase 23/26/29/30 sub-capstone in one click** | **27** |
+| `Hearthbound → 🎓 Phase 30 — Build Onboarding + Hints HUD` | OnboardingOverlay on Lane + ControlHintsHUD on every gameplay scene | **30** |
+| `Hearthbound → 🦶 Phase 29 — Player Rig Doctor` | Foot-bone anchor + root-motion sanity + ground-collider audit | **29** |
 | `Hearthbound → 🏃 Phase 26 — Player Controller + Animation` | Player AnimatorController + camera + scene wiring + ground clamp | 26 (PC+Anim) |
 | `Hearthbound → 🎭 Phase 26 — Wire NPC Animators` | NPC AnimatorController + Doris/Gerrold/SilentLane wiring | 27 (NPC) |
 | `Hearthbound → Phase 26 — Build Player Animator Controller` | Just the player controller asset | 26 (PC+Anim) |
@@ -338,8 +436,16 @@ See `CHANGELOG.md` for per-release decision tables.
 | **Phase 26.1** — `MarinNoteInteractable.cs` CS0234/CS0246 from misplaced asmdef | **Compile error** | ✅ **Fixed** |
 | **Phase 26 (PC+Anim)** — Run/Jump/Fall/Land Animator states show Idle pose without Mixamo clips | Cosmetic | 🟡 Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` |
 | **Phase 27 (NPC)** — Talking state visually identical to Idle until a Mixamo Talking.fbx is dropped | Cosmetic | 🟡 Drop `Talking.fbx` into the Mixamo folder + re-run NPC capstone |
-| **Phase 27.1** — Player half-sunk into floor; mesh feet not aligned with CC capsule bottom | **Visual** | ✅ **Fixed in 4 commits — runtime PlayerGroundClamp + Phase 13 CC re-tune + Phase 26 capstone auto-attach + diagnostic audit.** |
+| **Phase 27.1 / 27.2** | Player half-sunk into floor — preliminary fixes (PlayerGroundClamp + Phase 13 CC re-tune) | **Visual** | ✅ **Superseded by Phase 28** |
+| **Phase 28** | Half-body sink — STILL occurring on BoZo CharacterCreator rigs because Phase 27 used padded localBounds | **Visual** | ✅ **Fixed — live world bounds + continuous correction window** |
+| **Phase 29a** | Cards & UI text appearing clipped on smaller canvases | **Visual** | ✅ **Fixed — UIAutoFitText on every TMP label + DialogueBox ChoicesContainer relocation** |
+| **Phase 29b** | Residual sink on rigs with padded culling AABBs | Cosmetic | ✅ **Fixed — Player Rig Doctor wires footAnchor to the actual toe bone** |
+| **Phase 30** | No onboarding for new players; controls discoverable only via H | Player-experience | ✅ **Fixed — OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (always-visible chips)** |
 
 ---
 
-*Last updated: 2026-05-25 — Phase 27.1 hotfix landed: PlayerGroundClamp runtime + Phase 13 CC re-tune + Phase 26 capstone integration. The character now stands on the floor.*
+*Last updated: 2026-05-25 — Phase 28 / 29 / 30 trifecta landed:*
+- *Phase 28 — definitive body alignment via live world bounds + continuous correction window.*
+- *Phase 29a — UIAutoFitText on every TMP label, ChoicesContainer repositioned inside the dialogue box.*
+- *Phase 29b — Player Rig Doctor auto-discovers a foot bone and wires it as the clamp's `footAnchor`.*
+- *Phase 30 — OnboardingOverlay walks first-time players through the controls; ControlHintsHUD shows persistent context-aware key chips in every gameplay scene.*
