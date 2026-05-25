@@ -23,70 +23,41 @@ All notable changes to this project will be documented here. Entries follow the 
 ### Phase 32 — Five sub-phases, five separate commits
 
 #### Phase 32.1 — Foundation: cottage assembler + extended bindings
-- **`Editor/Phase32_MedievalCottageBuilder.cs`** (NEW, ~370 LOC) — Assembles 4 cottage prefab variants from MV's modular kit (`SM_Wall_01d_1`, `SM_WallWindow_01a_1`, `SM_WallDoor_03a`, `SM_Rooftiles_01a`, `SM_Chimney_01a`, `SM_Floor_04x04_02a`):
-  - `Cottage_A_Bakery` — Doris's bakery, has a "BAKERY" sign + chimney + bread on the sill
-  - `Cottage_B_Plain` — two-window cottage with a flag accent
-  - `Cottage_C_Gabled` — narrow gabled cottage with single window
-  - `Cottage_D_Corner` — door-cutout wall + flag garland + corner chimney
-  - Each saved as a single self-contained `.prefab` under `Assets/_Project/Prefabs/Environment/`.
-  - Menu: `Hearthbound → 🏘️ Phase 32.1 — Assemble Cottage Prefabs`
-- **`Editor/Phase32_VillageBindingsExtension.cs`** (NEW, ~165 LOC) — `MedievalVillageBindingsV2.asset` SO with 23 additional prefab roles (chimney, kettle, bread, cupboard, hanging pot, stool, candelabra, signboard, autumn alder, etc.). Coexists with Phase 15's bindings — old builders untouched.
-  - Menu: `Hearthbound → 🧰 Phase 32.1 — Catalog Extended Village Bindings`
-- **`Docs/Phase32_Mission1_Polish.md`** (NEW) — Single source of truth for the Phase 32 series.
+- **`Editor/Phase32_MedievalCottageBuilder.cs`** (NEW, ~370 LOC) — Assembles 4 cottage prefab variants from MV's modular kit
+- **`Editor/Phase32_VillageBindingsExtension.cs`** (NEW, ~165 LOC) — `MedievalVillageBindingsV2.asset` SO with 23 prefab roles
+- **`Docs/Phase32_Mission1_Polish.md`** (NEW) — Single source of truth
 
 #### Phase 32.2 — Lane Environment v2
 - **`Editor/Phase32_LaneEnvironmentV2.cs`** (NEW, ~670 LOC):
-  - **8 cottages** in a 4-row layout (replaces Phase 27.2's 3 shopstands). Doris's Bakery is the hero on the player's right with a Lumen window glow.
-  - **HollowFacade** — 4×3 m bakery-style wrap around the door. Side + back walls + 2 pitched roof tiles + chimney + "The Hollow" italic TMP 3D sign + window glow.
-  - **3 extra lantern posts** along the cobble path (real Point lights + Lumen halos, mobile-safe no shadows).
-  - **Doris's bakery dressing** — stacked TerraPot beehive proxy, hay bale, apple basket + 3 spilled apples, wood log pile (firewood).
-  - **Smoking chimneys** — every cottage chimney gets a tiny Stylized Weather Dust wisp parented to it.
-  - **Extended cobble path** + 20 stone-brick path borders (10 each side).
-  - **Extra atmosphere** — 3 distant autumn alders, 6 pebbles, 8 grass tufts, 4 mushrooms, 1 dead tree silhouette.
-  - All additions under `_Phase32Env_Lane` parent — idempotent. Phase 27.2's `_Phase27Env_Lane` is preserved.
-  - Menu: `Hearthbound → 🏘️ Phase 32.2 — Polish Lane Environment V2`
+  - 8 residential cottages in 4-row layout (Doris's Bakery is the hero)
+  - HollowFacade — 4×3 m bakery-style wrap with "The Hollow" sign
+  - 3 extra lantern posts along the cobble path
+  - Doris's bakery dressing (beehive proxy, hay bale, apple basket, firewood)
+  - Smoking chimneys on every cottage (Stylized Weather Dust wisp proxy)
+  - Extended cobble path + 20 stone-brick borders
+  - 3 distant autumn alders, 6 pebbles, 8 grass tufts, 4 mushrooms, 1 dead tree
 
 #### Phase 32.3 — Hollow Interior v2
 - **`Editor/Phase32_HollowInteriorV2.cs`** (NEW, ~475 LOC):
-  - **Kettle on hearth** (`SM_Wooden_Pitcher_01`) with a small `ParticleSystem` steam wisp child (off by default — user enables for "kettle just boiled" moment).
-  - **3 bread loaves** on the west shelf (`SM_Bread_01a`), spread along the shelf at varying angles.
-  - **3 hanging dried-herb bundles** from the ceiling beams (inverted `SM_TerraPots_01b` proxies named Herb_Lavender / Valerian / Sage, each with a Cylinder rope).
-  - **Marin's Cupboard** against southeast corner (`SM_Cupboard_01a`).
-  - **Marin's Stool** beside the hearth (`SM_Stool_01a`).
-  - **Workbench Candelabra** (`SM_Candleabra_02a`) with Lumen Shimmery halo + real Point Light (1.6 intensity, 3.5 m range, no shadows).
-  - **Water bucket** by the hearth (`SM_Bucket_01a` — Mission 2 cleansing tie-in).
-  - **Workbench dressing** — wooden cup + bowl + apple.
-  - **2 wall candle sconces** on the west wall above the shelves.
-  - **Larger pulse glow** at the hearth (additional Lumen Shimmery Light).
-  - All under `_Phase32Env_Hollow` parent. Phase 27.3's `_Phase27Env_Hollow` preserved.
-  - Menu: `Hearthbound → 🏠 Phase 32.3 — Polish Hollow Interior V2`
+  - Kettle on hearth + steam wisp (off by default)
+  - 3 bread loaves on west shelf
+  - 3 hanging dried herbs (Lavender / Valerian / Sage)
+  - Marin's Cupboard + Stool
+  - Workbench Candelabra + cup + bowl + apple
+  - Water bucket beside hearth
+  - 2 wall candle sconces
+  - Larger pulse glow at the hearth
 
 #### Phase 32.4 — Cozy URP Volumes
-- **`Editor/Phase32_CozyVolumeBuilder.cs`** (NEW, ~330 LOC) — Authors two URP `VolumeProfile` assets procedurally + drops a Global Volume in each scene:
-  - **`HearthboundLane_Volume.asset`** (warm dusk outdoor):
-    - Bloom (intensity 0.45, threshold 0.95, scatter 0.7, warm tint, mobile-safe filtering)
-    - Tonemapping (Neutral, Spiritfarer-style)
-    - Color Adjustments (exposure +0.10, contrast +3, saturation +6, warm color filter)
-    - White Balance (temperature +10, tint -2)
-    - Vignette (intensity 0.22, deep brown)
-    - Film Grain (intensity 0.18)
-    - Channel Mixer (red boost on greens — autumn foliage)
-  - **`HearthboundHollow_Volume.asset`** (cozy interior firelight):
-    - Bloom (intensity 0.55, threshold 0.85, stronger amber tint)
-    - Tonemapping (Neutral)
-    - Color Adjustments (exposure -0.10, contrast +6, deeper warm filter)
-    - White Balance (temperature +25, tint -4 — much warmer than Lane)
-    - Vignette (intensity 0.32 — more enclosed)
-    - Film Grain (intensity 0.22)
-  - Main Camera updated in both scenes: `renderPostProcessing = true`, FXAA High.
-  - Menu: `Hearthbound → 🌅 Phase 32.4 — Apply Cozy URP Volume`
+- **`Editor/Phase32_CozyVolumeBuilder.cs`** (NEW, ~330 LOC) — Authors two URP `VolumeProfile` assets procedurally:
+  - **`HearthboundLane_Volume.asset`** (warm dusk outdoor): Bloom + Tonemapping + Color Adjustments + White Balance + Vignette + Film Grain + Channel Mixer
+  - **`HearthboundHollow_Volume.asset`** (cozy interior firelight): Same effects, deeper warm tint
+  - Main Camera updated: `renderPostProcessing = true`, FXAA High
 
 #### Phase 32.5 — Master Capstone + Diagnostic + Docs
-- **`Editor/Phase32_MissionOnePolishCapstone.cs`** (NEW, ~155 LOC) — Single-menu chain of 32.1 → 32.2 → 32.3 → 32.4 + re-runs Phase 27.4 (lantern wiring) + Phase 31 (dialogue repair). Reflection-driven so missing phases skip gracefully.
-  - Menu: `Hearthbound → 🍂 Phase 32 — Polish Mission 1 (v2 — all phases)`
-- **`Editor/Phase32_Diagnostic.cs`** (NEW, ~260 LOC) — Read-only audit. Walks both scenes + the 4 cottage prefabs + the 2 volume profiles and reports passed/warned/failed.
-  - Menu: `Hearthbound → 🔍 Phase 32 — Diagnose Mission 1 Polish`
-- **`Editor/Phase27_BuildEverything.cs`** — Master capstone now chains Phase 32 after Phase 31. The single-click "Build EVERYTHING" menu now runs the full v2 polish.
+- **`Editor/Phase32_MissionOnePolishCapstone.cs`** (NEW, ~155 LOC) — Single-menu chain of 32.1 → 32.4 + re-runs 27.4 + 31
+- **`Editor/Phase32_Diagnostic.cs`** (NEW, ~260 LOC) — Read-only audit reporting passed/warned/failed
+- **`Editor/Phase27_BuildEverything.cs`** — Master capstone now chains Phase 32 after Phase 31
 
 ### Files added / changed
 
@@ -141,8 +112,6 @@ All notable changes to this project will be documented here. Entries follow the 
 **Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.5.1)
 **Theme:** Phase 31.1 — make the dialogue's "click to advance" affordance visible, and stop the DreamCanvas bleeding into normal gameplay.
 
-### User report (second screenshot)
-
 > *"the game is stucked here please fix"*
 
 Doris's `(stands back and watches)` line was fully rendered but the player
@@ -152,30 +121,145 @@ and potentially intercepting clicks.
 
 ### Phase 31.1 — Advance prompt + Dream canvas hide
 
-- **`UI/DialogueUI.cs`** — New `advancePrompt` field (italic TMP label
-  `"Click or [Space] ▸"` in the dialogue box's lower-right corner).
-  `Awake()` auto-creates it if the prefab is missing it. `Update()`
-  PingPongs alpha 0.55 ↔ 1.0 at 1.4 Hz whenever the box is visible,
-  typewriter is idle, and no choices are showing. New public
-  `SkipTypewriter()` method exposed for future Yarn/director use
-  (not wired into Update — auto-skip would race WaitForAdvance and
-  double-advance on the same Space press).
-- **`Cutscene/MemoryDreamSequencer.cs`** — New `dreamCanvas` field,
-  auto-discovered in `Awake()` and **force-hidden** until `PlayDream1`
-  / `PlayDream2`. Re-hidden in `OnDirectorStopped`. All child
-  `Graphic.raycastTarget` zeroed so the letterbox bars can never
-  intercept dialogue clicks.
-- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** — Now also bakes the
-  `AdvancePrompt` label into the saved DialogueBox prefab (so existing
-  prefabs get it without waiting for runtime self-heal).
+- **`UI/DialogueUI.cs`** — New `advancePrompt` field (italic TMP label `"Click or [Space] ▸"`). PingPongs alpha 0.55 ↔ 1.0 at 1.4 Hz.
+- **`Cutscene/MemoryDreamSequencer.cs`** — New `dreamCanvas` field, auto-discovered + force-hidden until cutscene plays.
+- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** — Now also bakes the AdvancePrompt into the saved DialogueBox prefab.
 
-**D-049 (NEW):** Any blocking dialogue UI must expose a visible advance
-affordance. The advance polling loop runs in the director, not the UI —
-the UI must show the player that the director is waiting on them.
-**D-050 (NEW):** Cutscene/cinematic overlays must be hidden by default
-and shown only while the cutscene plays. Full-screen overlays that are
-not the active UI must zero child `Graphic.raycastTarget`.
+**D-049 (NEW):** Any blocking dialogue UI must expose a visible advance affordance.
+**D-050 (NEW):** Cutscene/cinematic overlays must be hidden by default.
 
 ---
 
-[See full changelog for prior 0.5.x and 0.4.x entries.]
+## [0.5.1-dialogue-choice-card-repair] — 2026-05-25
+
+**Theme:** Phase 31 — fix the dialogue choice tiles so the game is playable past Doris's first greeting.
+
+- **`UI/DialogueChoiceLayoutHealer.cs`** (NEW, ~120 LOC) — Runtime self-heal helper. Enforces `childControlWidth = true` etc. on the VLG. Heals tile sizeDelta + LayoutElement.
+- **`UI/DialogueUI.cs`** — Maps 1/2/3/4 keyboard shortcuts to choice indices. Hides lineText while choices are visible.
+- **`UI/ChoiceCardUI.cs`** — Same heal calls on the moral-choice card.
+- **`Editor/Phase14_BamaoUIBuilder.cs`** — Fresh builds bake the correct settings.
+- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** (NEW, ~340 LOC) — `Hearthbound → 🧰 Phase 31 — Repair Dialogue Choice Cards`.
+- **`Editor/Phase27_BuildEverything.cs`** — Master capstone chains Phase 31 after Phase 30.
+
+**D-045, D-046, D-047, D-048 (NEW).**
+
+---
+
+## [0.5.0-onboarding-hints-and-rig-doctor] — 2026-05-25
+
+**Theme:** Phase 28 / 29 / 30 trifecta. Definitive body alignment + UI-never-clips + Onboarding & Control Hints.
+
+### Phase 28 — Definitive body alignment
+- **`Player/PlayerGroundClamp.cs`** (rewritten) — Switched to live `Renderer.bounds.min.y`. Continuous correction window.
+- **`Player/PlayerController.cs`** — Embedded clamp matches algorithm.
+
+### Phase 29a — UI Polish
+- **`UI/UIAutoFitText.cs`** (NEW, +173 LOC) — TMP autofit helper.
+- DialogueBox ChoicesContainer relocated inside dialogue box bounds.
+- Defensive Awake() autofit on every UI script.
+
+### Phase 29b — Player Rig Doctor
+- **`Editor/Phase29_PlayerRigDoctor.cs`** (NEW) — Auto-discovers a foot bone and wires it as `PlayerGroundClamp.footAnchor`.
+
+### Phase 30 — Onboarding overlay + Control Hints HUD
+- **`UI/OnboardingOverlay.cs`** (NEW, ~350 LOC) — 6-step walkthrough on Lane.
+- **`Mission/ControlHintsHUD.cs`** (NEW, ~155 LOC) — Always-visible parchment chip strip.
+- **`Editor/Phase30_OnboardingAndHintsCapstone.cs`** (NEW, ~380 LOC).
+- **`Core/VillageState.cs`** — Added `onboardingCompleted` bool.
+
+**D-041 amendment, D-042, D-043, D-044 (NEW).**
+
+---
+
+## [0.4.0-build-everything-and-npc-animator] — 2026-05-25
+
+**Theme:** Phase 27 — single-click master capstone + Phase 26 NPC animator pipeline.
+
+### Added — Editor tools (≈640 LOC)
+- **`Editor/Phase27_BuildEverything.cs`** (200 LOC) — Master capstone, reflection-driven.
+- **`Editor/Phase26_DiagnosticReport.cs`** (180 LOC) — Read-only audit.
+- **`Editor/NpcAnimatorControllerBuilder.cs`** (130 LOC) — Builds `Hearthbound_NPC.controller`.
+- **`Editor/Phase26_NpcAnimatorCapstone.cs`** (130 LOC) — Idempotent one-click.
+
+### Added — Runtime (≈260 LOC, in HearthboundHollow.Mission per D-035)
+- **`Mission/NpcAnimatorBridge.cs`** (100 LOC) — Toggles `IsTalking` on dialogue events.
+- **`Mission/PlayerFootstepBinder.cs`** (160 LOC) — Animation-event-driven footstep SFX.
+
+**No new decisions** — every addition follows D-001..D-040.
+
+---
+
+## [0.3.0-player-controller-and-animation] — 2026-05-24
+
+**Theme:** Phase 26 — Complete WASD player controller + smooth follow camera + Mixamo-ready Animator.
+
+### Added — Phase 26 runtime (≈580 LOC)
+- **`Player/SmoothFollowCamera.cs`** (230 LOC) — Spring-damped position + slerped rotation + scroll zoom + wall-clip protection.
+- **`Player/PlayerController.cs`** (350 LOC, was 150) — Major upgrade: camera-relative WASD, sprint, jump, coyote-time + jump-buffer, Animator parameter bridge (7 params).
+- **`UI/HelpOverlayUI.cs`** (130 LOC) — Gentle Mode strips Sprint/Jump.
+
+### Added — Phase 26 editor tooling (≈400 LOC)
+- **`Editor/PlayerAnimatorControllerBuilder.cs`** (200 LOC).
+- **`Editor/Phase26_PlayerControllerAndAnimation.cs`** (200 LOC).
+
+### Added — Tests + Input + Docs
+- **`Tests/EditMode/PlayerControllerTests.cs`** — 7 NUnit tests.
+- **`Settings/HearthboundInput.inputactions`** — 5 new actions.
+- **`Docs/ANIMATION_REQUIREMENTS.md`**.
+
+**D-036, D-037, D-038, D-039, D-040 (NEW).**
+
+---
+
+## [0.2.1-mission-1-2-ui-activation-hotfix] — 2026-05-24
+
+**Theme:** Phase 25 — fix the user-reported Tone Compass crash and the systemic single-layer UI wiring anti-pattern.
+
+- **🐞 USER CRASH** — *"Coroutine couldn't be started because the the game object 'ToneCompass' is inactive!"*
+- Two-layer wiring in 11 builder methods. Script-host stays active; visual child toggles.
+- Self-heal Show() in 9 UI overlay scripts.
+
+**D-033, D-034 (NEW).**
+
+---
+
+## [0.2.0-mission-1-2-polished-playable] — 2026-05-24
+
+**Theme:** Phase 23 (Mission 1 polish capstone) + Phase 24 (Mission 2 scenes).
+
+### Added — Phase 23 (~1,400 LOC)
+- `Core/SettingsService.cs`, `UI/PauseMenuUI.cs`, `UI/HelpOverlayUI.cs`, `UI/MissionTitleCard.cs`, `Audio/AmbientAudio.cs`, `Mission/MainMenuSaveCoordinator.cs`, `Mission/PauseSaveCoordinator.cs`, `Editor/Phase23_Mission1PolishCapstone.cs` (~670 LOC).
+
+### Added — Phase 24 (~1,275 LOC)
+- `Mission/Mission02Director.cs` (479 LOC), `Editor/Phase24_Mission2SceneBuilder.cs` (795 LOC).
+
+**D-028..D-032 (NEW).**
+
+---
+
+## [0.1.1-mission-1-2-bugfix-and-tooling] — 2026-05-24
+
+**Theme:** Bug-fix cycle (Phase 10.5) + quality-of-life tooling (Phase 11).
+
+- Fixed CS1739 in SaveService.cs, CS0234/CS0246 in MiniGames + Dialogue.
+- Added `Editor/SeedAssetGenerator.cs`, `Cutscene/ListenSceneSequencer.cs`, `Settings/HearthboundInput.inputactions`.
+- Added `Tests/EditMode/SaveAndRippleTests.cs` (+13 tests).
+
+**D-008, D-009, D-010 (NEW).**
+
+---
+
+## [0.1.0-mission-1-2-architecture] — 2026-05-23
+
+**Theme:** Phase 0 → Phase 10 — architecture, scripts, dialogue, save, mini-games, UI.
+
+- `Docs/ARCHITECTURE.md`, `Docs/PROGRESS.md`, `Docs/EXISTING_ASSETS_INDEX.md`, `Docs/SCENE_ASSEMBLY_GUIDE.md`.
+- 12 assembly definitions (10 production + 2 test).
+- 32 C# scripts, ~4 k lines (Core 7, Memory 8, Player 9, MiniGames 3, UI 9, Dialogue 1, Cutscene 1, Save 2, Mission 3, Tests 1).
+- 5 Yarn dialogue files.
+
+**D-001 through D-007 (NEW).**
+
+---
+
+*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 with Phase 26 (player controller + animation), 0.4.0 with Phase 27 (master capstone + NPC animator pipeline), 0.5.0 with Phase 28 / 29 / 30 (body-alignment / UI / onboarding trifecta), 0.6.0 with Phase 32 (Mission 1 Polish v2 — cottages, facade, URP volumes). 1.0.0 when the 20-person greenlight playtest passes.*
