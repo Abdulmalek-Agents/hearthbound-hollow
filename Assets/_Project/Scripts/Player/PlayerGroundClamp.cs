@@ -1,75 +1,48 @@
 // SPDX-License-Identifier: MIT
 // Hearthbound Hollow — Player / PlayerGroundClamp
 //
-// FIX for the "half body sunk in the floor" issue reported on first playtest
-// of the Phase 26 player.
+// PHASE 28 DEFINITIVE FIX (2026-05-25)
+// =====================================================================
+// HISTORY:
+//   • Phase 26 — first introduced a runtime ground-clamp that read
+//     SkinnedMeshRenderer.localBounds.
+//   • Phase 27.1 — moved the file into HearthboundHollow.Player asmdef
+//     and added it to the Phase 13 prefab + every scene Player.
+//   • Phase 27.2 — embedded a copy of the logic in PlayerController so
+//     fresh pulls didn't need a re-run of the Phase 26 capstone.
+//   • PHASE 28 (this rev) — root-cause the lingering "half body still
+//     sinks" report: SkinnedMeshRenderer.localBounds returned by some
+//     character rigs (BoZo CharacterCreator variants in particular) is
+//     the renderer's *cull AABB*, not the actual bind-pose bottom. It
+//     is artificially padded so the renderer is never frustum-culled
+//     during stretched animations — which produced an alignment delta
+//     that left the feet roughly 30-50 cm in the floor.
 //
-// ROOT CAUSE
-// ──────────
-// The Phase 13 BoZo wrapper nests the BoZo character prefab as a child "Body"
-// of the Player root with `localPosition = Vector3.zero`. That's only correct
-// if BoZo's mesh origin sits exactly at the feet (Y=0 of its local space).
-// In practice BoZo's mesh origin is offset upward (hip/pelvis level for the
-// BSMC character base), so when the CharacterController settles on the floor
-// the visible mesh ends up clipped into the ground:
+// THE PHASE 28 ALGORITHM
+// ----------------------
+// 1. PREFER live world-space `Renderer.bounds.min.y`. This reflects the
+//    current pose *after* the Animator has updated, so it's the truth
+//    about where the visible feet are right now.
+// 2. Run alignment EVERY frame for the first 0.75 s, then settle to a
+//    cheaper periodic re-check (every 0.5 s) so the Animator's first
+//    couple of frames (bind-pose → idle blend) don't leave a residual
+//    offset. A `clampActiveDuration = 0` disables periodic re-checks
+//    completely if a perfectly-static rig is in use.
+// 3. Only apply a shift when the delta exceeds `epsilon` (0.5 cm), so
+//    floating-point chatter doesn't twitch the mesh.
+// 4. Optional override hooks: drag a `footAnchor` Transform onto a toe
+//    bone for surgical precision. When set, the world Y of that
+//    transform is used instead of bounds scanning.
 //
-//     CC capsule (collider)         BoZo mesh (visual)
-//     ┌─────────────┐               ┌─────────────┐
-//     │   head      │               │   head      │   ← visible
-//     │   ...       │               │   ...       │   ← visible
-//     │   waist     │  ◀── floor ──▶│  waist Y=0  │   ← waterline (floor)
-//     │   legs      │   below this  │   legs      │   ← INVISIBLE (in floor)
-//     │   feet  Y=0 │  the CC isn't │   feet -Y   │   ← INVISIBLE (in floor)
-//     └─────────────┘               └─────────────┘
+// On a rig where the mesh origin sits at the hips and the feet hang
+// roughly 0.9 m below it, the Phase 28 pass shifts the Body child
+// localPosition.y by +0.9 m on frame 1 and never has to move it again.
+// On a rig that's already correctly authored at-the-feet, the delta is
+// < epsilon so nothing happens.
 //
-// Pressing WASD made it temporarily pop up because the first
-// `CharacterController.Move()` triggers Unity's snap-to-collider sweep, which
-// shifted the GameObject for one frame — but as soon as input released, the
-// CC slid back into the same half-sunk pose because the *root cause* (Body
-// localPosition mismatch) was unchanged.
-//
-// PHASE 27.2 NOTE
-// ────────────────
-// This component is now redundant for fresh setups — the alignment logic has
-// been embedded directly inside `PlayerController` (see PlayerController.cs).
-// PlayerController detects whether this component is present and SKIPS its
-// own intrinsic clamp if so, to avoid double-shifting. This file remains for
-// scenes that already had the component attached (Phase 26 capstone runs)
-// and for users who want the standalone, configurable-in-Inspector clamp.
-//
-// WHAT THIS COMPONENT DOES
-// ─────────────────────────
-// On Start (and on demand via the context menu / public Align() call):
-//
-//   1. Finds the Body child (or the first non-Player child in the hierarchy).
-//   2. Gathers every Renderer under it (SkinnedMeshRenderer included).
-//   3. Computes the lowest Y of the combined renderer bounds — i.e. where
-//      the visible "feet" of the mesh actually are in world space.
-//   4. Computes where the CharacterController capsule bottom is in world
-//      space — `transform.position.y + cc.center.y - cc.height/2`. (Phase 27.2
-//      math correction: skinWidth is NOT included — it's a penetration
-//      tolerance, not an offset of the collision surface.)
-//   5. Shifts `body.localPosition.y` by the difference so the mesh bottom and
-//      the CC bottom coincide.
-//
-// After this runs the mesh always stands exactly on the collider's footprint,
-// so when gravity settles the CC onto the floor, the mesh feet land on the
-// floor too — no clipping, no pop, no rubber-banding.
-//
-// USAGE
-// ─────
-//   • Attach this component to the Player root (the same GameObject that has
-//     PlayerController + CharacterController).
-//   • Leave `body` empty — it auto-locates the first child named "Body" (the
-//     Phase 13 BoZo wrapper layout) or the first child if none match.
-//   • The Phase 26 capstone now adds this component automatically.
-//
-// EDIT-TIME TUNING
-// ────────────────
-// Right-click the component in the Inspector → "Align Body to Ground" to
-// re-snap manually. Use the `bias` field to push the mesh up or down a few
-// cm if you want the character to plant slightly into the ground (typical
-// for cozy-game grass).
+// IMPORTANT: when this component is present on the Player root,
+// PlayerController detects it and skips its own intrinsic clamp to
+// avoid double-shifting.
 
 using UnityEngine;
 using HearthboundHollow.Core;
@@ -77,42 +50,77 @@ using HearthboundHollow.Core;
 namespace HearthboundHollow.Player
 {
     [DisallowMultipleComponent]
-    [DefaultExecutionOrder(-40)] // run after PlayerController.Awake (-50) so the CC is initialised
+    // Execute after PlayerController (which is -50) so the CC is initialised
+    // and after Mixamo / BoZo Animators have driven the rig for one frame.
+    [DefaultExecutionOrder(-40)]
     public class PlayerGroundClamp : MonoBehaviour
     {
+        // ───── Targets ─────────────────────────────────────────────
+
         [Header("Targets")]
         [Tooltip("The child GameObject holding the character mesh. Auto-found " +
                  "on Awake by looking for a child named 'Body' (matches the " +
                  "Phase 13 BoZo wrapper layout).")]
         public Transform body;
 
+        [Tooltip("OPTIONAL: drag a toe/foot bone here to use its world Y as the " +
+                 "'mesh bottom' instead of scanning the renderer bounds. " +
+                 "Most surgical option — use this on rigs that have weird " +
+                 "padded localBounds.")]
+        public Transform footAnchor;
+
+        // ───── Behaviour ───────────────────────────────────────────
+
         [Header("Behaviour")]
         [Tooltip("Run Align() automatically in Start(). Recommended.")]
         public bool alignOnStart = true;
 
-        [Tooltip("Re-snap one extra time in the first LateUpdate after Start so " +
-                 "the Animator has had a chance to apply its bind-pose / idle " +
-                 "transform offsets. Recommended.")]
-        public bool resnapInFirstLateUpdate = true;
+        [Tooltip("How many seconds after Start the clamp keeps re-aligning " +
+                 "every frame. Mixamo's bind-to-idle blend usually completes " +
+                 "in ~0.5 s; the default leaves a small safety margin. Set 0 " +
+                 "to disable continuous correction.")]
+        [Range(0f, 3f)]
+        public float continuousDuration = 0.75f;
 
-        [Tooltip("Use the Renderer's pose-independent localBounds (transformed " +
-                 "by its local-to-world matrix) instead of the current world " +
-                 "bounds. localBounds is deterministic — it doesn't shift with " +
-                 "animation. Recommended unless you have a non-skinned mesh.")]
-        public bool useLocalBounds = true;
+        [Tooltip("After the continuous window, how often to re-check (seconds). " +
+                 "Set 0 to disable periodic checks once the continuous window " +
+                 "expires.")]
+        [Range(0f, 5f)]
+        public float periodicInterval = 0.5f;
+
+        [Tooltip("Tolerance — only shift the body if the delta exceeds this " +
+                 "(metres). Default 0.5 cm prevents floating-point chatter.")]
+        [Range(0.001f, 0.05f)]
+        public float epsilon = 0.005f;
+
+        [Tooltip("Prefer the world-space `Renderer.bounds` (current pose) " +
+                 "over `SkinnedMeshRenderer.localBounds` (bind pose). Strongly " +
+                 "recommended — localBounds is often artificially padded for " +
+                 "culling and gives wrong answers on BoZo rigs.")]
+        public bool preferWorldBounds = true;
 
         [Tooltip("Manual fudge — positive lifts the mesh, negative pushes it " +
-                 "further into the floor. Useful if you want the cozy character " +
-                 "to plant a couple of cm into the grass.")]
+                 "further into the floor. Useful for cozy scenes where the " +
+                 "character should plant a couple of cm into grass.")]
         [Range(-0.2f, 0.2f)]
         public float bias = 0f;
 
+        // ───── Debug ───────────────────────────────────────────────
+
         [Header("Debug")]
-        [Tooltip("Print the computed offset to the Console when Align() runs.")]
-        public bool verbose = true;
+        [Tooltip("Print every alignment shift to the Console. Useful for " +
+                 "verifying the half-body-in-floor fix during playtests.")]
+        public bool verbose = false;
+
+        [Tooltip("Total accumulated localY shift applied — read-only diagnostic.")]
+        [SerializeField] private float _appliedShiftDebug;
+
+        // ───── Internals ───────────────────────────────────────────
 
         private CharacterController _cc;
-        private bool _didLateResnap;
+        private float _continuousElapsed;
+        private float _nextPeriodicCheck;
+        private bool _firstAlignDone;
 
         // ───── Lifecycle ───────────────────────────────────────────
 
@@ -129,10 +137,21 @@ namespace HearthboundHollow.Player
 
         private void LateUpdate()
         {
-            if (resnapInFirstLateUpdate && !_didLateResnap)
+            // Continuous-correction window — every frame for the first
+            // `continuousDuration` seconds, since the Animator hasn't fully
+            // settled to its idle pose yet on frame 1.
+            if (_continuousElapsed < continuousDuration)
             {
+                _continuousElapsed += Time.deltaTime;
                 Align();
-                _didLateResnap = true;
+                return;
+            }
+
+            // Periodic check after the continuous window — costs ~0.05 ms.
+            if (periodicInterval > 0f && Time.time >= _nextPeriodicCheck)
+            {
+                _nextPeriodicCheck = Time.time + periodicInterval;
+                Align();
             }
         }
 
@@ -144,75 +163,102 @@ namespace HearthboundHollow.Player
             if (body == null) body = ResolveBody();
             if (body == null)
             {
-                Hh.Warn(LogCategory.State, $"PlayerGroundClamp on '{name}' has no Body child to align.");
+                if (verbose) Hh.Warn(LogCategory.State,
+                    $"PlayerGroundClamp on '{name}' has no Body child to align.");
                 return;
             }
 
-            var renderers = body.GetComponentsInChildren<Renderer>(true);
-            if (renderers.Length == 0)
+            float meshBottomWorldY = ComputeMeshBottomWorldY();
+            if (float.IsPositiveInfinity(meshBottomWorldY))
             {
-                Hh.Warn(LogCategory.State, $"PlayerGroundClamp on '{name}' found no renderers under '{body.name}'.");
+                if (verbose) Hh.Warn(LogCategory.State,
+                    $"PlayerGroundClamp on '{name}': could not determine mesh bottom (no renderers).");
                 return;
             }
 
-            float meshBottomWorldY = ComputeBottomWorldY(renderers);
-            float ccBottomWorldY   = ComputeCcBottomWorldY();
-
+            float ccBottomWorldY = ComputeCcBottomWorldY();
             float diff = ccBottomWorldY - meshBottomWorldY + bias;
 
-            // Apply as a local-Y shift to the Body so the visible mesh bottom
-            // ends up at the CC bottom.
+            // Tolerance guard — don't twitch on FP noise.
+            if (Mathf.Abs(diff) < epsilon)
+            {
+                _firstAlignDone = true;
+                return;
+            }
+
             var lp = body.localPosition;
             body.localPosition = new Vector3(lp.x, lp.y + diff, lp.z);
+            _appliedShiftDebug += diff;
+            _firstAlignDone = true;
 
             if (verbose)
                 Hh.Log(LogCategory.State,
-                    $"PlayerGroundClamp: aligned '{body.name}' by Δy={diff:F3} " +
-                    $"(mesh bottom Y={meshBottomWorldY:F3}, CC bottom Y={ccBottomWorldY:F3}, bias={bias:F3}).");
+                    $"PlayerGroundClamp on '{name}': shifted Body Δy={diff:F3} m " +
+                    $"(mesh bottom Y={meshBottomWorldY:F3}, CC bottom Y={ccBottomWorldY:F3}, " +
+                    $"bias={bias:F3}, cumulative={_appliedShiftDebug:F3}).");
         }
 
         // ───── Computations ────────────────────────────────────────
 
-        private float ComputeBottomWorldY(Renderer[] renderers)
+        private float ComputeMeshBottomWorldY()
+        {
+            // Most surgical option — explicit foot bone anchor.
+            if (footAnchor != null) return footAnchor.position.y;
+
+            if (preferWorldBounds)
+            {
+                // Use the live world-space AABB — this reflects the CURRENT
+                // pose after the Animator has updated.
+                float minY = float.PositiveInfinity;
+                var renderers = body.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    var r = renderers[i];
+                    if (r == null || !r.enabled) continue;
+                    // Skip particle systems / decals — they often have huge bounds.
+                    if (r is ParticleSystemRenderer) continue;
+                    if (r is LineRenderer) continue;
+                    if (r is TrailRenderer) continue;
+
+                    Bounds b = r.bounds;
+                    // Defensive — uninitialised SkinnedMeshRenderer bounds can
+                    // be (0,0,0) ± big. Sanity check.
+                    if (b.size.sqrMagnitude < 0.0001f) continue;
+                    if (b.min.y < minY) minY = b.min.y;
+                }
+                return minY;
+            }
+
+            // Fallback — local bounds path. Kept for parity with old behaviour
+            // / very low-end rigs where world bounds are wrong.
+            return ComputeMeshBottomFromLocalBounds();
+        }
+
+        private float ComputeMeshBottomFromLocalBounds()
         {
             float minY = float.PositiveInfinity;
-
-            if (useLocalBounds)
+            var renderers = body.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in renderers)
             {
-                // Walk the 8 corners of each renderer's local-space bounds and
-                // transform them into world space. This is pose-independent —
-                // a SkinnedMeshRenderer's localBounds reflects the bind pose,
-                // so the answer doesn't change between bind and idle.
-                foreach (var r in renderers)
-                {
-                    if (r == null) continue;
-                    Bounds lb;
-                    if (r is SkinnedMeshRenderer smr) lb = smr.localBounds;
-                    else if (r is MeshRenderer mr && r.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null)
-                        lb = mf.sharedMesh.bounds;
-                    else
-                        lb = r.bounds; // fallback to world bounds — less ideal
+                if (r == null) continue;
 
-                    Vector3 c = lb.center, e = lb.extents;
-                    for (int sx = -1; sx <= 1; sx += 2)
-                        for (int sy = -1; sy <= 1; sy += 2)
-                            for (int sz = -1; sz <= 1; sz += 2)
-                            {
-                                var w = r.transform.TransformPoint(
-                                    new Vector3(c.x + sx * e.x, c.y + sy * e.y, c.z + sz * e.z));
-                                if (w.y < minY) minY = w.y;
-                            }
-                }
-            }
-            else
-            {
-                foreach (var r in renderers)
-                    if (r != null && r.bounds.min.y < minY) minY = r.bounds.min.y;
-            }
+                Bounds lb;
+                if (r is SkinnedMeshRenderer smr) lb = smr.localBounds;
+                else if (r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null)
+                    lb = mf.sharedMesh.bounds;
+                else
+                    lb = r.bounds;
 
-            // Sanity: if we somehow didn't find anything, fall back to the
-            // Body's own world Y so we don't introduce NaN-induced jumps.
-            if (float.IsPositiveInfinity(minY)) minY = body.position.y;
+                Vector3 c = lb.center, e = lb.extents;
+                for (int sx = -1; sx <= 1; sx += 2)
+                    for (int sy = -1; sy <= 1; sy += 2)
+                        for (int sz = -1; sz <= 1; sz += 2)
+                        {
+                            var w = r.transform.TransformPoint(
+                                new Vector3(c.x + sx * e.x, c.y + sy * e.y, c.z + sz * e.z));
+                            if (w.y < minY) minY = w.y;
+                        }
+            }
             return minY;
         }
 
@@ -221,13 +267,10 @@ namespace HearthboundHollow.Player
             if (_cc == null) _cc = GetComponent<CharacterController>();
             if (_cc != null)
             {
-                // Capsule bottom in world space. NO +skinWidth — skinWidth is
-                // Unity's penetration tolerance, NOT an offset of the
-                // collision surface. The capsule's geometric bottom is at
-                // local Y = center.y - height/2. (Phase 27.2 math correction.)
-                return transform.position.y
-                     + _cc.center.y
-                     - _cc.height * 0.5f;
+                // Capsule's geometric bottom in world space.
+                // skinWidth is NOT added — it is a penetration tolerance for
+                // the physics resolver, not an offset of the collision surface.
+                return transform.position.y + _cc.center.y - _cc.height * 0.5f;
             }
             return transform.position.y;
         }
@@ -249,27 +292,45 @@ namespace HearthboundHollow.Player
             return null;
         }
 
+        // ───── Editor gizmos & utilities ──────────────────────────
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            // Show the CC bottom + the mesh bottom as two horizontal disks so
-            // the offset is visible in the Scene view at edit time.
             var cc = GetComponent<CharacterController>();
             if (cc != null)
             {
                 float ccBottomY = transform.position.y + cc.center.y - cc.height * 0.5f;
-                Gizmos.color = new Color(0.4f, 1f, 0.4f, 0.85f);  // green = CC bottom (the target)
+                Gizmos.color = new Color(0.4f, 1f, 0.4f, 0.85f);  // GREEN = CC bottom (target)
                 DrawDisk(new Vector3(transform.position.x, ccBottomY, transform.position.z), cc.radius + 0.05f);
             }
 
             if (body != null)
             {
-                var rs = body.GetComponentsInChildren<Renderer>();
-                if (rs.Length > 0)
+                if (footAnchor != null)
                 {
-                    float meshY = ComputeBottomWorldY(rs);
-                    Gizmos.color = new Color(1f, 0.5f, 0.3f, 0.85f);  // orange = current mesh bottom
-                    DrawDisk(new Vector3(transform.position.x, meshY, transform.position.z), 0.4f);
+                    Gizmos.color = new Color(1f, 0.8f, 0.2f, 0.95f); // YELLOW = foot anchor
+                    Gizmos.DrawWireSphere(footAnchor.position, 0.05f);
+                }
+                else
+                {
+                    var rs = body.GetComponentsInChildren<Renderer>();
+                    if (rs.Length > 0)
+                    {
+                        float meshY = float.PositiveInfinity;
+                        foreach (var r in rs)
+                        {
+                            if (r == null) continue;
+                            if (r is ParticleSystemRenderer) continue;
+                            if (r.bounds.size.sqrMagnitude < 0.0001f) continue;
+                            if (r.bounds.min.y < meshY) meshY = r.bounds.min.y;
+                        }
+                        if (!float.IsPositiveInfinity(meshY))
+                        {
+                            Gizmos.color = new Color(1f, 0.5f, 0.3f, 0.85f);  // ORANGE = current mesh bottom
+                            DrawDisk(new Vector3(transform.position.x, meshY, transform.position.z), 0.4f);
+                        }
+                    }
                 }
             }
         }
