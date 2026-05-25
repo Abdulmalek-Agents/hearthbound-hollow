@@ -48,6 +48,16 @@ namespace HearthboundHollow.UI
         {
             if (root != null && root != gameObject) root.SetActive(false);
             WireButtons();
+
+            // Phase 29 — defensive autofit on every TMP label so end-of-day
+            // text never clips on smaller canvases.
+            UIAutoFitText.ApplyToButtonLabel(dayLabel,  minSize: 32, maxSize: 60);
+            UIAutoFitText.ApplyToButtonLabel(coinLabel, minSize: 14, maxSize: 24);
+            UIAutoFitText.ApplyToLabel(summaryProse,     minSize: 14, maxSize: 24);
+            UIAutoFitText.ApplyToLabel(heldMemoriesList, minSize: 14, maxSize: 22);
+            UIAutoFitText.ApplyToButtonLabel(saveSlot1Label, minSize: 12, maxSize: 20);
+            UIAutoFitText.ApplyToButtonLabel(saveSlot2Label, minSize: 12, maxSize: 20);
+            UIAutoFitText.ApplyToButtonLabel(saveSlot3Label, minSize: 12, maxSize: 20);
         }
 
         private void WireButtons()
