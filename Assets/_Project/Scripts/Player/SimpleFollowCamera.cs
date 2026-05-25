@@ -3,7 +3,24 @@
 //
 // A small third-person follow camera that doesn't require Cinemachine.
 //
-// !! IMPORTANT !! This was previously a nested class inside
+// ── PHASE 26 STATUS ─────────────────────────────────────────────
+// **Superseded** by `SmoothFollowCamera.cs` (same folder).
+//
+// The new camera offers the same basic damped-follow API plus:
+//   • Spring-damped position (SmoothDamp) — visibly smoother at sprint speeds
+//   • Mouse-orbit (RMB hold) + scroll-zoom
+//   • Sphere-cast wall-clip protection
+//
+// SimpleFollowCamera is **kept** so:
+//   1. Existing scene assets that have it serialised continue to work.
+//   2. The Phase 17 / 22 / 24 builders that attach `SimpleFollowCamera`
+//      still resolve the symbol — Phase 26's builder then upgrades the
+//      component to `SmoothFollowCamera` in-place.
+//
+// Do NOT add new fields here; use the SmoothFollowCamera for any new
+// behaviour. This class is intentionally minimal.
+//
+// !! IMPORTANT (D-032) !! This was previously a nested class inside
 // HearthboundOneClickSetup (Editor asmdef, includePlatforms = ["Editor"]).
 // That broke the runtime — Unity couldn't resolve the type when scenes
 // loaded in Play mode, so the camera stayed frozen at the origin and the
