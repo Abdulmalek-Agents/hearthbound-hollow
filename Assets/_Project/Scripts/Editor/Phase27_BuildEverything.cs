@@ -4,9 +4,10 @@
 // PHASE 27 — The "one menu click" master capstone.
 //
 // Phase 23 builds the polished scenes. Phase 26 (Player Controller + Animation)
-// builds the AnimatorController + upgrades cameras. Phase 26 (Narrative Hooks)
-// drops Marin's Note on the workbench. Until now the user had to run THREE menu
-// items in order. Phase 27 chains them — single click, ~40 s, fully wired.
+// builds the AnimatorController + upgrades cameras. Phase 26 (NPC Animators)
+// wires Doris/Gerrold's IsTalking dialogue beats. Phase 26 (Narrative Hooks)
+// drops Marin's Note on the workbench. Until now the user had to run FOUR menu
+// items in order. Phase 27 chains them — single click, ~45 s, fully wired.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times.
 //
@@ -45,16 +46,24 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 2: Phase 26 — Player Controller + Animation (this PR's capstone).
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Player Controller + Animation) …", 0.55f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Player Controller + Animation) …", 0.45f);
                 if (TryRun("Phase 26 — Player Controller + Animation",
                           "HearthboundHollow.EditorTools.Phase26_PlayerControllerAndAnimation", "Build"))
                     ran++;
                 else
                     skipped++;
 
-                // Step 3: Phase 26 — Narrative Hooks (Marin's Note). Optional;
+                // Step 3: Phase 26 — NPC Animators (Doris/Gerrold IsTalking).
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (NPC Animators) …", 0.70f);
+                if (TryRun("Phase 26 — NPC Animators",
+                          "HearthboundHollow.EditorTools.Phase26_NpcAnimatorCapstone", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 4: Phase 26 — Narrative Hooks (Marin's Note). Optional;
                 // not all branches have this thread.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Narrative Hooks) …", 0.85f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Narrative Hooks) …", 0.88f);
                 // The Narrative Hooks builder exposes its menu method under a
                 // few possible names depending on which agent shipped it. Try
                 // the conventional ones in order.
@@ -68,7 +77,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 4: Open Bootstrap so the user can press Play.
+                // Step 5: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Opening Bootstrap …", 0.98f);
                 if (System.IO.File.Exists(SceneBootstrap))
                     EditorSceneManager.OpenScene(SceneBootstrap, OpenSceneMode.Single);
@@ -152,7 +161,9 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("Result on disk:");
             sb.AppendLine("  • 6 scenes in Build Settings (Bootstrap → Cottage)");
             sb.AppendLine("  • Assets/_Project/Animations/Hearthbound_Player.controller built");
-            sb.AppendLine("  • Player prefab Animator wired to the new controller");
+            sb.AppendLine("  • Assets/_Project/Animations/Hearthbound_NPC.controller built");
+            sb.AppendLine("  • Player prefab Animator wired to player controller");
+            sb.AppendLine("  • Doris / Gerrold / SilentLane prefabs wired with NPC controller + NpcAnimatorBridge");
             sb.AppendLine("  • Lane / Hollow / Garden / Cottage — SmoothFollowCamera in place");
             sb.AppendLine("  • Lane / Hollow / Garden / Cottage — PlayerController.cameraReference set");
             sb.AppendLine("  • Marin's Note dropped on the Hollow workbench (if Narrative Hooks shipped)");
