@@ -10,6 +10,36 @@
 
 ---
 
+## 🚨 HOTFIX — Phase 26.1 (2026-05-24, even later) — MarinNoteInteractable asmdef-locality fix
+
+**Bug reported by user:**
+
+```
+Assets/_Project/Scripts/Player/MarinNoteInteractable.cs(21,25):
+  error CS0234: The type or namespace name 'UI' does not exist in the namespace 'HearthboundHollow'
+Assets/_Project/Scripts/Player/MarinNoteInteractable.cs(30,16):
+  error CS0246: The type or namespace name 'DialogueUI' could not be found
+```
+
+### Root cause
+
+The freshly-added `MarinNoteInteractable.cs` (Phase 26 narrative hook) was placed in `Assets/_Project/Scripts/Player/`, which puts it in the **`HearthboundHollow.Player`** asmdef. That asmdef's `references` list is `["HearthboundHollow.Core","HearthboundHollow.Memory","Unity.InputSystem","Unity.TextMeshPro"]` — **no `HearthboundHollow.UI`**, by deliberate choice (D-005). So `using HearthboundHollow.UI` failed at compile time.
+
+### Fix
+
+Moved the file to `Assets/_Project/Scripts/Mission/MarinNoteInteractable.cs` with `namespace HearthboundHollow.Mission`. The `Mission` asmdef references both `Player` (so we can still extend `Interactable`) and `UI` (so we can use `DialogueUI`) — exactly the pattern Mission01Director and Mission02Director use. `Phase26_NarrativeHooks.cs` updated to `using HearthboundHollow.Mission;` instead of `using HearthboundHollow.Player;`.
+
+### How this lesson is now in the architecture
+
+- **D-035 (NEW):** Asmdef-locality check before pushing. Open the target folder's `.asmdef`, read its `references` array, and verify every `using HearthboundHollow.X` in the new file is listed there. Cross-cutting components (e.g. Interactable + DialogueUI together) belong in the `Mission` asmdef. The Player asmdef is intentionally UI-free.
+- Going forward: every new `.cs` file placed under `Assets/_Project/Scripts/<X>/` will go through the locality check in the same commit message that adds it.
+
+### What the user does
+
+Just pull and recompile. No menu re-runs needed — the file moved within the project; no scene references break (the `Phase26_NarrativeHooks` editor menu re-finds `MarinNoteInteractable` by type, not by path).
+
+---
+
 ## 🚨 HOTFIX — Phase 25 (2026-05-24, late) — Tone Compass crash + UI activation hardening
 
 **Bug reported by user during first playtest of Phase 23 build:**
@@ -134,6 +164,7 @@ The architectural Phase 0–22 is complete and tested. **Phase 23 + 24** land in
 | ✅ **23** | **Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off** | ✅ **Landed** | + new procedural UI | — |
 | ✅ **24** | **Mission 2 Garden + Cottage Scenes — Mission02Director, herb/tea/choice/cleanse/dream flow** | ✅ **Landed** | + 2 new scenes | — |
 | ✅ **25** | **UI Activation Hotfix — Tone Compass crash + two-layer wiring** | ✅ **Landed (this update)** | (no new assets) | — |
+| ✅ **26.1** | **Asmdef-locality hotfix — MarinNoteInteractable moved to Mission asmdef** | ✅ **Landed (this update)** | — | — |
 
 The project now ships a complete **6-scene, fully polished Mission 1 + 2 playable** behind a single menu click: **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`**.
 
@@ -246,7 +277,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 ---
 
-## Decisions Made (D-001 → D-034)
+## Decisions Made (D-001 → D-035)
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
@@ -272,10 +303,11 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | **D-032** | **Runtime MonoBehaviours NEVER live in Editor-asmdef files.** Even nested public classes break at runtime because the Editor asmdef has `includePlatforms = ["Editor"]`. Always declare runtime MonoBehaviours in their owning runtime asmdef. | **23 hotfix** | **Caught the "game not playable" regression in the first playtest. Now a hard rule across the codebase.** |
 | **D-033** | **Procedural UI builders MUST use the two-layer pattern.** Script-host GameObject stays *active*; visual root is a *child* that gets toggled. Single-layer wiring (script-host == visual root, deactivated at build) is forbidden — it kills `Update()` (Esc/H listeners) and `StartCoroutine` (fade-ins, typewriters). | **25** | **Tone Compass crash + Esc/H key dead. Caught in first M1+2 playtest. Codified after the fix.** |
 | **D-034** | **UI overlay scripts MUST self-heal on entry.** `Show()`/`Pause()`/`Play()` activate own `gameObject` if dormant and guard `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Belt-and-braces. | **25** | **Defends against future regressions in builder wiring without forcing a re-build.** |
+| **D-035** | **Asmdef-locality check before pushing.** Any new runtime script that uses types from another asmdef MUST live in an asmdef that *declares the dependency in its references list*. Cross-cutting components (e.g. Interactable + DialogueUI together) belong in the `Mission` asmdef (which references both). The Player asmdef intentionally does NOT reference UI (per D-005) — putting UI-using scripts in Player produces `CS0234 / CS0246`. The pre-push mental checklist: open the target folder's `.asmdef`, read the `references` array, and verify every `using HearthboundHollow.X` in the new file is listed. | **26.1 hotfix** | **CS0234/CS0246 on first `MarinNoteInteractable.cs` push caught by user. Codified to prevent the whole class of cross-asmdef errors going forward.** |
 
 ---
 
-## 🛠️ Editor Menu Items Available (cumulative — 12 total)
+## 🛠️ Editor Menu Items Available (cumulative — 13 total)
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
@@ -287,6 +319,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | `Hearthbound → Phase 15 — Build Medieval Village dressing` | Cottage/fence/well/tree prefab lookups | 15 |
 | `Hearthbound → Phase 18 — Build SFX Library` | Auto-populate SfxLibrarySO from sound pack | 18 |
 | **`Hearthbound → Phase 24 — Build Mission 2 Scenes`** | **Garden + Cottage scene builders** | **24** |
+| **`Hearthbound → Phase 26 — Wire Narrative Hooks`** | **Drops Marin's Note onto the workbench in the Hollow** | **26** |
 | `Hearthbound → 🔍 Diagnose Phase 23 Build` | Read-only audit — verifies camera + components in every scene | 23 |
 | `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP | 10.7 |
 | `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn the 17 SOs | 11 |
@@ -299,12 +332,13 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 1. Pull `feat/mission-1-2-architecture` (or rebase your branch on it).
 2. Wait for Unity recompile (~5–10 s; some phases may need ~30 s on first run if packages reimport).
 3. **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** — one click. Sit back for ~30 s while the capstone runs all 12 phases.
-4. (Optional) **`Hearthbound → 🔍 Diagnose Phase 23 Build`** to verify everything is wired.
-5. Press **Play**. The flow is:
+4. **`Hearthbound → Phase 26 — Wire Narrative Hooks`** — drops Marin's Note on the workbench (idempotent; safe to re-run).
+5. (Optional) **`Hearthbound → 🔍 Diagnose Phase 23 Build`** to verify everything is wired.
+6. Press **Play**. The flow is:
    - Bootstrap → Main Menu
    - "Open The Hollow" → Tone Compass (first time)
    - Lane → walk to door → "Enter the Hollow"
-   - Hollow → meet Doris → choose a price → polish her First Loaves orb → Evening Ledger
+   - Hollow → meet Doris → polish her First Loaves orb → **read Marin's Note on the workbench** → Evening Ledger
    - **Garden** → harvest lavender or valerian → brew tea → walk to exit
    - **Cottage** → meet Gerrold → moral choice (Erase/Cleanse/Listen/Defer) → optional Cleanse mini-game → Dream 2 cutscene → Evening Ledger
    - → Main Menu (Mission 3 is future)
@@ -327,6 +361,8 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 - **Phase 23** (Mission 1 polish capstone) — 9 new C# files, 1 master Editor menu, ~1,400 LOC.
 - **Phase 24** (Mission 2 scenes + director) — 2 new C# files, ~1,275 LOC.
 - **Phase 25** (UI activation hotfix) — 11 files modified across UI and Editor builders. See top of file for full detail.
+- **Phase 26** (narrative depth — Marin's Note + editor wiring) — 2 new C# files, parchment-note interactable + idempotent scene-hook builder.
+- **Phase 26.1** (asmdef-locality hotfix) — moved `MarinNoteInteractable.cs` from Player asmdef to Mission asmdef. D-035 added as the hard-rule preventing this class of error.
 - **HOTFIX** — SimpleFollowCamera + DreamHook extracted to runtime asmdefs.
 - 6-scene Build Settings configured automatically by the capstone.
 - Continue button + autosave round-trip working (Continue is dim until autosave exists).
@@ -336,11 +372,12 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 - Ambient autumn loop in every gameplay scene, volume-gated by SettingsService.
 - Pickle the cat companion in the Hollow with PickleAI tail-flicks on polish completion.
 - Mission 1 → Mission 2 narrative hand-off (Doris's ledger now leads into the Garden).
+- Marin's Note on the workbench in the Hollow — first concrete encounter with the predecessor, sets `VillageState.readMarinNoteIds` and nudges `predecessorTrailWarmth +5`.
 
 ## ⬜ What's NOT done (Mission 3+ deferred per Krieg Discipline)
 
 - Mission 3+ villagers (currently only Doris + Gerrold + 1 silent lane villager).
-- Predecessor (Marin) full arc — only one signed note ("— M.") references her.
+- Predecessor (Marin) full arc — only one signed note ("— M.") references her, plus the new on-workbench note from Phase 26.
 - Echo Hologram, Locked Room, Forgotten Year, Vance Arc, Mariska, Memory Bees, Composting, Borrowed Memory.
 - Weave / Sever / Listen / Read / Translate / Identify / Compose / Search / Negotiate / Compose Verse mini-games.
 - Letter-Bird Network, Pen-Pal Villages, Dream Cinema community, ARG, Photo Mode.
@@ -350,7 +387,7 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 - Mobile build profile + ASTC compression — Mission 3+ scope (per Architecture § 10).
 - Mobile IAP, gacha, energy systems — **never** (per Architecture § 13).
 
-## 🟡 Next phase — Phase 26 (HEAT modern UI integration + dialogue/text polish)
+## 🟡 Next phase — Phase 26.2 (HEAT modern UI integration + dialogue/text polish)
 
 **Goal:** lift menus, settings, HUD, pause, and help out of the procedural-parchment placeholder into HEAT's modern UI vocabulary — *without* losing the cozy warmth.
 
@@ -360,17 +397,16 @@ Scope:
 3. Replace the Pause Menu visual with a HEAT modal.
 4. Replace the Help Overlay with a HEAT custom-content modal.
 5. Modernize the HUD coin + day labels using HEAT `Widgets` (badge style).
-6. Author a Phase 26 capstone builder that swaps the visual children of each script-host GameObject without breaking the two-layer wiring established in Phase 25.
+6. Author a Phase 26.2 capstone builder that swaps the visual children of each script-host GameObject without breaking the two-layer wiring established in Phase 25.
 
-Out of scope for Phase 26 (kept on procedural for now): in-world dialogue boxes (Bamao parchment is intentional cozy substance there); Mission Title Card (already polished); Tone Compass first-run card (intentional warm parchment).
+Out of scope for Phase 26.2 (kept on procedural for now): in-world dialogue boxes (Bamao parchment is intentional cozy substance there); Mission Title Card (already polished); Tone Compass first-run card (intentional warm parchment).
 
 ## 🟡 Next phase — Phase 27 (Mission 1+2 deeper depth polish per Mission_1_2_Focus)
 
-After Phase 26 ships:
+After Phase 26.2 ships:
 1. Audit Mission 1 against `Docs/Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md` — verify all 9 dialogue nodes from `Doris_M1.yarn` are wired, audit emotional beats.
 2. Audit Mission 2 against `Docs/Depth_Bible/Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md` — verify all 4 tariff branches, the 5 Dream 2 variants, and the Listen-path 4-beat narrative pause.
-3. Make the Marin signed note (`Mission_1_2_Focus/03_SCENES_*`) visible somewhere in the Hollow on Day 1 — currently only her voice exists in the Help overlay quote.
-4. Run the diagnostic menu, capture any warnings, and resolve them.
+3. Run the diagnostic menu, capture any warnings, and resolve them.
 
 ---
 
@@ -386,7 +422,8 @@ After Phase 26 ships:
 | Phase 24 — TeaBrewingUI auto-complete button always brews Lavender by default | Low | 🟡 Acceptable — Mission 2 only needs ONE tea to progress; pick the herb you want and click |
 | Mission02Director — uses `gerroldVillager` portrait for Marin's note lines in Garden | Cosmetic | 🟡 Acceptable — Marin has no portrait yet; the fallback is the speaker name only |
 | **2026-05-24 (late) — Phase 25 hotfix** — Tone Compass crash + Pause/Help Update() dead | **Blocker** | ✅ **Fixed** — 9 UI scripts self-heal + Phase23/OneClickSetup use two-layer wiring. See top of file. |
+| **2026-05-24 (even later) — Phase 26.1 hotfix** — `MarinNoteInteractable.cs` CS0234/CS0246 because it was placed in Player asmdef (which intentionally doesn't reference UI). | **Compile error** | ✅ **Fixed** — moved to Mission asmdef. D-035 added: pre-push asmdef-locality check. |
 
 ---
 
-*Last updated: 2026-05-24 — Phase 25 UI activation hotfix landed. Re-run Phase 23 in Unity to regenerate scenes with correct two-layer wiring (or rely on UI script self-heal on the existing build).*
+*Last updated: 2026-05-24 — Phase 26.1 fixed the MarinNoteInteractable asmdef-locality bug. Pull, recompile, re-test in Unity.*
