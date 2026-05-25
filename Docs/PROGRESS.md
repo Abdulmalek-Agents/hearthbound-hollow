@@ -58,13 +58,15 @@ LOCOMOTION ──Jump trigger──▶ JUMP ──VelocityY<-0.5──▶ FALL
 
 ### Decisions adopted in this release
 
+> ℹ️ D-033 + D-034 were claimed by Phase 25 (UI activation hotfix — two-layer wiring + self-heal Show()). Phase 26's decisions therefore start at D-035.
+
 | # | Decision | Why |
 |---|---|---|
-| D-033 | Sprint + Jump are **opt-in** runtime flags (`enableSprint`, `enableJump`). | Cozy GDD doesn't require them. Gentle Mode disables both. Players who *do* reach for Shift / Space no longer bounce off a "broken" perception. |
-| D-034 | Player Animator is **single 1D blend tree on `Speed`** — not 2D. | Cozy character always faces movement direction; `MoveX/MoveY` would be wasted work. Parameters exist for the future 2D-strafe upgrade. |
-| D-035 | Animator parameter names are **fixed strings on the controller** but **configurable on `PlayerController`**. | Lets us swap to a community controller (Unity Starter Assets etc.) by re-typing strings in the Inspector — no code rewrite. |
-| D-036 | Camera uses `SmoothFollowCamera`, not Cinemachine, as the M1+M2 default. | Cinemachine is heavier and adds a hard package dep to every gameplay scene. Phase 17 still creates a Cinemachine prefab when the package is present — both can coexist. The Phase 26 builder swaps `SimpleFollowCamera` → `SmoothFollowCamera` in every scene; Cinemachine is unaffected. |
-| D-037 | Animations live in **`Assets/_Project/Animations/`** (Mixamo subfolder optional). | Single search path keeps Phase 26's auto-detection deterministic. |
+| D-035 | Sprint + Jump are **opt-in** runtime flags (`enableSprint`, `enableJump`). | Cozy GDD doesn't require them. Gentle Mode disables both. Players who *do* reach for Shift / Space no longer bounce off a "broken" perception. |
+| D-036 | Player Animator is **single 1D blend tree on `Speed`** — not 2D. | Cozy character always faces movement direction; `MoveX/MoveY` would be wasted work. Parameters exist for the future 2D-strafe upgrade. |
+| D-037 | Animator parameter names are **fixed strings on the controller** but **configurable on `PlayerController`**. | Lets us swap to a community controller (Unity Starter Assets etc.) by re-typing strings in the Inspector — no code rewrite. |
+| D-038 | Camera uses `SmoothFollowCamera`, not Cinemachine, as the M1+M2 default. | Cinemachine is heavier and adds a hard package dep to every gameplay scene. Phase 17 still creates a Cinemachine prefab when the package is present — both can coexist. The Phase 26 builder swaps `SimpleFollowCamera` → `SmoothFollowCamera` in every scene; Cinemachine is unaffected. |
+| D-039 | Animations live in **`Assets/_Project/Animations/`** (Mixamo subfolder optional). | Single search path keeps Phase 26's auto-detection deterministic. |
 
 ### What the user needs to do after pulling
 
@@ -118,7 +120,7 @@ The capstone rebuilds every scene from scratch. New scenes reference the runtime
 
 ---
 
-## 🎯 Current Status — POLISHED PLAYABLE MISSION 1 + 2 + PHASE 26 LANDED
+## 🎯 Current Status — POLISHED PLAYABLE MISSION 1 + 2 + PHASE 25 + PHASE 26 LANDED
 
 **Branch**: `feat/mission-1-2-architecture` (PR #7 open)
 
@@ -139,6 +141,7 @@ The capstone rebuilds every scene from scratch. New scenes reference the runtime
 | ✅ 22 | Polished Playable Mission 1 (engineering build) | ✅ Done | (all above) | replaces Phase 12 entirely |
 | ✅ 23 | Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off | ✅ Done | + new procedural UI | — |
 | ✅ 24 | Mission 2 Garden + Cottage Scenes — Mission02Director, herb/tea/choice/cleanse/dream flow | ✅ Done | + 2 new scenes | — |
+| ✅ 25 | UI activation hotfix — two-layer wiring + self-heal Show() | ✅ Done | — | rescues Tone Compass crash |
 | 🟢 **26** | **Player Controller + Animation — WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator** | 🟢 **Just landed** | + Hearthbound_Player.controller + Mixamo guide | replaces walk-only PlayerController + SimpleFollowCamera |
 
 The project now ships a complete **6-scene polished playable + a robust character pipeline** behind two menu clicks:
@@ -147,18 +150,19 @@ The project now ships a complete **6-scene polished playable + a robust characte
 
 ---
 
-## ✅ Earlier Phase Notes (Phases 22–24 condensed; full detail in CHANGELOG)
+## ✅ Earlier Phase Notes (Phases 22–25 condensed; full detail in CHANGELOG)
 
 - **Phase 22** — Engineering "Polished Playable Mission 1" — chains all Phase 13–21 outputs into the 4 base scenes.
-- **Phase 23** — Mission 1 polish capstone (~1,400 LOC): SettingsService + PauseMenu + HelpOverlay + MissionTitleCard + AmbientAudio + MainMenuSaveCoordinator + PauseSaveCoordinator + capstone Editor menu that rebuilds 6 scenes idempotently.
-- **Phase 24** — Mission 2 scenes (~1,275 LOC): Mission02Director (Garden + Cottage roles) + Phase24 builder for both scenes; full Garden→Brew→Cottage→Choice→Cleanse→Dream2 flow with 4 tariffs and 5 Evening Ledger variants.
+- **Phase 23** — Mission 1 polish capstone (~1,400 LOC).
+- **Phase 24** — Mission 2 scenes (~1,275 LOC).
+- **Phase 25** — UI activation hotfix: two-layer wiring (script-host stays active, visual child toggles) + self-heal Show() in every overlay (`ToneCompassCard`, `MissionTitleCard`, `PauseMenuUI`, `HelpOverlayUI`, `ComfortToolsMenu`, `ChoiceCardUI`, `DialogueUI`, `EveningLedgerUI`, `TeaBrewingUI`). Fixes the Tone Compass coroutine crash + the silent Esc/H regression in built scenes. **Decisions D-033 + D-034**.
 - **Hotfix (post-Phase 23)** — SimpleFollowCamera + DreamHook extracted from Editor-asmdef nested classes to runtime asmdef. See D-032.
 
-For the per-file breakdowns, see `CHANGELOG.md` v0.2.0 and v0.3.0.
+For the per-file breakdowns, see `CHANGELOG.md` v0.2.0, v0.2.1, and v0.3.0.
 
 ---
 
-## Decisions Made (D-001 → D-037)
+## Decisions Made (D-001 → D-039)
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
@@ -178,11 +182,13 @@ For the per-file breakdowns, see `CHANGELOG.md` v0.2.0 and v0.3.0.
 | D-030 | TeaBrewingUI default duration = 12 s (was 90) | 24 | 90 s is too long for a first-play loop; the player can still set Gentle Mode for longer timers |
 | D-031 | Mission01Director.sceneAfterEndOfDay defaults to MainMenu but is overridden to "04_Mission02_Garden" by Phase 23 | 23 | Default stays safe (no Mission 2 = no broken handoff); polish capstone wires the hand-off |
 | D-032 | **Runtime MonoBehaviours NEVER live in Editor-asmdef files.** | 23 hotfix | Caught the "game not playable" regression in the first playtest. Now a hard rule. |
-| **D-033** | **Sprint + Jump are opt-in runtime flags on `PlayerController`. Gentle Mode disables both.** | **26** | Cozy GDD doesn't ask for them. Added as a complete reference so playtesters who reach for Shift/Space don't perceive the controller as broken. |
-| **D-034** | **Player Animator is a single 1D blend tree on `Speed` (0=Idle, 1=Walk, 2=Run).** | **26** | Cozy character always faces movement direction; 2D tree would be wasted. `MoveX/MoveY` params remain exposed for the future upgrade. |
-| **D-035** | **Animator parameter names are configurable on `PlayerController` Inspector fields.** | **26** | Lets us swap to a community controller by retyping strings — no code rewrite. |
-| **D-036** | **`SmoothFollowCamera` is the M1+M2 default, not Cinemachine.** | **26** | Cinemachine is heavier and adds a hard package dep. Phase 17 still creates a Cinemachine prefab when its package is present — both coexist. |
-| **D-037** | **Animations live in `Assets/_Project/Animations/` (Mixamo subfolder optional).** | **26** | Single search path keeps Phase 26's auto-detection deterministic. |
+| D-033 | **Procedural UI builders MUST use the two-layer pattern.** Script-host stays active; visual child is toggled. | 25 | Phase 23 single-layer wiring caused the Tone Compass coroutine crash + silent Esc/H. Two-layer is the fix. |
+| D-034 | **UI overlay scripts MUST self-heal in `Show()`.** `gameObject.SetActive(true)` is the defensive fallback. | 25 | Belt-and-braces for D-033 so future regressions don't ship. |
+| **D-035** | **Sprint + Jump are opt-in runtime flags on `PlayerController`. Gentle Mode disables both.** | **26** | Cozy GDD doesn't ask for them. Added as a complete reference so playtesters who reach for Shift/Space don't perceive the controller as broken. |
+| **D-036** | **Player Animator is a single 1D blend tree on `Speed` (0=Idle, 1=Walk, 2=Run).** | **26** | Cozy character always faces movement direction; 2D tree would be wasted. `MoveX/MoveY` params remain exposed for the future upgrade. |
+| **D-037** | **Animator parameter names are configurable on `PlayerController` Inspector fields.** | **26** | Lets us swap to a community controller by retyping strings — no code rewrite. |
+| **D-038** | **`SmoothFollowCamera` is the M1+M2 default, not Cinemachine.** | **26** | Cinemachine is heavier and adds a hard package dep. Phase 17 still creates a Cinemachine prefab when its package is present — both coexist. |
+| **D-039** | **Animations live in `Assets/_Project/Animations/` (Mixamo subfolder optional).** | **26** | Single search path keeps Phase 26's auto-detection deterministic. |
 
 ---
 
@@ -242,6 +248,7 @@ For the per-file breakdowns, see `CHANGELOG.md` v0.2.0 and v0.3.0.
 ## 🟢 What's done in this update
 
 - **Phase 26** (Player Controller + Animation) — 4 new C# files + 2 rewrites + Input Actions update + Animation Requirements doc, ~1,300 LOC.
+- **Phase 25** (UI activation hotfix) — two-layer wiring + self-heal Show() — already merged.
 - **Phase 23** (Mission 1 polish capstone) — 9 new C# files, 1 master Editor menu, ~1,400 LOC.
 - **Phase 24** (Mission 2 scenes + director) — 2 new C# files, ~1,275 LOC.
 - **HOTFIX** — SimpleFollowCamera + DreamHook extracted to runtime asmdefs.
@@ -287,4 +294,4 @@ For the per-file breakdowns, see `CHANGELOG.md` v0.2.0 and v0.3.0.
 
 ---
 
-*Last updated: 2026-05-24 — Phase 26 (Player Controller + Animation) lands alongside the hotfix. Run Phase 23 then Phase 26 in Unity to regenerate scenes + AnimatorController.*
+*Last updated: 2026-05-24 — Phase 26 (Player Controller + Animation) lands alongside Phase 25 (UI hotfix). Decisions renumbered to D-035..D-039 so they don't collide with Phase 25's D-033/D-034.*
