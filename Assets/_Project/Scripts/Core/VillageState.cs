@@ -58,6 +58,9 @@ namespace HearthboundHollow.Core
         public bool tutorialCompleted = false;
         public bool toneCompassAcknowledged = false;
         public bool gentleModeEnabled = false;
+        [Tooltip("Phase 30 — set true after the player completes (or skips) the " +
+                 "multi-step OnboardingOverlay so it never re-appears on this save.")]
+        public bool onboardingCompleted = false;
         public string lastSceneName;
 
         [Header("Mission flags")]
@@ -85,6 +88,7 @@ namespace HearthboundHollow.Core
             tutorialCompleted = false;
             toneCompassAcknowledged = false;
             gentleModeEnabled = false;
+            onboardingCompleted = false;
             lastSceneName = string.Empty;
             completedMissionIds.Clear();
             revealedEchoConnectionIds.Clear();
