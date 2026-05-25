@@ -1,29 +1,221 @@
-title: Pickle_M1_PolishHint
-tags: pickle hint
+title: Pickle_M1_AfterPolish
+tags: pickle mission1 polish
 ---
-// Triggered if player struggles > 30 seconds on Polish without clarity gain.
+// ─────────────────────────────────────────────────────────────────────────
+// Pickle — the cozy game's sarcastic, telepathic familiar.
+// Author: Mochi Tannenbaum (Humor & Levity Designer)
+// Spec:   Docs/Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md § 6
+//         Docs/Depth_Bible/12_COMPANIONS_AND_FAMILIARS.md
+//         Docs/Depth_Bible/07_HUMOR_AND_LEVITY_CODEX.md
+// Guide:  Docs/GAMEPLAY_GUIDE_OVERVIEW.md § 10
+//         Docs/GAMEPLAY_GUIDE_MISSION_2.md § 8, § 11, § 13, § 14
+//
+// Discipline (Codex 07 § 3.1, rule 7):
+//   • Pickle speaks ONLY to the player — internal monologue, never aloud
+//     to NPCs. Render italic, lower opacity, no Bamao box.
+//   • Mission 1-2 ships her with EXACTLY 4 canonical lines + 4 conditional
+//     pre-choice lines + 3 contextual lines + 2 hints. After Mission 2 the
+//     full ~220-line library opens. Resist over-using her.
+//   • Pickle is gentler around men in mourning. Never jokes around grief.
+//
+// Variables consumed:
+//   $pickle_approval (int 0-100, default 50)
+//   $pickle_sass_intensity (int 1-5, default 3; settings 2 and 4 collapse
+//     to nearest in M1-2 per Mission 1 Guide § 20)
+// ─────────────────────────────────────────────────────────────────────────
+
+// CANONICAL LINE 1 — Mission 1, after the Polish mini-game succeeds.
+// Plays once, after `polish_success_jingle`. Italic font, no Bamao box.
+
+<<if $pickle_sass_intensity >= 3>>
+    Pickle: That was — adequate.
+    Pickle: I was expecting much worse.
+    Pickle: Continue, please.
+<<else>>
+    // Gentle Mode + low sass — the warmer variant per Mission 1 Guide § 20.
+    Pickle: That was — actually quite good.
+    Pickle: Continue.
+<<endif>>
+
+<<play_animation "Pickle" "tail_flick">>
+<<adjust_pickle_approval 1>>
+
+===
+
+title: Pickle_M1_PolishHint
+tags: pickle mission1 hint
+---
+// Plays if the player struggles >30 seconds on Polish without clarity gain.
+// This is Pickle's ONLY hint in Mission 1 — do not add others.
+
 Pickle: Slower.
 
 ===
 
-title: Pickle_M2_CleanseHint
-tags: pickle hint
+title: Pickle_M2_PreKnock
+tags: pickle mission2 pre_knock canonical_line_2
 ---
-// Triggered if player struggles > 45 seconds on Cleanse.
+// CANONICAL LINE 2 — Mission 2, the moment before Gerrold knocks.
+// Plays from PickleAI when Gerrold's NPC enters his cottage-door wait state.
+// Tonally distinct from her M1 line — softer; she does not joke about a man
+// in mourning (Codex 07 § 4.2).
+
+Pickle: There is a man at your door. He has been there for twenty minutes.
+Pickle: He is a careful sort. The careful kind hurt the worst.
+<<wait 0.8>>
+Pickle: ... I would let him in.
+
+===
+
+title: Pickle_M2_EchoWeb
+tags: pickle mission2 echo_web canonical_line_3
+---
+// CANONICAL LINE 3 — Mission 2, the moment the Echo Web first activates.
+// Fires from Gerrold_M2_FirstInspection right after echo_web_activate.
+
+Pickle: Ah.
+Pickle: The Web has decided to speak today.
+Pickle: This one and yesterday's are in the same kitchen on the same Sunday.
+Pickle: That is what the line of light is saying.
+Pickle: Look at it. It is showing off.
+
+<<adjust_pickle_approval 1>>
+
+===
+
+title: Pickle_M2_TeaBrewing
+tags: pickle mission2 tea_brewing canonical_line_4
+---
+// CANONICAL LINE 4 — Mission 2, the 6-second mark of the tea-brew wait.
+// Plays only if Pickle is in the workbench room AND a herb is in the
+// kettle. Her last unconditional line before the moral-choice screen.
+
+Pickle: Tea for a man who has not asked for tea is the rarest kindness.
+Pickle: Try not to overthink it. The man is also a cat about this.
+Pickle: We will accept.
+
+===
+
+title: Pickle_M2_MargerysChair
+tags: pickle mission2 margerys_chair conditional
+---
+// CONDITIONAL — Plays in Gerrold's cottage IF:
+//   - $sat_in_margery_chair == true
+//   - $pickle_approval >= 50
+// Only one of M1-2's most affecting Pickle moments. Codex 07's discipline:
+// the comedic beat is at its warmest when the audience has earned the cat.
+
+<<if $pickle_approval >= 50>>
+    Pickle: You sat in the dead wife's chair.
+    Pickle: He is too polite to tell you. But he is grateful.
+    Pickle: ... I would not have done it. But you are not a cat.
+<<endif>>
+
+===
+
+title: Pickle_M2_GardenLine
+tags: pickle mission2 garden conditional very_rare
+---
+// VERY RARE — Plays in the garden IF $pickle_approval >= 75.
+// Essentially unreachable in M1-2 by normal play (would require the player
+// to have followed the recommended path-of-kindness perfectly + been
+// generous with Doris). The line exists as a Mission 3+ teaser.
+
+<<if $pickle_approval >= 75>>
+    Pickle: You picked the wrong one. Or the right one.
+    Pickle: I don't know herbs. I am a cat.
+    Pickle: Carry on.
+<<endif>>
+
+===
+
+title: Pickle_M2_PreChoice_Erase
+tags: pickle mission2 pre_choice conditional
+---
+// CONDITIONAL pre-choice — Plays when the player highlights Option A
+// (Erase) on the Mission 2 choice card, IF $pickle_approval >= 50.
+
+<<if $pickle_approval >= 50>>
+    Pickle: You are about to erase a week of a life.
+    Pickle: That is — that is a large thing.
+    Pickle: I am not your conscience.
+    Pickle: I am only telling you what the verb is.
+<<endif>>
+
+===
+
+title: Pickle_M2_PreChoice_Cleanse
+tags: pickle mission2 pre_choice conditional
+---
+// CONDITIONAL pre-choice — Plays for Option B (Cleanse), if Approval >= 50.
+
+<<if $pickle_approval >= 50>>
+    Pickle: This is the verb the Keeper before us liked best.
+    Pickle: I think — I think she would be pleased.
+    Pickle: Or angry. She had moods.
+<<endif>>
+
+===
+
+title: Pickle_M2_PreChoice_Listen
+tags: pickle mission2 pre_choice conditional
+---
+// CONDITIONAL pre-choice — Plays for Option C (Listen), if Approval >= 50.
+// The warmest pre-choice line. Codex 07: the cat is gentlest when the
+// player chooses the older craft.
+
+<<if $pickle_approval >= 50>>
+    Pickle: This is the older craft.
+    Pickle: The one nobody pays for.
+    Pickle: The good keepers all do it eventually.
+<<endif>>
+
+===
+
+title: Pickle_M2_PreChoice_Defer
+tags: pickle mission2 pre_choice conditional
+---
+// CONDITIONAL pre-choice — Plays for Option D (Defer), if Approval >= 50.
+
+<<if $pickle_approval >= 50>>
+    Pickle: A day is a fair thing to ask for.
+    Pickle: I have asked for many.
+<<endif>>
+
+===
+
+title: Pickle_M2_CleanseHint
+tags: pickle mission2 hint cleanse
+---
+// Plays if the player struggles >45 seconds on the Cleanse mini-game
+// without sealing a crack. Per Mission 2 Guide § 19.9 — the ONLY hint
+// in the Cleanse tutorial.
+
 Pickle: Trace the line of the crack itself. Not the orb around it.
 
 ===
 
-title: Pickle_M1_AfterPolish
-tags: pickle
+title: Pickle_LedgerInkblot
+tags: pickle ledger easter_egg
 ---
-Pickle: That was — adequate. I was expecting much worse. Continue, please.
+// EASTER EGG — Mission 1 Guide § 19.4. Player clicks the inkblot drawing
+// of Pickle on the Ledger's right page. A real cat purr plays. Pickle
+// (still on the windowsill in the shop scene) briefly tilts her head.
+
+<<play_sfx "pickle_real_purr_short">>
+<<play_animation "Pickle" "head_tilt">>
+Pickle: ... mm.
 
 ===
 
-title: Pickle_M2_PreChoice
-tags: pickle
+title: Pickle_M1_NearWindowsill
+tags: pickle mission1 ambient
 ---
-Pickle: Hmm.
+// Plays when the player stands within 1.5m of Pickle's windowsill for 3+
+// seconds in the Mission 1 Hollow. Per Mission 1 Guide § 11.4. No spoken
+// line — just the ambient purr loop kicks in at volume 0.3.
+
+<<play_sfx_loop "pickle_purr_loop" 0.3>>
+<<play_animation "Pickle" "head_turn_toward_player">>
 
 ===

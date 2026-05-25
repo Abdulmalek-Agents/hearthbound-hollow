@@ -1,131 +1,553 @@
-title: Gerrold_M2_Start
-tags: mission2 gerrold widower
+title: Gerrold_M2_Knocks
+tags: mission2 gerrold opening
 ---
-// Gerrold Pell — the widower's request, Mission 2.
-// Per Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md
-// Variables:
-//   $trust_gerrold (int), $tea_brewed (string herb id),
-//   $cleanse_quality (Perfect/Acceptable/Sloppy/CrossedCore)
-//   $choice_made (Erase/Cleanse/Listen/Defer)
+// ─────────────────────────────────────────────────────────────────────────
+// Gerrold Pell, the widower — Mission 2 dialogue.
+// Author: Inara Vellis (Lead Memory Writer)
+// Spec:   Docs/Depth_Bible/Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md § 7
+// Guide:  Docs/GAMEPLAY_GUIDE_MISSION_2.md § 8–18
+//
+// Voice signature (Vellis Rules § 2.1, Focus 02 § 2.1):
+//   • Apologises constantly (over-thoughtfully, never weakly).
+//   • Talks to the player like a doctor — formal sentence structure.
+//   • Verbal tic: "the long bit" (recurs 4 times across the mission).
+//   • Never asks for sympathy.
+//   • Was a carpenter — craft metaphors when emotion fails him.
+//   • Brings the orb in Margery's ironed handkerchief.
+//   • Does NOT cry on-screen. The player will.
+//
+// Variables wired via YarnVillageStateBridge.cs:
+//   $met_gerrold, $offered_gerrold_tea, $deferred_gerrold
+//   $trust_gerrold (int), $tea_brewed ("Lavender"|"Valerian"|"")
+//   $cleanse_quality ("Perfect"|"Acceptable"|"Sloppy"|"CrossedCore")
+//   $gerrold_choice ("erase"|"cleanse"|"listen"|"defer")
+//   $sat_in_gerrold_chair, $sat_in_margery_chair
+//   $vow_1_consent, $vow_3_whole, $vow_7_last_light
+//   $cinder (int — Confession Booth currency earnable only via Listen)
+//   $pickle_approval, $met_doris
+// ─────────────────────────────────────────────────────────────────────────
+
+<<set $met_gerrold = false>>
+
+// Pickle's pre-knock line plays via Pickle.yarn → Pickle_M2_PreKnock just before this node.
 
 <<eyes_look_at "player">>
-Gerrold: You're the Keeper Doris spoke about.
-Gerrold: I don't have a long way of saying this.
-Gerrold: I have a memory of my wife. The morning she died.
-Gerrold: I would like you to take it away.
+Gerrold: I'm sorry. Are you the new keeper?
+Gerrold: I should have written first. I don't know if there's a way to do that.
+<<wait 0.8>>
+Gerrold: ... My name is Gerrold Pell. I — could I come in for a moment?
 
--> "I'm so sorry, Gerrold."
-    Gerrold: ... yes. Yes.
-    <<jump Gerrold_M2_RequestPause>>
--> "Tell me more first."
-    Gerrold: I don't sleep. I can't go in that room. I've tried.
-    <<jump Gerrold_M2_RequestPause>>
--> (nod, silent)
-    Gerrold: ... thank you.
-    <<jump Gerrold_M2_RequestPause>>
+-> "Yes. Please."
+    Gerrold: Thank you. Just for a moment.
+    <<jump Gerrold_M2_Sits>>
+-> "What's this about?"
+    Gerrold: ... It's a memory. I brought one.
+    Gerrold: I'm sorry — that's what one does, isn't it? I should know how it works.
+    <<jump Gerrold_M2_Sits>>
+-> (Step aside silently and gesture him in)
+    Gerrold: Thank you. You are kind.
+    <<adjust_vow "vow7" 1>>
+    <<jump Gerrold_M2_Sits>>
 
 ===
 
-title: Gerrold_M2_RequestPause
+title: Gerrold_M2_Sits
+tags: mission2 gerrold sitting
 ---
-Gerrold: I have lavender. I brought it. For the tea you make.
-Gerrold: Doris said... if I drink it, I'll be able to talk about it. About her.
-<<adjust_trust "gerrold" 3>>
-Gerrold: I'll wait. Take your time.
+<<set $met_gerrold = true>>
+<<play_animation "Gerrold" "sit_carefully">>
+<<eyes_look_at "handkerchief">>
+
+Gerrold: I'd offer you tea but it's your kettle.
+Gerrold: ... I'm sorry. That was a joke. It wasn't a good one.
+
+-> "Would you like tea?"
+    Gerrold: Aye, that — no. No, thank you. Not today.
+    Gerrold: It's kind of you to ask.
+    <<set $offered_gerrold_tea = true>>
+    <<adjust_trust "gerrold" 1>>
+-> (Sit across from him and wait)
+    Gerrold: ... Thank you. For not — for not making me say it quickly.
+    <<adjust_vow "vow7" 1>>
+
+<<wait 1.0>>
+Gerrold: I have a memory I want to be rid of.
+Gerrold: Not the whole thing. Just the long bit.
+<<wait 0.5>>
+Gerrold: My wife — Margery — died last winter. Eleven months last week.
+Gerrold: I have the memory of the last week of her life. It is the heaviest thing I own.
+<<wait 1.5>>
+Gerrold: I want to keep my wife. I do not want to keep the long bit.
+
+-> "What was the long bit?"
+    <<jump Gerrold_M2_AboutTheLongBit>>
+-> "Tell me about Margery first."
+    <<jump Gerrold_M2_AboutMargery>>
+-> (Just nod and wait)
+    Gerrold: ... Thank you. I'll get to it.
+    <<jump Gerrold_M2_OfferOrb>>
+
+===
+
+title: Gerrold_M2_AboutTheLongBit
+tags: mission2 gerrold long_bit
+---
+Gerrold: She was ill for fourteen months.
+Gerrold: The dying part — the last week — was kind, in its way.
+Gerrold: She wasn't in pain by then. She slept a lot.
+Gerrold: But I was awake the whole time. Six days awake. Watching.
+<<wait 1.0>>
+Gerrold: I cannot un-be the man who watched.
+Gerrold: But I think I do not need to remember every hour of it.
+
+<<jump Gerrold_M2_OfferOrb>>
+
+===
+
+title: Gerrold_M2_AboutMargery
+tags: mission2 gerrold margery_aside
+---
+// The 6-line aside — Focus 02 § 9.3. "The most quoted line in cozy-game
+// playtests of Mission 2." Do not edit without an Inara sign-off.
+
+Gerrold: Margery was — quiet. She read more than she spoke.
+Gerrold: She worked at the schoolhouse for thirty years.
+Gerrold: Helped Lavinia Embry with the small ones who hadn't learned to read yet.
+Gerrold: She was Doris the baker's best friend.
+Gerrold: They sat in the kitchen on Sundays for — for thirty years. With bread.
+
+<<if $met_doris == true>>
+    Gerrold: You met Doris yesterday, didn't you? She'd have given you bread.
+    Gerrold: ... Margery would have wanted to know you.
+<<endif>>
+
+<<wait 1.2>>
+Gerrold: She taught me how to be quiet around someone you love without making it feel like distance.
+Gerrold: That is — that is the gift I lost.
+Gerrold: I am very loud, now, on my own.
+
+<<jump Gerrold_M2_OfferOrb>>
+
+===
+
+title: Gerrold_M2_OfferOrb
+tags: mission2 gerrold offer_orb
+---
+<<show_orb "GER-007" "in_cloth">>
+
+Gerrold: It's in the cloth. Margery wrapped it.
+Gerrold: I think she wrapped it for this.
+<<wait 1.0>>
+Gerrold: I'd like you to look at it.
+Gerrold: If you can. If it's the right time.
+
+-> (Pick up the orb)
+    <<jump Gerrold_M2_FirstInspection>>
+-> "Tell me what's in it first."
+    Gerrold: The last week of her life. I described it already. I'm sorry.
+    Gerrold: ... If you want to know in particular — the morning she did not wake.
+    Gerrold: Doris was in the kitchen. The snow had stopped.
+    Gerrold: I want the long bit gone. I want to keep the morning.
+    <<jump Gerrold_M2_FirstInspection>>
+-> "I need to think. Can you come back tomorrow?"
+    <<set $deferred_gerrold = true>>
+    <<jump Gerrold_M2_DeferEarly>>
+
+===
+
+title: Gerrold_M2_DeferEarly
+tags: mission2 gerrold defer_early
+---
+// Player deferred BEFORE the orb hand-off. Mission 2 ends with the orb
+// still wrapped in its cloth, never opened. Equivalent to Path D's outcome.
+
+Gerrold: A day. Aye. That is fair.
+Gerrold: I should not have come this morning expecting an answer.
+Gerrold: I will leave the cloth here, if you don't mind.
+Gerrold: I will come back tomorrow at the same time.
+Gerrold: Take care of it for the night. It is — it is what it is.
+
+<<set $gerrold_choice = "defer">>
+<<adjust_trust "gerrold" 1>>
 <<dialogue_end>>
-<<offer_tea_brewing>>
+<<play_cutscene "Dream2_Variant_E_Defer">>
 
 ===
 
-title: Gerrold_M2_AfterTea_Lavender
+title: Gerrold_M2_FirstInspection
+tags: mission2 gerrold inspect echo_web_first_activation
 ---
-Gerrold: ... that's — that's lavender. From the back garden, isn't it?
-Gerrold: Margery would have liked that.
-<<adjust_trust "gerrold" 5>>
-Gerrold: I can talk about it now. I think.
-<<jump Gerrold_M2_TellAboutMargery>>
+<<player_picks_up_orb_from_cloth "GER-007">>
+<<orb_appears_cracked>>
+<<echo_web_activate "DOR-001" "GER-007" "Doris in kitchen on Sunday">>
+
+// Pickle's Echo Web line plays via Pickle.yarn → Pickle_M2_EchoWeb here.
+
+Gerrold: ... What is —
+Gerrold: I don't see it. I'm sorry.
+
+-> (Show Gerrold the orb's cracks)
+    Gerrold: Aye. I knew it was — uneven. I've not handled it well.
+    Gerrold: I've held it too tight, perhaps. I don't know how these are meant to be handled.
+    Gerrold: Some things crack in the hands. The wood, the joint — they tell you.
+    Gerrold: I should have asked sooner.
+    <<jump Gerrold_M2_PathChoice>>
+-> (Hold the orb silently)
+    Gerrold: ... You are looking at it for a long time.
+    Gerrold: Take your time. It is — it is the heaviest thing I own.
+    <<adjust_vow "vow7" 1>>
+    <<jump Gerrold_M2_PathChoice>>
 
 ===
 
-title: Gerrold_M2_AfterTea_Valerian
+title: Gerrold_M2_PathChoice
+tags: mission2 gerrold path_choice
 ---
-Gerrold: Valerian — bitter. I always hated it. But it works.
-Gerrold: I... feel less afraid.
-<<adjust_trust "gerrold" 3>>
-<<jump Gerrold_M2_TellAboutMargery>>
+Gerrold: Do you want to talk it through? Or do you want me to leave you to it?
+Gerrold: I would not mind sitting here.
+Gerrold: I would not mind walking with you to my house.
+Gerrold: I would not mind, also, going home and leaving the cloth.
+
+-> "Let's walk to your cottage. I'd like to see where she lived."
+    <<set $walked_to_gerrold_house = true>>
+    <<offer_tea_brewing>>
+    <<jump Gerrold_M2_WalkToCottage>>
+-> "I'd like to do it here. Stay if you want."
+    <<set $worked_at_hollow = true>>
+    <<jump Gerrold_M2_AtHollowChoice>>
+-> "Go home. I'll come find you when it's done."
+    <<set $worked_alone = true>>
+    Gerrold: Aye. I'd — I'd appreciate that. Thank you.
+    <<jump Gerrold_M2_PreCleanseAlone>>
 
 ===
 
-title: Gerrold_M2_TellAboutMargery
+title: Gerrold_M2_WalkToCottage
+tags: mission2 gerrold walk village_walk_beat
 ---
-Gerrold: Margery. Margery Pell.
-Gerrold: We were married thirty-six years. She died in our bed.
-Gerrold: It was a Sunday. There was bread on the counter — Doris had brought it the day before.
-<<echo_reveal "DOR-001" "GER-007-kitchen">>
-Gerrold: ... your eyes did something just then. Did I say something?
-Gerrold: No. Let me just give you the memory.
+// 35m walk down side lane. Gerrold paces at 1.5 m/s. Lumen lantern halos.
+// Composer cue: "Margery walking music" (soft fiddle from inn).
 
-<<offer_choice "GER-007">>
+Gerrold: It's been a fair autumn. Cold mornings, but bright.
+<<wait 2.0>>
+Gerrold: Margery liked the autumns best.
+Gerrold: She said the trees gave the village manners.
+Gerrold: That is the kind of thing she would say. I never knew how to answer her, exactly.
+Gerrold: I just smiled. She did not mind.
+
+<<wait 2.5>>
+Gerrold: She taught me how to be quiet around someone you love without making it feel like distance.
+Gerrold: I am very loud, now, on my own.
+Gerrold: I keep wanting to say things that I do not have to say to anyone.
+Gerrold: This is — this is part of why I came to the Hollow.
+Gerrold: I cannot keep being this loud.
+
+<<wait 2.0>>
+Gerrold: Here. This is the door.
+Gerrold: Watch the step — the wood gave last winter and I haven't planed it true yet.
+
+<<jump Gerrold_M2_CottageInterior>>
+
+===
+
+title: Gerrold_M2_AtHollowChoice
+tags: mission2 gerrold at_hollow
+---
+Gerrold: Aye. I'll sit here.
+Gerrold: I won't watch over your shoulder. I — I trust you.
+
+<<jump Gerrold_M2_TheChoice>>
+
+===
+
+title: Gerrold_M2_PreCleanseAlone
+tags: mission2 gerrold alone
+---
+Gerrold: I'll wait at home. Come when you can.
+Gerrold: There's no hurry.
+
+<<dialogue_end>>
+<<jump Gerrold_M2_TheChoice>>
+
+===
+
+title: Gerrold_M2_CottageInterior
+tags: mission2 gerrold cottage_interior
+---
+// Heavy Theme Warning Card fires before this node if toggle is enabled.
+
+<<show_heavy_theme_card "Loss of spouse, terminal illness referenced, a man's grief">>
+
+Gerrold: Have a seat. Either chair.
+
+-> (Sit in the left chair — Gerrold's chair)
+    <<set $sat_in_gerrold_chair = true>>
+    Gerrold: Aye. That's the right one for you.
+    Gerrold: I'll take Margery's, today.
+    Gerrold: She wouldn't mind. She wouldn't have minded most things.
+    <<jump Gerrold_M2_TeaModifier>>
+-> (Sit in the right chair — Margery's chair)
+    <<set $sat_in_margery_chair = true>>
+    Gerrold: ...
+    Gerrold: ... Aye. That's all right. I should have said which was mine.
+    Gerrold: I should — I should say it more, perhaps.
+    // Pickle's Margery-chair line plays via Pickle.yarn → Pickle_M2_MargerysChair
+    // (only if pickle_approval >= 50).
+    <<adjust_trust "gerrold" 1>>
+    <<jump Gerrold_M2_TeaModifier>>
+-> (Stand by the fireplace)
+    Gerrold: As you like. The fire's still warm — Doris stopped by yesterday and lit it.
+    <<jump Gerrold_M2_TeaModifier>>
+
+===
+
+title: Gerrold_M2_TeaModifier
+tags: mission2 gerrold tea_modifier
+---
+<<if $tea_brewed == "Lavender">>
+    Gerrold: ... is that tea?
+    Gerrold: ... thank you.
+    <<play_animation "Gerrold" "accept_tea">>
+    <<wait 1.5>>
+    Gerrold: Margery and I had this tea on our last winter together.
+    Gerrold: We had it every evening.
+    Gerrold: She said it tasted like the inside of a folded sweater.
+    Gerrold: I knew what she meant. I still do.
+    <<adjust_trust "gerrold" 2>>
+<<elseif $tea_brewed == "Valerian">>
+    Gerrold: ... is that tea?
+    Gerrold: ... thank you.
+    <<play_animation "Gerrold" "accept_tea">>
+    <<wait 1.5>>
+    Gerrold: Aye. This is the one she used to make me when I could not sleep.
+    Gerrold: She would put a sprig of it on the pillow when I — when I could not stop thinking.
+    Gerrold: I have not had this in eleven months. ... Thank you. You are very kind.
+    <<adjust_trust "gerrold" 2>>
+<<endif>>
+
+<<wait 1.0>>
+Gerrold: Well, then.
+Gerrold: I've said what I've come to say.
+Gerrold: I'd like to give you the choice.
+
+<<jump Gerrold_M2_TheChoice>>
+
+===
+
+title: Gerrold_M2_TheChoice
+tags: mission2 gerrold the_choice first_moral_choice
+---
+<<show_choice_card_with_orb_in_hand>>
+
+// The choice card UI presents four options with one-sentence fiction-voice
+// previews per Mission 2 Guide § 14.1. No timer. Pickle's pre-choice
+// commentary fires from Pickle.yarn if pickle_approval >= 50.
+
+-> A — Erase the long bit.
+    <<set $gerrold_choice = "erase">>
+    <<jump Gerrold_M2_ChoiceErase>>
+-> B — Cleanse with care.
+    <<set $gerrold_choice = "cleanse">>
+    <<jump Gerrold_M2_ChoiceCleanse>>
+-> C — Don't take the memory. Sit with him.
+    <<set $gerrold_choice = "listen">>
+    <<jump Gerrold_M2_ChoiceListen>>
+-> D — Ask him to come back tomorrow.
+    <<set $gerrold_choice = "defer">>
+    <<jump Gerrold_M2_ChoiceDefer>>
 
 ===
 
 title: Gerrold_M2_ChoiceErase
+tags: mission2 gerrold choice_erase requires_double_confirm
 ---
-Gerrold: ... oh. Oh, that's — that's what I asked for.
-Gerrold: I can't — I can't see her face now. I can only see... a shape.
-Gerrold: That's what I asked for. Right? That's what I asked for.
-<<adjust_trust "gerrold" -5>>
-<<adjust_vow "vow1" -10>>
-<<adjust_vow "vow3" -3>>
-<<dialogue_end>>
-<<play_cutscene "Dream2_Erase">>
+// The HEAVIEST option requires a second confirmation. The choice card UI
+// presents this as a 1.5-second confirmation pause, then expands the
+// preview, then asks again.
+
+Gerrold: ... Aye. The long bit gone.
+Gerrold: All of it.
+Gerrold: I — I want to be certain that's what I'm asking for.
+
+-> "Yes, all of it. Erase the long bit."
+    Gerrold: Aye. Thank you.
+    Gerrold: I'll be here.
+    <<set_cleanse_profile "Aggressive">>
+    <<dialogue_end>>
+    <<start_cleanse_minigame "GER-007">>
+-> "Wait — let me think a moment more."
+    Gerrold: Of course. Take your time.
+    <<jump Gerrold_M2_TheChoice>>
 
 ===
 
 title: Gerrold_M2_ChoiceCleanse
+tags: mission2 gerrold choice_cleanse canonical
 ---
-Gerrold: You haven't taken her. You've just — softened it.
-Gerrold: I can think about that morning without going to bed for the day.
-Gerrold: I don't know what to call that.
-<<adjust_trust "gerrold" 10>>
-<<adjust_vow "vow1" 5>>
-<<adjust_vow "vow3" 3>>
+// Path B — the canonical "good Keeper" path. No re-confirmation needed.
+
+Gerrold: Aye.
+Gerrold: ... With care, then. Whatever you can do.
+Gerrold: I trust you. I — I don't know you, but I trust you.
+
+<<adjust_vow "vow3" 1>>
+<<set_cleanse_profile "Careful">>
 <<dialogue_end>>
-<<play_cutscene "Dream2_Cleanse">>
+<<start_cleanse_minigame "GER-007">>
 
 ===
 
 title: Gerrold_M2_ChoiceListen
+tags: mission2 gerrold choice_listen vow7
 ---
-Gerrold: ... you don't want the memory.
-Gerrold: You're just... going to sit here. With me. While I tell it.
-Gerrold: ... all right. All right.
-<<adjust_trust "gerrold" 15>>
-<<adjust_vow "vow3" 10>>
-<<adjust_vow "vow7" 5>>
+// The Listen path — Vow 7 (Last Light) full activation.
+
+Gerrold: ... I don't —
+Gerrold: I don't understand.
+Gerrold: You — you don't want to take it?
+
+-> "I want to listen. Tell me about it. Hold it the whole time. I won't take it."
+    Gerrold: ...
+    Gerrold: ... All right.
+    Gerrold: All right. ... All right.
+    <<adjust_vow "vow7" 5>>
+    <<adjust_cinder 2>>
+    <<jump Gerrold_M2_ListenScene>>
+-> (Reach out and gently place his hands around the orb)
+    Gerrold: Aye.
+    Gerrold: ... Aye.
+    <<adjust_vow "vow7" 7>>
+    <<adjust_cinder 3>>
+    <<jump Gerrold_M2_ListenScene>>
+
+===
+
+title: Gerrold_M2_ListenScene
+tags: mission2 gerrold listen_scene cutscene
+---
+// The 3-minute Listen Cutscene. Gerrold tells Margery's last week aloud
+// while the player sits across from him. Per Mission 2 Guide § 17.2.
+// Cutscene Engine drives the camera + composer cue M-MD02-D-prelude.
+
+<<play_cutscene "Mission2_ListenScene_FullMonologue">>
+<<adjust_trust "gerrold" 6>>
 <<dialogue_end>>
-<<play_cutscene "Dream2_Listen">>
+<<play_cutscene "Dream2_Variant_D_Listen">>
 
 ===
 
 title: Gerrold_M2_ChoiceDefer
+tags: mission2 gerrold choice_defer
 ---
-Gerrold: You took it. But you didn't ... do anything to it.
-Gerrold: ... I think that's all right, for tonight.
-<<adjust_trust "gerrold" 2>>
+Gerrold: Aye.
+Gerrold: A day, then.
+Gerrold: I will come back. I will not be impatient.
+
+<<adjust_trust "gerrold" 1>>
+<<set $gerrold_returns_day_3 = true>>
 <<dialogue_end>>
-<<play_cutscene "Dream2_Defer">>
+<<play_cutscene "Dream2_Variant_E_Defer">>
 
 ===
 
-title: Gerrold_M2_AfterCleanse_CrossedCore
+title: Gerrold_M2_Outro_Return
+tags: mission2 gerrold outro_return handkerchief
 ---
-Gerrold: ... something is missing. I can feel it.
-Gerrold: I — I can't remember the color of her dress. The one she wore on Sundays.
-Gerrold: ... I know I should know.
-<<adjust_trust "gerrold" -10>>
-<<adjust_memory_integrity "gerrold" -25>>
+// Player returns to Gerrold's cottage with the cloth + orb after the
+// Cleanse mini-game (or after the Listen scene). Branches on
+// $gerrold_choice + $cleanse_quality.
+
+<<if $gerrold_choice == "erase">>
+    <<if $cleanse_quality == "Perfect" || $cleanse_quality == "Acceptable">>
+        Gerrold: ... Oh.
+        Gerrold: ... Aye.
+        Gerrold: I can feel that it's lighter.
+        Gerrold: I can still see her face. I cannot — I cannot quite see the last week.
+        <<wait 1.2>>
+        Gerrold: Thank you. I think — I think this is what I asked for.
+        Gerrold: I am not certain it is what I needed.
+        Gerrold: I will go inside now. I will see what the morning brings.
+        <<adjust_trust "gerrold" 5>>
+        <<adjust_vow "vow1" -2>>
+        <<adjust_vow "vow3" -3>>
+    <<else>>
+        // Crossed Core during aggressive erase — disaster outcome.
+        Gerrold: ... Oh.
+        Gerrold: ... I can't —
+        Gerrold: I can't see her clearly.
+        Gerrold: That wasn't —
+        Gerrold: That wasn't —
+        <<wait 1.5>>
+        Gerrold: It isn't your fault. It is — it is the cloth and the cold and the long winter.
+        Gerrold: I will go home. Thank you for trying.
+        <<adjust_trust "gerrold" 2>>
+        <<adjust_vow "vow1" -3>>
+        <<adjust_vow "vow3" -6>>
+        <<set $mission6_recovery_arc_seeded = true>>
+    <<endif>>
+<<elseif $gerrold_choice == "cleanse">>
+    <<if $cleanse_quality == "Perfect">>
+        Gerrold: ... Aye.
+        Gerrold: I can feel it. The blame is out of me.
+        Gerrold: The dying is still there. But I can — I can carry it now, I think.
+        Gerrold: Margery is — Margery is whole.
+        <<wait 1.5>>
+        Gerrold: ... Thank you. I do not know what to say.
+        Gerrold: I will go in and read for a bit.
+        Gerrold: ... Come back when you can. Doris's bread is on Sundays.
+        Gerrold: We could — We could perhaps share one.
+        <<adjust_trust "gerrold" 4>>
+        <<adjust_vow "vow3" 5>>
+        <<adjust_vow "vow1" 3>>
+    <<elseif $cleanse_quality == "Acceptable" || $cleanse_quality == "Sloppy">>
+        Gerrold: ... Aye.
+        Gerrold: It is lighter. Not as light as I'd hoped, but —
+        Gerrold: I do not think I should be as light as I'd hoped, perhaps.
+        Gerrold: Margery is here. I am here.
+        Gerrold: The long bit is — it is part of me, still, but it is no longer the only part.
+        <<wait 1.0>>
+        Gerrold: Thank you. I will see you in the village square next week.
+        <<adjust_trust "gerrold" 4>>
+        <<adjust_vow "vow3" 3>>
+    <<else>>
+        // Crossed Core during careful cleanse — minor disaster.
+        Gerrold: ... Mmm.
+        Gerrold: I cannot quite — I cannot quite see all of her.
+        Gerrold: It is — it is not what I asked for. But it is not your fault.
+        Gerrold: Thank you for the try.
+        <<adjust_trust "gerrold" 3>>
+        <<adjust_vow "vow3" -2>>
+        <<set $mission6_recovery_arc_seeded = true>>
+    <<endif>>
+<<elseif $gerrold_choice == "listen">>
+    Gerrold: I told you the whole memory.
+    Gerrold: I said it aloud for the first time in eleven months.
+    Gerrold: I did not know that I would still have it once I'd said it.
+    <<wait 1.5>>
+    Gerrold: ... I still have it.
+    Gerrold: It is — it is still heavy. But it is — it is no longer alone with me.
+    Gerrold: Thank you for sitting. That was — that was a kindness I had not known how to ask for.
+    Gerrold: Come for tea on Sunday. Doris brings the bread.
+<<endif>>
+
+-> (Hand back the handkerchief)
+    Gerrold: Aye. Thank you.
+    Gerrold: Margery folded that for me. I'd been losing it for weeks.
+    <<wait 1.5>>
+    Gerrold: ... Take care of yourself, keeper.
+
 <<dialogue_end>>
-<<play_cutscene "Dream2_CrossedCore">>
+<<jump Mission02_Outro_Master>>
+
+===
+
+title: Mission02_Outro_Master
+tags: mission2 outro master_jump
+---
+// Empty hub node — exists so all four paths converge to a single
+// post-handkerchief outro flow. The Mission02Director consumes this
+// transition to advance to the Day 2 Evening Ledger.
+
+<<jump_to_mission2_outro>>
 
 ===
