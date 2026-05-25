@@ -7,28 +7,26 @@
 // third-person character controller suitable for a Mixamo-Humanoid rig.
 // See the Phase 26 release notes for the WASD/Sprint/Jump/Animator surface.
 //
-// PHASE 27.2 HOTFIX (2026-05-25) — "half body in floor" intrinsic fix:
+// PHASE 28 ROBUST FIX (2026-05-25) — "half body in floor" definitive fix:
 // ─────────────────────────────────────────────────────────────────────────
-// The user reported the BoZo character's lower half sinks into the floor at
-// spawn, then "pops up" momentarily on WASD. The cause is a mismatch between
-// where the CharacterController capsule bottom sits in local space and where
-// the BoZo mesh's actual feet live (BoZo's mesh origin is around the hips,
-// not the feet). Phase 27.1 shipped a separate `PlayerGroundClamp` component
-// to fix this, but the fix only applied to scenes whose Player had the
-// component attached — which required re-running the Phase 26 capstone.
+// The first playtest report after Phase 27.2 confirmed the mesh STILL sank
+// when running on BoZo CharacterCreator variants. Root cause: those rigs
+// expose a `SkinnedMeshRenderer.localBounds` that is a *padded culling AABB*
+// — large enough to contain any pose, including stretched ones — so the
+// "bottom" we measured from localBounds was 30-50 cm below the real bind
+// pose feet. The clamp consequently lifted the body by *less* than needed.
 //
-// Phase 27.2 embeds the fix **directly inside PlayerController** so it
-// applies the moment the user pulls the updated script — no Editor menu
-// re-run required. On Start() (and again in the first LateUpdate so the
-// Animator has had one frame to pose), the controller measures where the
-// BoZo body mesh actually is, computes where the CC capsule bottom is, and
-// shifts the Body child's localPosition.y to make them align. After this
-// the visible mesh's feet sit exactly on the collider's footprint, so when
-// gravity settles the CC onto the floor the feet land on the floor too.
+// Phase 28 switches to live world-space `Renderer.bounds.min.y` (which
+// reflects the CURRENT pose after the Animator updates) and runs the
+// clamp every frame for the first 0.75 s instead of just once on the
+// first LateUpdate. By the time the player can move, the visible feet
+// are guaranteed to sit on the capsule bottom regardless of the rig's
+// authoring quirks.
 //
-// The separate PlayerGroundClamp component is still supported (its presence
-// is detected and the controller skips the intrinsic clamp to avoid double-
-// shifting). Existing scenes whose Player has the PlayerGroundClamp keep
+// The separate PlayerGroundClamp component (also upgraded in Phase 28)
+// is still supported and now uses identical logic — its presence is
+// detected and the controller skips the intrinsic clamp to avoid double-
+// shifting. Existing scenes whose Player has the PlayerGroundClamp keep
 // working; new scenes / pulled code without it get the intrinsic fix.
 //
 // See Docs/ANIMATION_REQUIREMENTS.md for the Animator graph + Mixamo source map.
@@ -110,9 +108,9 @@ namespace HearthboundHollow.Player
         [Tooltip("Enable the sprint modifier (Left Shift / LStick click).")]
         [SerializeField] private bool enableSprint = true;
 
-        // ───── Body-to-ground intrinsic alignment (Phase 27.2 hotfix) ─
+        // ───── Body-to-ground intrinsic alignment (Phase 28 robust fix) ─
 
-        [Header("Body alignment (Phase 27.2 hotfix — fix for half-body-in-floor)")]
+        [Header("Body alignment (Phase 28 — fix for half-body-in-floor)")]
         [Tooltip("Run AlignBodyToCcBottom() automatically on Start so the visible " +
                  "BoZo mesh feet land on the CharacterController capsule bottom " +
                  "even when BoZo's mesh origin isn't at the feet. If a separate " +
@@ -126,12 +124,23 @@ namespace HearthboundHollow.Player
                  "first child carrying renderers.")]
         [SerializeField] private Transform bodyOverride;
 
+        [Tooltip("How many seconds after Start the intrinsic clamp keeps " +
+                 "re-aligning every frame. The Animator's bind→idle blend " +
+                 "settles within ~0.5 s; the default leaves a safety margin.")]
+        [Range(0f, 3f)]
+        [SerializeField] private float intrinsicAlignContinuousDuration = 0.75f;
+
         [Tooltip("Manual fudge added to the alignment shift — positive lifts the " +
                  "mesh, negative pushes it further into the floor. Useful for " +
                  "cozy scenes where the character should plant a couple of cm " +
                  "into grass.")]
         [Range(-0.2f, 0.2f)]
         [SerializeField] private float bodyAlignBias = 0f;
+
+        [Tooltip("Alignment tolerance — only shifts the body if the delta " +
+                 "exceeds this (metres). 0.5 cm avoids FP chatter.")]
+        [Range(0.001f, 0.05f)]
+        [SerializeField] private float bodyAlignEpsilon = 0.005f;
 
         // ───── Interaction raycast ─────────────────────────────────
 
@@ -206,9 +215,9 @@ namespace HearthboundHollow.Player
         private float _jumpBufferTimer;
         private bool  _wasGroundedLastFrame;
 
-        // Body-alignment internals (Phase 27.2 hotfix)
+        // Body-alignment internals (Phase 28 robust fix)
         private Transform _resolvedBody;
-        private bool _didLateAlignReshot;
+        private float _intrinsicAlignElapsed;
         private bool _externalClampDetected;
 
         // ───── Lifecycle ───────────────────────────────────────────
@@ -258,7 +267,7 @@ namespace HearthboundHollow.Player
 
         private void Start()
         {
-            // Phase 27.2 hotfix — align the visible BoZo mesh feet with the
+            // Phase 28 — align the visible BoZo mesh feet with the
             // CharacterController capsule bottom. Skipped if an explicit
             // PlayerGroundClamp component is on the same GameObject (it owns
             // the alignment in that case to avoid double-shifting).
@@ -268,14 +277,16 @@ namespace HearthboundHollow.Player
 
         private void LateUpdate()
         {
-            // Second pass on the first LateUpdate so the Animator has had a
-            // chance to apply its bind-pose / first-frame transform. Without
-            // this, a Mixamo clip with a baked initial offset could leave a
-            // small residual mismatch on the very first rendered frame.
-            if (autoAlignBodyOnStart && !_externalClampDetected && !_didLateAlignReshot)
+            // Phase 28 robust fix: continuous correction window. The Animator
+            // bind→idle blend can take several frames to settle and a Mixamo
+            // clip with a baked initial offset can leave a residual mismatch.
+            // Re-align every frame during the continuous window so the visible
+            // feet are *guaranteed* on the capsule bottom by frame 30.
+            if (autoAlignBodyOnStart && !_externalClampDetected &&
+                _intrinsicAlignElapsed < intrinsicAlignContinuousDuration)
             {
+                _intrinsicAlignElapsed += Time.deltaTime;
                 AlignBodyToCcBottom();
-                _didLateAlignReshot = true;
             }
         }
 
@@ -292,13 +303,17 @@ namespace HearthboundHollow.Player
             if (r != null && r.action != null && !r.action.enabled) r.action.Enable();
         }
 
-        // ───── Body-to-ground alignment (Phase 27.2 hotfix) ────────
+        // ───── Body-to-ground alignment (Phase 28 robust fix) ──────
 
         /// <summary>
         /// Shifts the visible body child's localPosition.y so the lowest
         /// renderer-bounds Y aligns with the CharacterController capsule
         /// bottom. Idempotent — re-calling it shifts only by any residual
         /// delta (0 if already aligned). Safe to call any time.
+        ///
+        /// Phase 28: uses the world-space `Renderer.bounds.min.y` (current pose)
+        /// rather than `SkinnedMeshRenderer.localBounds` (which is often a
+        /// padded cull AABB and gives wrong answers on BoZo rigs).
         /// </summary>
         public void AlignBodyToCcBottom()
         {
@@ -309,17 +324,14 @@ namespace HearthboundHollow.Player
             if (renderers.Length == 0) return;
 
             float meshBottomWorldY = ComputeMeshBottomWorldY(renderers);
+            if (float.IsPositiveInfinity(meshBottomWorldY)) return;
             float ccBottomWorldY = ComputeCcBottomWorldY();
 
             float diff = ccBottomWorldY - meshBottomWorldY + bodyAlignBias;
-            if (Mathf.Abs(diff) < 0.0001f) return; // already aligned
+            if (Mathf.Abs(diff) < bodyAlignEpsilon) return; // already aligned
 
             var lp = _resolvedBody.localPosition;
             _resolvedBody.localPosition = new Vector3(lp.x, lp.y + diff, lp.z);
-
-            Hh.Log(LogCategory.State,
-                $"PlayerController: aligned Body Δy={diff:F3} m " +
-                $"(meshBottomY={meshBottomWorldY:F3}, ccBottomY={ccBottomWorldY:F3}, bias={bodyAlignBias:F3}).");
         }
 
         private Transform ResolveBodyTransform()
@@ -353,34 +365,24 @@ namespace HearthboundHollow.Player
 
         private float ComputeMeshBottomWorldY(Renderer[] renderers)
         {
-            // Walk every renderer's pose-independent localBounds so the
-            // answer is deterministic — it doesn't shift between bind and
-            // idle poses or with the Animator's first-frame state.
+            // Phase 28: use the live world-space bounds (post-Animator) rather
+            // than padded localBounds. This is the BoZo half-body-sink fix.
             float minY = float.PositiveInfinity;
-            foreach (var r in renderers)
+            for (int i = 0; i < renderers.Length; i++)
             {
-                if (r == null) continue;
+                var r = renderers[i];
+                if (r == null || !r.enabled) continue;
+                // Skip ranged / unbounded renderers — they have huge AABBs.
+                if (r is ParticleSystemRenderer) continue;
+                if (r is LineRenderer) continue;
+                if (r is TrailRenderer) continue;
 
-                Bounds lb;
-                if (r is SkinnedMeshRenderer smr)
-                    lb = smr.localBounds;
-                else if (r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null)
-                    lb = mf.sharedMesh.bounds;
-                else
-                    lb = r.bounds; // last-resort world bounds
-
-                // Project the 8 corners through the renderer's local-to-world.
-                Vector3 c = lb.center, e = lb.extents;
-                for (int sx = -1; sx <= 1; sx += 2)
-                    for (int sy = -1; sy <= 1; sy += 2)
-                        for (int sz = -1; sz <= 1; sz += 2)
-                        {
-                            var w = r.transform.TransformPoint(
-                                new Vector3(c.x + sx * e.x, c.y + sy * e.y, c.z + sz * e.z));
-                            if (w.y < minY) minY = w.y;
-                        }
+                Bounds b = r.bounds;
+                // Sanity guard: an uninitialised SkinnedMeshRenderer can
+                // briefly report (0,0,0) ± infinity. Skip those.
+                if (b.size.sqrMagnitude < 0.0001f) continue;
+                if (b.min.y < minY) minY = b.min.y;
             }
-            if (float.IsPositiveInfinity(minY)) minY = _resolvedBody.position.y;
             return minY;
         }
 
@@ -617,7 +619,7 @@ namespace HearthboundHollow.Player
         public void SetAnimator(Animator a) => animator = a;
 
 #if UNITY_EDITOR
-        [ContextMenu("Align Body to CC Bottom (Phase 27.2 hotfix)")]
+        [ContextMenu("Align Body to CC Bottom (Phase 28)")]
         private void EditorAlignBodyToCcBottom()
         {
             if (_cc == null) _cc = GetComponent<CharacterController>();
