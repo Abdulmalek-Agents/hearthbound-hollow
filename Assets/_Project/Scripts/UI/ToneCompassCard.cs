@@ -66,6 +66,11 @@ namespace HearthboundHollow.UI
             if (continueButton != null) continueButton.onClick.AddListener(Acknowledge);
             if (gentleModeToggle != null)
                 gentleModeToggle.onValueChanged.AddListener(OnGentleToggleChanged);
+
+            // Phase 29 — defensive autofit so the 6-paragraph tone primer
+            // never overflows on smaller canvases. Critical for accessibility.
+            UIAutoFitText.ApplyToLabel(bodyText, minSize: 14, maxSize: 24);
+            UIAutoFitText.ApplyToLabel(gentleModeLabel, minSize: 12, maxSize: 20);
         }
 
         public void Show()
