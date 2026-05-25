@@ -28,6 +28,15 @@
 // CC slid back into the same half-sunk pose because the *root cause* (Body
 // localPosition mismatch) was unchanged.
 //
+// PHASE 27.2 NOTE
+// ────────────────
+// This component is now redundant for fresh setups — the alignment logic has
+// been embedded directly inside `PlayerController` (see PlayerController.cs).
+// PlayerController detects whether this component is present and SKIPS its
+// own intrinsic clamp if so, to avoid double-shifting. This file remains for
+// scenes that already had the component attached (Phase 26 capstone runs)
+// and for users who want the standalone, configurable-in-Inspector clamp.
+//
 // WHAT THIS COMPONENT DOES
 // ─────────────────────────
 // On Start (and on demand via the context menu / public Align() call):
@@ -37,7 +46,9 @@
 //   3. Computes the lowest Y of the combined renderer bounds — i.e. where
 //      the visible "feet" of the mesh actually are in world space.
 //   4. Computes where the CharacterController capsule bottom is in world
-//      space — `transform.position.y + cc.center.y - cc.height/2 + cc.skinWidth`.
+//      space — `transform.position.y + cc.center.y - cc.height/2`. (Phase 27.2
+//      math correction: skinWidth is NOT included — it's a penetration
+//      tolerance, not an offset of the collision surface.)
 //   5. Shifts `body.localPosition.y` by the difference so the mesh bottom and
 //      the CC bottom coincide.
 //
@@ -210,12 +221,13 @@ namespace HearthboundHollow.Player
             if (_cc == null) _cc = GetComponent<CharacterController>();
             if (_cc != null)
             {
-                // Capsule bottom = centre.y - height/2, plus a sliver for skinWidth
-                // (Unity treats the skin as the floor-contact surface).
+                // Capsule bottom in world space. NO +skinWidth — skinWidth is
+                // Unity's penetration tolerance, NOT an offset of the
+                // collision surface. The capsule's geometric bottom is at
+                // local Y = center.y - height/2. (Phase 27.2 math correction.)
                 return transform.position.y
                      + _cc.center.y
-                     - _cc.height * 0.5f
-                     + _cc.skinWidth;
+                     - _cc.height * 0.5f;
             }
             return transform.position.y;
         }
@@ -245,7 +257,7 @@ namespace HearthboundHollow.Player
             var cc = GetComponent<CharacterController>();
             if (cc != null)
             {
-                float ccBottomY = transform.position.y + cc.center.y - cc.height * 0.5f + cc.skinWidth;
+                float ccBottomY = transform.position.y + cc.center.y - cc.height * 0.5f;
                 Gizmos.color = new Color(0.4f, 1f, 0.4f, 0.85f);  // green = CC bottom (the target)
                 DrawDisk(new Vector3(transform.position.x, ccBottomY, transform.position.z), cc.radius + 0.05f);
             }
