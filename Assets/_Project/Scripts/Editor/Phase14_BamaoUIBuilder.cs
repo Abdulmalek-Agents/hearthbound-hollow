@@ -18,6 +18,19 @@
 // + path heuristics + dimension thresholds. Top picks are logged.
 // If a sprite cannot be auto-detected for a slot, the prefab still works
 // (warm tinted color fallback) and the user can drop a sprite in via Inspector.
+//
+// ── Phase 29 polish (2026-05-25) ──────────────────────────────────────
+// Several text labels were appearing clipped on smaller / non-1080p
+// canvases. We now:
+//   • attach a UIAutoFitText helper to every TMP label, forcing word-
+//     wrap + auto-size between sane min/max + ellipsis on overflow.
+//   • reposition the DialogueBox's ChoicesContainer INSIDE the dialogue
+//     box (it used to be anchored above the prefab bounds and the scene
+//     builder didn't always reposition it — choices rendered off-screen).
+//   • shrink the default body font size slightly and let auto-size grow
+//     it for short lines.
+//   • tighten the EveningLedger column widths + force word-wrap on the
+//     summary prose / held-memories list.
 
 using System.Collections.Generic;
 using System.IO;
@@ -198,20 +211,25 @@ namespace HearthboundHollow.EditorTools
             nameRT.anchorMin = new Vector2(0.22f, 0.78f);
             nameRT.anchorMax = new Vector2(0.96f, 0.96f);
             nameRT.offsetMin = Vector2.zero; nameRT.offsetMax = Vector2.zero;
+            UIAutoFitText.ApplyToButtonLabel(speakerName, minSize: 18, maxSize: 32);
 
-            // Line text
+            // Line text — Phase 29: shrunk default, auto-grow + word-wrap + ellipsis.
             var textGO = new GameObject("LineText", typeof(RectTransform));
             textGO.transform.SetParent(root.transform, false);
             var lineText = textGO.AddComponent<TextMeshProUGUI>();
-            lineText.fontSize = 26;
+            lineText.fontSize = 24;
             lineText.color = InkColor;
             lineText.alignment = TextAlignmentOptions.TopLeft;
             var textRT = lineText.rectTransform;
             textRT.anchorMin = new Vector2(0.22f, 0.10f);
             textRT.anchorMax = new Vector2(0.96f, 0.74f);
             textRT.offsetMin = Vector2.zero; textRT.offsetMax = Vector2.zero;
+            UIAutoFitText.ApplyToLabel(lineText, minSize: 16, maxSize: 28);
 
-            // ChoicesContainer (sibling of root, but stored as child here for prefab self-containment)
+            // ChoicesContainer — Phase 29: positioned INSIDE the dialogue box
+            // covering the body / portrait area. Previously this was anchored
+            // OUTSIDE the prefab bounds (1.05–2.10) and the scene builder didn't
+            // always reposition it, so choice scrolls rendered off-screen.
             var choicesGO = new GameObject("ChoicesContainer", typeof(RectTransform));
             choicesGO.transform.SetParent(root.transform, false);
             var choicesLayout = choicesGO.AddComponent<VerticalLayoutGroup>();
@@ -221,9 +239,10 @@ namespace HearthboundHollow.EditorTools
             choicesLayout.padding = new RectOffset(20, 20, 12, 12);
             choicesLayout.childAlignment = TextAnchor.MiddleCenter;
             var choicesRT = choicesGO.GetComponent<RectTransform>();
-            // Position the choices ABOVE the dialogue box, off-prefab-bounds (will be repositioned by SceneBuilder).
-            choicesRT.anchorMin = new Vector2(0.10f, 1.05f);
-            choicesRT.anchorMax = new Vector2(0.55f, 2.10f);
+            // Overlay the line text area; ChoiceCardUI / DialogueUI hide
+            // the lineText while choices are presented, so they don't fight.
+            choicesRT.anchorMin = new Vector2(0.22f, 0.08f);
+            choicesRT.anchorMax = new Vector2(0.96f, 0.78f);
             choicesRT.offsetMin = Vector2.zero; choicesRT.offsetMax = Vector2.zero;
 
             // Choice button template (hidden under root; DialogueUI Instantiates this)
@@ -277,13 +296,15 @@ namespace HearthboundHollow.EditorTools
             labelGO.transform.SetParent(go.transform, false);
             var label = labelGO.AddComponent<TextMeshProUGUI>();
             label.text = "Choice";
-            label.fontSize = 24;
+            label.fontSize = 22;
             label.color = SpeakerInk;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
             var labelRT = label.rectTransform;
             labelRT.anchorMin = Vector2.zero; labelRT.anchorMax = Vector2.one;
             labelRT.offsetMin = new Vector2(20, 6); labelRT.offsetMax = new Vector2(-20, -6);
+            // Phase 29 — wrap + auto-size so long choice labels stay readable.
+            UIAutoFitText.ApplyToLabel(label, minSize: 14, maxSize: 24);
 
             return go;
         }
@@ -341,18 +362,20 @@ namespace HearthboundHollow.EditorTools
             dayRT.anchorMin = new Vector2(0.10f, 0.85f);
             dayRT.anchorMax = new Vector2(0.90f, 0.96f);
             dayRT.offsetMin = Vector2.zero; dayRT.offsetMax = Vector2.zero;
+            UIAutoFitText.ApplyToButtonLabel(dayLabel, minSize: 32, maxSize: 60);
 
-            // Left page: summary prose
+            // Left page: summary prose — Phase 29 wrap + auto-size
             var proseGO = new GameObject("SummaryProse", typeof(RectTransform));
             proseGO.transform.SetParent(panelGO.transform, false);
             var prose = proseGO.AddComponent<TextMeshProUGUI>();
-            prose.fontSize = 24;
+            prose.fontSize = 22;
             prose.color = InkColor;
             prose.alignment = TextAlignmentOptions.TopLeft;
             var proseRT = prose.rectTransform;
             proseRT.anchorMin = new Vector2(0.06f, 0.30f);
             proseRT.anchorMax = new Vector2(0.48f, 0.80f);
             proseRT.offsetMin = Vector2.zero; proseRT.offsetMax = Vector2.zero;
+            UIAutoFitText.ApplyToLabel(prose, minSize: 14, maxSize: 24);
 
             // Right page: held memories
             var memLblGO = new GameObject("HeldMemoriesTitle", typeof(RectTransform));
@@ -371,13 +394,14 @@ namespace HearthboundHollow.EditorTools
             var memListGO = new GameObject("HeldMemoriesList", typeof(RectTransform));
             memListGO.transform.SetParent(panelGO.transform, false);
             var memList = memListGO.AddComponent<TextMeshProUGUI>();
-            memList.fontSize = 22;
+            memList.fontSize = 20;
             memList.color = InkColor;
             memList.alignment = TextAlignmentOptions.TopLeft;
             var memListRT = memList.rectTransform;
             memListRT.anchorMin = new Vector2(0.52f, 0.40f);
             memListRT.anchorMax = new Vector2(0.94f, 0.72f);
             memListRT.offsetMin = Vector2.zero; memListRT.offsetMax = Vector2.zero;
+            UIAutoFitText.ApplyToLabel(memList, minSize: 14, maxSize: 22);
 
             // Coin label
             var coinGO = new GameObject("CoinLabel", typeof(RectTransform));
@@ -390,6 +414,7 @@ namespace HearthboundHollow.EditorTools
             coinRT.anchorMin = new Vector2(0.52f, 0.28f);
             coinRT.anchorMax = new Vector2(0.94f, 0.36f);
             coinRT.offsetMin = Vector2.zero; coinRT.offsetMax = Vector2.zero;
+            UIAutoFitText.ApplyToButtonLabel(coinLabel, minSize: 14, maxSize: 24);
 
             // Save slot buttons (3 slots + autosave label) — simple parchment buttons
             var slot1 = MakeLedgerButton(panelGO.transform, "Btn_SaveSlot1", "Save · Slot 1",
@@ -451,6 +476,7 @@ namespace HearthboundHollow.EditorTools
             var labelRT = label.rectTransform;
             labelRT.anchorMin = Vector2.zero; labelRT.anchorMax = Vector2.one;
             labelRT.offsetMin = new Vector2(8, 4); labelRT.offsetMax = new Vector2(-8, -4);
+            UIAutoFitText.ApplyToButtonLabel(label, minSize: 12, maxSize: 20);
 
             return new LedgerButton { button = btn, label = label };
         }
@@ -485,6 +511,7 @@ namespace HearthboundHollow.EditorTools
             var labelRT = label.rectTransform;
             labelRT.anchorMin = Vector2.zero; labelRT.anchorMax = Vector2.one;
             labelRT.offsetMin = new Vector2(14, 10); labelRT.offsetMax = new Vector2(-14, -10);
+            UIAutoFitText.ApplyToLabel(label, minSize: 12, maxSize: 22);
 
             PrefabUtility.SaveAsPrefabAsset(root, TooltipFramePath);
             Object.DestroyImmediate(root);
