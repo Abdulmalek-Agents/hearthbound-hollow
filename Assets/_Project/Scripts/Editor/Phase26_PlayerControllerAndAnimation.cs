@@ -8,7 +8,10 @@
 //   1. Re-runs PlayerAnimatorControllerBuilder so
 //      Assets/_Project/Animations/Hearthbound_Player.controller exists.
 //   2. Updates the Player prefab (Assets/_Project/Prefabs/Player/Player.prefab,
-//      created by Phase 13) so its Animator references the new controller.
+//      created by Phase 13) so its Animator references the new controller
+//      AND it carries a PlayerGroundClamp component that aligns the BoZo
+//      mesh feet to the CharacterController capsule bottom (fix for the
+//      "half body in the floor" issue reported on first playtest).
 //   3. Walks every gameplay scene (Lane, Hollow, Garden, Cottage) and:
 //        a. Upgrades the Main Camera's `SimpleFollowCamera` (Phase 17/22)
 //           into a `SmoothFollowCamera`, copying target + framing.
@@ -16,6 +19,8 @@
 //           Main Camera transform so movement is camera-relative.
 //        c. Ensures the Player has an Animator referencing the new
 //           Hearthbound_Player controller.
+//        d. Ensures the Player has a PlayerGroundClamp (idempotent — added
+//           only if missing).
 //   4. Updates the project's HearthboundInput.inputactions to expose
 //      Sprint, Jump, CameraLook, CameraZoom, AllowLook actions.
 //
@@ -61,11 +66,11 @@ namespace HearthboundHollow.EditorTools
                 PlayerAnimatorControllerBuilder.BuildOrUpdate();
                 var controller = PlayerAnimatorControllerBuilder.TryGetController();
 
-                // 2. Player prefab → Animator + controller
+                // 2. Player prefab → Animator + controller + GroundClamp
                 EditorUtility.DisplayProgressBar("Hearthbound · Phase 26", "Wiring Player prefab …", 0.30f);
                 WirePlayerPrefab(controller);
 
-                // 3. Scenes: SmoothFollowCamera + cameraReference
+                // 3. Scenes: SmoothFollowCamera + cameraReference + GroundClamp
                 int touched = 0;
                 for (int i = 0; i < GameplayScenes.Length; i++)
                 {
@@ -110,8 +115,9 @@ namespace HearthboundHollow.EditorTools
             try
             {
                 EnsureAnimatorOnPlayerRoot(contents, controller);
+                EnsureGroundClamp(contents);
                 PrefabUtility.SaveAsPrefabAsset(contents, PlayerPrefabPath);
-                Debug.Log("[Hearthbound/Phase 26] Player prefab updated with new Animator + controller.");
+                Debug.Log("[Hearthbound/Phase 26] Player prefab updated with new Animator + controller + PlayerGroundClamp.");
             }
             finally
             {
@@ -134,6 +140,24 @@ namespace HearthboundHollow.EditorTools
             // Wire PlayerController.animator → this animator if visible from API.
             var pc = root.GetComponent<PlayerController>();
             if (pc != null) pc.SetAnimator(animator);
+        }
+
+        /// <summary>
+        /// Idempotent: adds a PlayerGroundClamp to the root if absent. Auto-
+        /// resolves its `body` reference to the "Body" child created by Phase 13.
+        /// Critical fix for the "half body in the floor" issue: BoZo's mesh
+        /// origin is offset above the feet, so without this clamp the visible
+        /// mesh sinks into the ground when the CharacterController settles.
+        /// </summary>
+        private static void EnsureGroundClamp(GameObject root)
+        {
+            var clamp = root.GetComponent<PlayerGroundClamp>();
+            if (clamp == null) clamp = root.AddComponent<PlayerGroundClamp>();
+            if (clamp.body == null)
+            {
+                var bodyT = root.transform.Find("Body");
+                if (bodyT != null) clamp.body = bodyT;
+            }
         }
 
         // ───── Scene upgrade ──────────────────────────────────────
@@ -216,6 +240,35 @@ namespace HearthboundHollow.EditorTools
                 if (pc != null) pc.SetAnimator(animator);
             }
 
+            // Ensure PlayerGroundClamp — fix for the half-body-in-floor sink.
+            if (player != null)
+            {
+                var clamp = player.GetComponent<PlayerGroundClamp>();
+                if (clamp == null)
+                {
+                    clamp = player.AddComponent<PlayerGroundClamp>();
+                    if (clamp.body == null)
+                    {
+                        var bodyT = player.transform.Find("Body");
+                        if (bodyT != null) clamp.body = bodyT;
+                    }
+                    EditorUtility.SetDirty(player);
+                    dirty = true;
+                    Debug.Log($"[Hearthbound/Phase 26] Added PlayerGroundClamp to in-scene Player in {Path.GetFileName(scenePath)}.");
+                }
+                else if (clamp.body == null)
+                {
+                    // Heal stale serialized reference.
+                    var bodyT = player.transform.Find("Body");
+                    if (bodyT != null)
+                    {
+                        clamp.body = bodyT;
+                        EditorUtility.SetDirty(clamp);
+                        dirty = true;
+                    }
+                }
+            }
+
             if (dirty)
             {
                 EditorSceneManager.MarkSceneDirty(scene);
@@ -236,8 +289,12 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  ✓ Parameters: Speed / MoveX / MoveY / VelocityY / IsGrounded / IsSprinting / Jump");
             sb.AppendLine("  ✓ States: Locomotion (1D blend tree) / Jump / Fall / Land");
             sb.AppendLine();
-            sb.AppendLine($"  ✓ Player prefab Animator wired:  {PlayerPrefabPath}");
-            sb.AppendLine($"  ✓ Scenes upgraded with SmoothFollowCamera + cameraReference: {scenesTouched}/{GameplayScenes.Length}");
+            sb.AppendLine($"  ✓ Player prefab wired (Animator + controller + PlayerGroundClamp):  {PlayerPrefabPath}");
+            sb.AppendLine($"  ✓ Scenes upgraded with SmoothFollowCamera + cameraReference + GroundClamp: {scenesTouched}/{GameplayScenes.Length}");
+            sb.AppendLine();
+            sb.AppendLine("PlayerGroundClamp fixes the 'half body in floor' issue from the first");
+            sb.AppendLine("playtest by aligning the BoZo mesh feet to the CharacterController capsule");
+            sb.AppendLine("bottom on Start. No more sinking; no more pop-up-on-WASD rubber-banding.");
             sb.AppendLine();
             sb.AppendLine("Controls (now also visible via H in-game):");
             sb.AppendLine("  Move       WASD / Arrows / Left Stick");
