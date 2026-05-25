@@ -33,6 +33,20 @@
 // now attaches a MiniGameTutorialUI to the cleanse host before BeginGame,
 // so the on-screen overlay ("Trace cracks · don't cross the core" +
 // progress bar + Auto-Complete button) appears immediately.
+//
+// ── Build-fix (2026-05-25) ──────────────────────────────────────
+// Console reported 4 compile errors after the Phase 4/6 dialogue rewrite:
+//   • CS1061 ×2 — TeaBrewedEvent does not contain a definition for 'herb'
+//     The struct field is `Herb` (capitalized; see Core/GameEvents.cs §
+//     TeaBrewedEvent). Casing was wrong in OnTeaBrewed.
+//   • CS0246 ×2 — YarnHeavyThemeCardEvent / YarnEchoWebActivateEvent not
+//     found. These structs live in HearthboundHollow.Dialogue (see
+//     Dialogue/YarnVillageStateBridge.cs, EventBus event struct block at
+//     the bottom). Mission02Director's `using` list was missing
+//     HearthboundHollow.Dialogue. The Mission asmdef already references
+//     HearthboundHollow.Dialogue so no asmdef change required.
+// Both fixes are targeted (one `using` line + 2-char casing changes).
+// No behavioural change.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -40,6 +54,7 @@ using UnityEngine;
 using HearthboundHollow.Audio;
 using HearthboundHollow.Core;
 using HearthboundHollow.Cutscene;
+using HearthboundHollow.Dialogue;          // ← build-fix: YarnHeavyThemeCardEvent + YarnEchoWebActivateEvent
 using HearthboundHollow.Memory;
 using HearthboundHollow.MiniGames;
 using HearthboundHollow.Player;
@@ -183,11 +198,13 @@ namespace HearthboundHollow.Mission
             // modifier can branch. The HerbHarvestedEvent already populated
             // VillageState.harvestedHerbIds; here we set the canonical
             // teaBrewed string ("Lavender" or "Valerian") from the event.
+            //
+            // Build-fix: TeaBrewedEvent.Herb is capitalized (Core/GameEvents.cs).
             var vs = ServiceLocator.Get<VillageState>();
-            if (vs != null && ev.herb != null)
+            if (vs != null && ev.Herb != null)
             {
                 vs.teaBrewed =
-                    ev.herb.name.ToLowerInvariant().Contains("valerian") ? "Valerian" : "Lavender";
+                    ev.Herb.name.ToLowerInvariant().Contains("valerian") ? "Valerian" : "Lavender";
             }
             StartCoroutine(PostBrewFlow());
         }
@@ -934,7 +951,7 @@ namespace HearthboundHollow.Mission
             public Mission02Director director;
             private void OnTriggerEnter(Collider other)
             {
-                if (other.CompareTag("Player")) director?.OnPlayerEnteredGerrold();
+                if (other.CompareTag("Player")) director?.OnPlayerExitedGarden();
             }
         }
     }
