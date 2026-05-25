@@ -10,104 +10,82 @@
 
 ---
 
-## 🚨 HOTFIX — Phase 26.1 (2026-05-24, even later) — MarinNoteInteractable asmdef-locality fix
+## 🆕 Phase 26 — Player Controller + Animation  🟢
 
-**Bug reported by user:**
+**The complete WASD player + Mixamo-ready Humanoid Animator.**
 
-```
-Assets/_Project/Scripts/Player/MarinNoteInteractable.cs(21,25):
-  error CS0234: The type or namespace name 'UI' does not exist in the namespace 'HearthboundHollow'
-Assets/_Project/Scripts/Player/MarinNoteInteractable.cs(30,16):
-  error CS0246: The type or namespace name 'DialogueUI' could not be found
-```
+> Single-menu rebuild: `Hearthbound → 🏃 Phase 26 — Player Controller + Animation`
 
-### Root cause
+### What the player now has
 
-The freshly-added `MarinNoteInteractable.cs` (Phase 26 narrative hook) was placed in `Assets/_Project/Scripts/Player/`, which puts it in the **`HearthboundHollow.Player`** asmdef. That asmdef's `references` list is `["HearthboundHollow.Core","HearthboundHollow.Memory","Unity.InputSystem","Unity.TextMeshPro"]` — **no `HearthboundHollow.UI`**, by deliberate choice (D-005). So `using HearthboundHollow.UI` failed at compile time.
-
-### Fix
-
-Moved the file to `Assets/_Project/Scripts/Mission/MarinNoteInteractable.cs` with `namespace HearthboundHollow.Mission`. The `Mission` asmdef references both `Player` (so we can still extend `Interactable`) and `UI` (so we can use `DialogueUI`) — exactly the pattern Mission01Director and Mission02Director use. `Phase26_NarrativeHooks.cs` updated to `using HearthboundHollow.Mission;` instead of `using HearthboundHollow.Player;`.
-
-### How this lesson is now in the architecture
-
-- **D-035 (NEW):** Asmdef-locality check before pushing. Open the target folder's `.asmdef`, read its `references` array, and verify every `using HearthboundHollow.X` in the new file is listed there. Cross-cutting components (e.g. Interactable + DialogueUI together) belong in the `Mission` asmdef. The Player asmdef is intentionally UI-free.
-- Going forward: every new `.cs` file placed under `Assets/_Project/Scripts/<X>/` will go through the locality check in the same commit message that adds it.
-
-### What the user does
-
-Just pull and recompile. No menu re-runs needed — the file moved within the project; no scene references break (the `Phase26_NarrativeHooks` editor menu re-finds `MarinNoteInteractable` by type, not by path).
-
----
-
-## 🚨 HOTFIX — Phase 25 (2026-05-24, late) — Tone Compass crash + UI activation hardening
-
-**Bug reported by user during first playtest of Phase 23 build:**
-
-```
-Coroutine couldn't be started because the the game object 'ToneCompass' is inactive!
-UnityEngine.MonoBehaviour:StartCoroutine (System.Collections.IEnumerator)
-HearthboundHollow.UI.ToneCompassCard:Show () (at Assets/_Project/Scripts/UI/ToneCompassCard.cs:55)
-HearthboundHollow.UI.MainMenuController:OnOpenTheHollow () (at Assets/_Project/Scripts/UI/MainMenuController.cs:97)
-```
-
-### Root cause — systemic anti-pattern across UI overlays
-
-Every UI overlay (`ToneCompassCard`, `MissionTitleCard`, `PauseMenuUI`, `HelpOverlayUI`, `ComfortToolsMenu`, `ChoiceCardUI`, `DialogueUI`, `EveningLedgerUI`, `TeaBrewingUI`) was wired by the Phase 22 / Phase 23 procedural builders in a **broken single-layer pattern**:
-
-```csharp
-var rootGO = new GameObject("ToneCompass");        // host & visual on the SAME GameObject
-var script = rootGO.AddComponent<ToneCompassCard>();
-script.root = rootGO;                              // root === gameObject
-rootGO.SetActive(false);                           // <-- deactivates the script's host MonoBehaviour
-```
-
-The script-host being inactive has two effects:
-1. **`StartCoroutine` throws** the moment `Show()` is called from a button click (the ToneCompass crash). The user saw this because it's the first overlay opened.
-2. **`Update()` silently stops firing** on `PauseMenuUI` and `HelpOverlayUI` → **Escape never opens the pause menu, H never opens help.** Latent bug — not yet observed because the user crashed before reaching gameplay.
-
-The MissionTitleCard's `Play()` was in the same family of risk.
-
-### The fix — two-layer wiring pattern, codebase-wide
-
-| Layer | Role | Active state |
-|---|---|---|
-| **Host GameObject** | hosts the MonoBehaviour script | **always active** — script's `Awake/Start/Update` and `StartCoroutine` all run |
-| **Visual child GameObject** | carries the dimming background, panel, text | toggled on/off by `Show()` / `Hide()` |
-
-### Files patched in Phase 25
-
-| File | Change |
+| Feature | Detail |
 |---|---|
-| `UI/ToneCompassCard.cs` | `Awake()` no longer deactivates `gameObject`. `Show()` self-heals (`gameObject.SetActive(true)`) and guards `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Adds a fallback that enables Continue immediately when coroutines aren't viable. |
-| `UI/MissionTitleCard.cs` | Same defensive pattern in `Play()`. Snaps to fully-shown if `StartCoroutine` is unavailable. |
-| `UI/PauseMenuUI.cs` | `Awake()` only hides the visual child; host stays alive for the Esc listener. `Pause()` self-heals. |
-| `UI/HelpOverlayUI.cs` | Same — `Update()` now fires for the H key. |
-| `UI/ComfortToolsMenu.cs` | `Show()` self-heals. |
-| `UI/ChoiceCardUI.cs` | `Show()` self-heals; spawned tiles defensively `SetActive(true)` (template prefab may have been inactive). |
-| `UI/DialogueUI.cs` | `PresentLine()` self-heals; defensive fallback renders full line without typewriter when coroutine unavailable. |
-| `UI/EveningLedgerUI.cs` | `Show()` self-heals. |
-| `UI/TeaBrewingUI.cs` | `Show()` + `StartBrew()` self-heal. |
-| `Editor/HearthboundOneClickSetup.cs` | `BuildToneCompass`, `BuildPrimitiveDialogueUI`, `BuildPrimitiveEveningLedgerUI` now build with the two-layer pattern (host → visual child). |
-| `Editor/Phase23_Mission1PolishCapstone.cs` | `BuildPauseMenu`, `BuildHelpOverlay`, `BuildSettingsPanel`, `AddMissionTitleCard` now build with the two-layer pattern. The redundant `settingsPanel.SetActive(false)` in `PolishMainMenu` was removed. |
+| **Camera-relative WASD** | Input is transformed by Main Camera's planar forward/right — moves *toward* where you're looking, not world-axis. Falls back to world-axis when no camera is present (smoke scenes + EditMode tests). |
+| **Smooth acceleration** | SerializeField'd `acceleration = 16` and `deceleration = 22` give a controllable feel curve. No more instant-stop snap from the old `SimpleMove`. |
+| **Sprint (Shift)** | `enableSprint` default-on. Held Left Shift / right Shift / gamepad LStick-click. Disabled while Gentle Mode is on (per Codex 06). |
+| **Jump (Space)** | `enableJump` default-on. Manual gravity integration on `CharacterController.Move()`. Coyote-time `0.15 s` + jump-buffer `0.12 s` for forgiving feel. Disabled in Gentle Mode. |
+| **Animator bridge** | 7 parameters driven every frame: `Speed`, `MoveX`, `MoveY`, `VelocityY`, `IsGrounded`, `IsSprinting`, `Jump`. |
+| **Smooth follow camera** | New `SmoothFollowCamera.cs` with `SmoothDamp` position, slerped rotation, mouse-orbit (RMB hold) + scroll-zoom + sphere-cast wall-clip protection. |
+| **Input Actions update** | `Sprint`, `Jump`, `CameraLook`, `CameraZoom`, `AllowLook` actions added to `HearthboundInput.inputactions`. K&M + Gamepad + Touch schemes preserved. |
 
-### How this lesson is now in the architecture
+### Files added (8)
 
-- **D-033 (NEW):** Procedural UI builders MUST use the two-layer pattern. A MonoBehaviour that needs `Update()` (key-listener) or `StartCoroutine` (animations, fades) is hosted on a GameObject that *stays active*; the visual root is a *child* GameObject that gets toggled. Single-layer (script-host == visual root, deactivated at build) is forbidden.
-- **D-034 (NEW):** UI overlay scripts MUST self-heal in their `Show()` / equivalent — they activate their own `gameObject` if dormant, and guard `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Belt-and-braces — the wiring is correct without this, but the self-heal protects against future regressions.
+| File | Role | LOC |
+|---|---|---|
+| `Assets/_Project/Scripts/Player/PlayerController.cs` | (rewritten) Camera-relative WASD + Sprint + Jump + gravity + Animator bridge | 350 |
+| `Assets/_Project/Scripts/Player/SmoothFollowCamera.cs` | Spring-damped third-person follow camera + orbit + zoom + wall-clip | 230 |
+| `Assets/_Project/Scripts/Editor/PlayerAnimatorControllerBuilder.cs` | Procedural AnimatorController builder (1D blend tree on Speed) | 200 |
+| `Assets/_Project/Scripts/Editor/Phase26_PlayerControllerAndAnimation.cs` | One-click capstone that builds controller + wires Player prefab + upgrades every scene | 200 |
+| `Assets/_Project/Tests/EditMode/PlayerControllerTests.cs` | 7 EditMode tests — locks the public API surface | 140 |
+| `Assets/_Project/Settings/HearthboundInput.inputactions` | (rewritten) +5 actions: Sprint, Jump, CameraLook, CameraZoom, AllowLook | 90 |
+| `Assets/_Project/Scripts/UI/HelpOverlayUI.cs` | (rewritten) Help card now documents Sprint, Jump, Look, Zoom — Gentle Mode strips Sprint/Jump | 130 |
+| `Docs/ANIMATION_REQUIREMENTS.md` | Full doc: state graph, parameters, clip roster, Mixamo download guide, retargeting steps, asset-store alternatives | 280 |
 
-### What the user MUST do after pulling Phase 25
+### Animator state graph (built procedurally)
 
-1. Pull `feat/mission-1-2-architecture` again.
-2. Wait for Unity recompile (~5 s).
-3. Menu → **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** — re-runs the capstone with the new two-layer wiring.
-4. Press **Play**. "Open The Hollow" → Tone Compass card fades in cleanly. Escape opens the pause menu. H opens the help card.
+```
+LOCOMOTION (1D Blend Tree on Speed)
+  ├─ Idle    Speed = 0
+  ├─ Walk    Speed = 1
+  └─ Run     Speed = 2
 
-If you want to skip the rebuild and ship the **existing** scenes (the prior build is on disk), the self-heal layer in the UI scripts means the Tone Compass will now display correctly even on the old wiring. But the pause-menu and help-overlay key listeners still need the re-build to actually fire.
+LOCOMOTION ──Jump trigger──▶ JUMP ──VelocityY<-0.5──▶ FALL
+                              │                        │
+                              └────IsGrounded──▶ LAND ◀┘
+                                                  │
+                                                  └─ exit 0.8s ─▶ LOCOMOTION
+```
+
+### Decisions adopted in this release
+
+| # | Decision | Why |
+|---|---|---|
+| D-033 | Sprint + Jump are **opt-in** runtime flags (`enableSprint`, `enableJump`). | Cozy GDD doesn't require them. Gentle Mode disables both. Players who *do* reach for Shift / Space no longer bounce off a "broken" perception. |
+| D-034 | Player Animator is **single 1D blend tree on `Speed`** — not 2D. | Cozy character always faces movement direction; `MoveX/MoveY` would be wasted work. Parameters exist for the future 2D-strafe upgrade. |
+| D-035 | Animator parameter names are **fixed strings on the controller** but **configurable on `PlayerController`**. | Lets us swap to a community controller (Unity Starter Assets etc.) by re-typing strings in the Inspector — no code rewrite. |
+| D-036 | Camera uses `SmoothFollowCamera`, not Cinemachine, as the M1+M2 default. | Cinemachine is heavier and adds a hard package dep to every gameplay scene. Phase 17 still creates a Cinemachine prefab when the package is present — both can coexist. The Phase 26 builder swaps `SimpleFollowCamera` → `SmoothFollowCamera` in every scene; Cinemachine is unaffected. |
+| D-037 | Animations live in **`Assets/_Project/Animations/`** (Mixamo subfolder optional). | Single search path keeps Phase 26's auto-detection deterministic. |
+
+### What the user needs to do after pulling
+
+1. Pull `feat/mission-1-2-architecture`. Wait for Unity recompile.
+2. **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** (rebuilds scenes if needed).
+3. **`Hearthbound → 🏃 Phase 26 — Player Controller + Animation`** (one click ~5 s).
+4. (Optional, +1 min for polish) Open `Docs/ANIMATION_REQUIREMENTS.md` § 3 → download 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` → re-run Phase 26.
+5. Press Play in `00_Bootstrap.unity`. Walk to Doris with WASD. Hold Shift to sprint. Right-mouse-drag to orbit camera.
+
+### Known limitations of Phase 26
+
+| # | Item | Severity | Status |
+|---|---|---|---|
+| P26-1 | Without Mixamo Run clip, sprint loops the Walk animation faster than it should. | Cosmetic | ✅ Acceptable — drop in `Running.fbx` and re-run; Speed=2 motion field auto-upgrades. |
+| P26-2 | Without Mixamo Jump clip, the Jump state holds the Idle pose during airtime. | Cosmetic | ✅ Acceptable — same fix. |
+| P26-3 | `SmoothFollowCamera` doesn't yet auto-disable during cutscenes (Cutscene Engine cameras do their own thing). | Low | ✅ The cutscene priority overrides via Timeline; not a player-facing issue. |
+| P26-4 | The BoZo `BMAC_M_Walk` clip travels in-place; if we ever add a Mixamo clip with baked root motion, set Apply Root Motion = false on the prefab Animator (Phase 26 already does this). | Mitigated | ✅ |
 
 ---
 
-## 🚨 HOTFIX (2026-05-24 — after first playtest, earlier) — re-run Phase 23
+## 🚨 HOTFIX (2026-05-24 — after first playtest) — re-run Phase 23
 
 The user pressed Play on the polished build and **the game was not playable** — the camera didn't follow the player. Root cause:
 
@@ -140,11 +118,9 @@ The capstone rebuilds every scene from scratch. New scenes reference the runtime
 
 ---
 
-## 🎯 Current Status — POLISHED PLAYABLE MISSION 1 + 2 LANDED
+## 🎯 Current Status — POLISHED PLAYABLE MISSION 1 + 2 + PHASE 26 LANDED
 
 **Branch**: `feat/mission-1-2-architecture` (PR #7 open)
-
-The architectural Phase 0–22 is complete and tested. **Phase 23 + 24** land in this update:
 
 | Phase | Title | Status | Asset(s) | Replaces |
 |---|---|---|---|---|
@@ -161,123 +137,28 @@ The architectural Phase 0–22 is complete and tested. **Phase 23 + 24** land in
 | ✅ 20 | Yarn Spinner Integration | ✅ Done | Yarn Spinner UPM (optional) | Mission01Director inline lines |
 | ✅ 21 | Memory Dream Cutscene | ✅ Done | `Cutscene Engine/` + Timeline | hard cut to ledger |
 | ✅ 22 | Polished Playable Mission 1 (engineering build) | ✅ Done | (all above) | replaces Phase 12 entirely |
-| ✅ **23** | **Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off** | ✅ **Landed** | + new procedural UI | — |
-| ✅ **24** | **Mission 2 Garden + Cottage Scenes — Mission02Director, herb/tea/choice/cleanse/dream flow** | ✅ **Landed** | + 2 new scenes | — |
-| ✅ **25** | **UI Activation Hotfix — Tone Compass crash + two-layer wiring** | ✅ **Landed (this update)** | (no new assets) | — |
-| ✅ **26.1** | **Asmdef-locality hotfix — MarinNoteInteractable moved to Mission asmdef** | ✅ **Landed (this update)** | — | — |
+| ✅ 23 | Mission 1 Polish Capstone — pause / settings / save / ambient / title card / help / Pickle / M1→M2 hand-off | ✅ Done | + new procedural UI | — |
+| ✅ 24 | Mission 2 Garden + Cottage Scenes — Mission02Director, herb/tea/choice/cleanse/dream flow | ✅ Done | + 2 new scenes | — |
+| 🟢 **26** | **Player Controller + Animation — WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator** | 🟢 **Just landed** | + Hearthbound_Player.controller + Mixamo guide | replaces walk-only PlayerController + SimpleFollowCamera |
 
-The project now ships a complete **6-scene, fully polished Mission 1 + 2 playable** behind a single menu click: **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`**.
-
----
-
-## 🆕 Phase 23 — Mission 1 Polish Capstone  🟢
-
-**The orchestrator. One menu click → full polished playable.**
-
-### Files added (Stage 1: foundation scripts)
-
-| File | Role | LOC |
-|---|---|---|
-| `Assets/_Project/Scripts/Core/SettingsService.cs` | PlayerPrefs-backed audio/comfort/accessibility settings + `OnSettingsChanged` event | 175 |
-| `Assets/_Project/Scripts/Core/SettingsServiceBootstrap.cs` | MonoBehaviour that registers SettingsService at boot | 28 |
-| `Assets/_Project/Scripts/UI/PauseMenuUI.cs` | Esc-toggled pause overlay (Resume / Settings / Save & Quit / Quit) | 136 |
-| `Assets/_Project/Scripts/UI/HelpOverlayUI.cs` | H-toggled controls + Marin quote card, auto-show on first run | 117 |
-| `Assets/_Project/Scripts/UI/MissionTitleCard.cs` | CanvasGroup fade-in title card pulled from MissionSO | 122 |
-| `Assets/_Project/Scripts/Audio/AmbientAudio.cs` | Looping AudioSource gated by `SettingsService.EffectiveVolume(Ambient)` | 109 |
-| `Assets/_Project/Scripts/UI/MainMenuController.cs` | Updated: emits `OnContinueRequested` + `OnSettingsRequested` events; dim Continue until coordinator confirms autosave | (modified) |
-
-### Files added (Stage 3: coordinators)
-
-| File | Role | LOC |
-|---|---|---|
-| `Assets/_Project/Scripts/Mission/MainMenuSaveCoordinator.cs` | Bridges UI → Save asmdef. Enables Continue button only when autosave exists; loads on click. | 86 |
-| `Assets/_Project/Scripts/Mission/PauseSaveCoordinator.cs` | Listens to `PauseMenuUI.OnSaveAndQuitRequested` and `DayEndedEvent`; writes autosave with current scene name. | 60 |
-
-### Files added (HOTFIX 2026-05-24 — runtime extraction)
-
-| File | Role | LOC |
-|---|---|---|
-| `Assets/_Project/Scripts/Player/SimpleFollowCamera.cs` | Runtime third-person follow camera. **Was previously a nested class in HearthboundOneClickSetup (Editor-only) — broke runtime.** | 35 |
-| `Assets/_Project/Scripts/Mission/DreamHook.cs` | Runtime bridge from EveningLedger.OnEndOfDayConfirmed → MemoryDreamSequencer.PlayDream1(). **Was previously a private nested class in Phase22 (Editor-only).** | 50 |
-
-### The capstone builder (Stage 3)
-
-`Assets/_Project/Scripts/Editor/Phase23_Mission1PolishCapstone.cs` (~670 LOC)
-
-Menu: **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`**
-
-Workflow (idempotent — re-run any number of times):
-1. Runs Phase 22 (which itself runs Phases 13–21 and rebuilds the 4 base scenes).
-2. Runs Phase 24 (Mission 2 Garden + Cottage scenes).
-3. Post-processes every scene to add the polish layer:
-   - **Bootstrap**: `SettingsServiceBootstrap` on `_GameRoot`.
-   - **MainMenu**: Settings panel + `ComfortToolsMenu` (Gentle Mode, Auto-Polish, Auto-Cleanse, Subtitle Size) + `MainMenuSaveCoordinator`.
-   - **Lane**: AmbientAudio + Pause menu + Help overlay + MissionTitleCard ("Day 1 — Opening the Hollow").
-   - **Hollow**: AmbientAudio + Pause + Help + TitleCard + Pickle the cat + `Mission01Director.sceneAfterEndOfDay = "04_Mission02_Garden"` (the narrative hand-off).
-   - **Garden**: AmbientAudio + Pause + Help.
-   - **Cottage**: AmbientAudio + Pause + Help.
-4. Updates Build Settings — 6 scenes, stable indices.
-5. Opens `00_Bootstrap.unity` so the user can press Play immediately.
+The project now ships a complete **6-scene polished playable + a robust character pipeline** behind two menu clicks:
+1. `Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`
+2. `Hearthbound → 🏃 Phase 26 — Player Controller + Animation`
 
 ---
 
-## 🆕 Phase 24 — Mission 2 Garden + Cottage Scenes  🟢
+## ✅ Earlier Phase Notes (Phases 22–24 condensed; full detail in CHANGELOG)
 
-**The Widower's Request — full Garden→Brew→Cottage→Choice→Cleanse→Dream2 flow.**
+- **Phase 22** — Engineering "Polished Playable Mission 1" — chains all Phase 13–21 outputs into the 4 base scenes.
+- **Phase 23** — Mission 1 polish capstone (~1,400 LOC): SettingsService + PauseMenu + HelpOverlay + MissionTitleCard + AmbientAudio + MainMenuSaveCoordinator + PauseSaveCoordinator + capstone Editor menu that rebuilds 6 scenes idempotently.
+- **Phase 24** — Mission 2 scenes (~1,275 LOC): Mission02Director (Garden + Cottage roles) + Phase24 builder for both scenes; full Garden→Brew→Cottage→Choice→Cleanse→Dream2 flow with 4 tariffs and 5 Evening Ledger variants.
+- **Hotfix (post-Phase 23)** — SimpleFollowCamera + DreamHook extracted from Editor-asmdef nested classes to runtime asmdef. See D-032.
 
-### Files added
-
-| File | Role | LOC |
-|---|---|---|
-| `Assets/_Project/Scripts/Mission/Mission02Director.cs` | Runtime orchestrator for both Mission 2 scenes (SceneRole.Garden / Cottage) | 479 |
-| `Assets/_Project/Scripts/Editor/Phase24_Mission2SceneBuilder.cs` | Editor menu that builds the 2 Mission 2 scenes from scratch | 795 |
-
-Menu: **`Hearthbound → Phase 24 — Build Mission 2 Scenes`**
-
-### Mission 2 Narrative Flow
-
-**04_Mission02_Garden** (Build index 4)
-1. Title card: "Day 2 — The Widower's Request"
-2. Marin's note: "Lavender for openness. Valerian to forget for an hour."
-3. Player harvests at least one herb (Lavender + Valerian planted at ±3.5 from origin).
-4. Player walks to the kettle → opens `TeaBrewingUI`.
-5. Tea brewed → garden exit unlocks.
-6. Walking through `Garden_Exit_Trigger` loads `05_Mission02_Cottage`.
-
-**05_Mission02_Cottage** (Build index 5)
-1. Title card: "Day 2 — Gerrold's Cottage"
-2. Narration: "The cottage is quiet. The chair by the bed is still pulled out."
-3. Player approaches Gerrold → 3-line greeting + reply choice (3 options, +0/+3/+6 trust ripple).
-4. Gerrold prompt for choice → `ChoiceCardUI` shows 4 tariffs: **Erase / Cleanse / Listen / Defer**.
-5. Branch:
-   - **Erase**: `CleanseMiniGame` (gentleMode=true) → Dream 2 Variant A
-   - **Cleanse**: `CleanseMiniGame` (full difficulty) → Dream 2 Variant B (or C if `CleanseOutcome.CrossedCore`)
-   - **Listen**: No mini-game, 4-beat narrative pause → Dream 2 Variant D
-   - **Defer**: No mini-game, orb returns to Hollow → Dream 2 Variant E
-6. Outcome-specific Evening Ledger (5 distinct passages).
-7. End Day → return to Main Menu (Mission 3 is future).
-
-### Mission 2 Architecture
-
-- **No new asmdef deps** — Mission asmdef already references `Audio + Core + Cutscene + Memory + MiniGames + Player + UI`.
-- **Trigger proxies** inner-class pattern matches `Mission01Director`.
-- **Event subscriptions** to `HerbHarvestedEvent` + `TeaBrewedEvent` correctly unsubscribed in `OnDestroy`.
-- **Dream 2 variant routing**: `MemoryDreamSequencer.PlayDream2(choice, outcome)` selects the right of 5 PlayableAssets; falls back gracefully if Phase 21 hasn't run.
+For the per-file breakdowns, see `CHANGELOG.md` v0.2.0 and v0.3.0.
 
 ---
 
-## ✅ Phases 0–22 — Earlier History (condensed)
-
-Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
-- **Phase 0–10.8**: Architecture, asmdef graph, 32 C# scripts, 5 Yarn files, Save service, mini-games, UI, URP setup, shader patcher.
-- **Phase 11**: Editor menu seed-asset generator (17 ScriptableObjects), Input Actions asset, Save-event bug fixes, 13 additional EditMode tests.
-- **Phase 12**: Engineering MVP smoke-test (primitives + flat UI + minimum playable loop).
-- **Phase 13–21**: Asset-driven prefab builders for characters, UI, environment, shaders, lighting, audio, weather, dialogue, cutscenes.
-- **Phase 22**: Engineering "Polished Playable Mission 1" — chains all phase outputs into the 4 base scenes.
-
----
-
-## Decisions Made (D-001 → D-035)
+## Decisions Made (D-001 → D-037)
 
 | # | Decision | Phase | Reason |
 |---|---|---|---|
@@ -287,23 +168,21 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | D-004 | One asmdef per Scripts/ subfolder | 0 | 80% faster iteration |
 | D-005 | `InteractionPromptUI` lives in Player asmdef | 5 | No UI→Player dependency cycle |
 | D-006 | `YarnVillageStateBridge` compile-guarded by `YARN_SPINNER_PRESENT` | 6 | Project compiles before Yarn install |
-| D-007 | Scenes are Unity-side, scripts are GitHub-side (D-007 corollary) | 9 | Avoid scene merge conflicts |
+| D-007 | Scenes are Unity-side, scripts are GitHub-side | 9 | Avoid scene merge conflicts |
 | D-008 | Drop `com.unity.textmeshpro` from manifest | 10.5 | Unity 6 folded TMP into UGUI 2.0 |
 | D-009 | ListenSceneSequencer integrates Cinemachine via reflection | 11 | Cutscene asmdef stays Cinemachine-agnostic |
 | D-010 | Seed assets generated by Editor menu, not committed | 11 | Avoids GUID/.meta race conditions |
-| D-011..D-023 | Phase 13–22 architectural choices | 13..22 | (see prior CHANGELOG entries) |
-| D-024 | Bamao sprite auto-detection by structural scoring | 14 | 300+ sprites; structural scoring picks robustly |
-| D-025 | Image.Type.Sliced when sprite has 9-slice border | 14 | Scales dialogue panels at any resolution |
-| D-026 | Color fallback for missing Bamao sprites | 14 | Builder never fails |
-| D-027 | Each Phase builder exposes `TryGet*Prefab()` lookups | 14 | Progressive polish chain |
+| D-011..D-027 | Phase 13–22 architectural choices | 13..22 | (see CHANGELOG) |
 | D-028 | SettingsService is a plain C# class, not a ScriptableObject | 23 | PlayerPrefs-backed; settings survive uninstall via OS keystore |
 | D-029 | MainMenuSaveCoordinator + PauseSaveCoordinator live in Mission asmdef | 23 | UI stays Save-free; matches DreamHook pattern from Phase 22 |
 | D-030 | TeaBrewingUI default duration = 12 s (was 90) | 24 | 90 s is too long for a first-play loop; the player can still set Gentle Mode for longer timers |
 | D-031 | Mission01Director.sceneAfterEndOfDay defaults to MainMenu but is overridden to "04_Mission02_Garden" by Phase 23 | 23 | Default stays safe (no Mission 2 = no broken handoff); polish capstone wires the hand-off |
-| **D-032** | **Runtime MonoBehaviours NEVER live in Editor-asmdef files.** Even nested public classes break at runtime because the Editor asmdef has `includePlatforms = ["Editor"]`. Always declare runtime MonoBehaviours in their owning runtime asmdef. | **23 hotfix** | **Caught the "game not playable" regression in the first playtest. Now a hard rule across the codebase.** |
-| **D-033** | **Procedural UI builders MUST use the two-layer pattern.** Script-host GameObject stays *active*; visual root is a *child* that gets toggled. Single-layer wiring (script-host == visual root, deactivated at build) is forbidden — it kills `Update()` (Esc/H listeners) and `StartCoroutine` (fade-ins, typewriters). | **25** | **Tone Compass crash + Esc/H key dead. Caught in first M1+2 playtest. Codified after the fix.** |
-| **D-034** | **UI overlay scripts MUST self-heal on entry.** `Show()`/`Pause()`/`Play()` activate own `gameObject` if dormant and guard `StartCoroutine` with `activeInHierarchy && isActiveAndEnabled`. Belt-and-braces. | **25** | **Defends against future regressions in builder wiring without forcing a re-build.** |
-| **D-035** | **Asmdef-locality check before pushing.** Any new runtime script that uses types from another asmdef MUST live in an asmdef that *declares the dependency in its references list*. Cross-cutting components (e.g. Interactable + DialogueUI together) belong in the `Mission` asmdef (which references both). The Player asmdef intentionally does NOT reference UI (per D-005) — putting UI-using scripts in Player produces `CS0234 / CS0246`. The pre-push mental checklist: open the target folder's `.asmdef`, read the `references` array, and verify every `using HearthboundHollow.X` in the new file is listed. | **26.1 hotfix** | **CS0234/CS0246 on first `MarinNoteInteractable.cs` push caught by user. Codified to prevent the whole class of cross-asmdef errors going forward.** |
+| D-032 | **Runtime MonoBehaviours NEVER live in Editor-asmdef files.** | 23 hotfix | Caught the "game not playable" regression in the first playtest. Now a hard rule. |
+| **D-033** | **Sprint + Jump are opt-in runtime flags on `PlayerController`. Gentle Mode disables both.** | **26** | Cozy GDD doesn't ask for them. Added as a complete reference so playtesters who reach for Shift/Space don't perceive the controller as broken. |
+| **D-034** | **Player Animator is a single 1D blend tree on `Speed` (0=Idle, 1=Walk, 2=Run).** | **26** | Cozy character always faces movement direction; 2D tree would be wasted. `MoveX/MoveY` params remain exposed for the future upgrade. |
+| **D-035** | **Animator parameter names are configurable on `PlayerController` Inspector fields.** | **26** | Lets us swap to a community controller by retyping strings — no code rewrite. |
+| **D-036** | **`SmoothFollowCamera` is the M1+M2 default, not Cinemachine.** | **26** | Cinemachine is heavier and adds a hard package dep. Phase 17 still creates a Cinemachine prefab when its package is present — both coexist. |
+| **D-037** | **Animations live in `Assets/_Project/Animations/` (Mixamo subfolder optional).** | **26** | Single search path keeps Phase 26's auto-detection deterministic. |
 
 ---
 
@@ -311,15 +190,15 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 | Menu Path | Purpose | Phase |
 |---|---|---|
-| **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** | **🎉 ONE CLICK: full polished playable Mission 1 + 2** | **23** |
+| **`Hearthbound → 🏃 Phase 26 — Player Controller + Animation`** | **🎉 Rebuild the AnimatorController + wire it into every scene's Player + upgrade follow camera** | **26** |
+| **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** | 🎉 ONE CLICK: full polished playable Mission 1 + 2 | 23 |
 | `Hearthbound → 🎮 Build POLISHED Playable Mission 1 (Phase 22)` | Engineering build (no Mission 2, no pause/help/title card) | 22 |
 | `Hearthbound → Build Playable Mission 1 (One Click)` | Phase 12 MVP smoke-test | 12 |
 | `Hearthbound → Phase 13 — Build BoZo Character Prefabs` | BoZo character wrappers | 13 |
 | `Hearthbound → Phase 14 — Build Bamao UI Prefabs` | Bamao parchment UI prefabs | 14 |
 | `Hearthbound → Phase 15 — Build Medieval Village dressing` | Cottage/fence/well/tree prefab lookups | 15 |
 | `Hearthbound → Phase 18 — Build SFX Library` | Auto-populate SfxLibrarySO from sound pack | 18 |
-| **`Hearthbound → Phase 24 — Build Mission 2 Scenes`** | **Garden + Cottage scene builders** | **24** |
-| **`Hearthbound → Phase 26 — Wire Narrative Hooks`** | **Drops Marin's Note onto the workbench in the Hollow** | **26** |
+| **`Hearthbound → Phase 24 — Build Mission 2 Scenes`** | Garden + Cottage scene builders | 24 |
 | `Hearthbound → 🔍 Diagnose Phase 23 Build` | Read-only audit — verifies camera + components in every scene | 23 |
 | `Hearthbound → Setup URP Pipeline (one-time)` | Activate URP | 10.7 |
 | `Hearthbound → Create Mission 1-2 Seed Assets` | Spawn the 17 SOs | 11 |
@@ -332,13 +211,13 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 1. Pull `feat/mission-1-2-architecture` (or rebase your branch on it).
 2. Wait for Unity recompile (~5–10 s; some phases may need ~30 s on first run if packages reimport).
 3. **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** — one click. Sit back for ~30 s while the capstone runs all 12 phases.
-4. **`Hearthbound → Phase 26 — Wire Narrative Hooks`** — drops Marin's Note on the workbench (idempotent; safe to re-run).
+4. **`Hearthbound → 🏃 Phase 26 — Player Controller + Animation`** — one click, ~5 s. Builds Hearthbound_Player.controller + upgrades all scene cameras.
 5. (Optional) **`Hearthbound → 🔍 Diagnose Phase 23 Build`** to verify everything is wired.
 6. Press **Play**. The flow is:
    - Bootstrap → Main Menu
    - "Open The Hollow" → Tone Compass (first time)
    - Lane → walk to door → "Enter the Hollow"
-   - Hollow → meet Doris → polish her First Loaves orb → **read Marin's Note on the workbench** → Evening Ledger
+   - Hollow → meet Doris → choose a price → polish her First Loaves orb → Evening Ledger
    - **Garden** → harvest lavender or valerian → brew tea → walk to exit
    - **Cottage** → meet Gerrold → moral choice (Erase/Cleanse/Listen/Defer) → optional Cleanse mini-game → Dream 2 cutscene → Evening Ledger
    - → Main Menu (Mission 3 is future)
@@ -348,9 +227,13 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 | Action | Key / Stick |
 |---|---|
 | Move | WASD / Arrows / Left stick |
+| **Sprint** | **Left Shift / LStick click** (Gentle Mode disables) |
+| **Jump** | **Space / Gamepad south** (Gentle Mode disables) |
 | Interact | E / Gamepad ▢ |
 | Advance line | Click / Space / Enter |
 | Polish orb | Hold left mouse, draw slow circles |
+| **Camera look** | **Hold Right Mouse + drag / Right Stick** |
+| **Camera zoom** | **Mouse scroll / Gamepad LB-RB** |
 | Pause | Esc |
 | Help | H |
 
@@ -358,26 +241,26 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 
 ## 🟢 What's done in this update
 
+- **Phase 26** (Player Controller + Animation) — 4 new C# files + 2 rewrites + Input Actions update + Animation Requirements doc, ~1,300 LOC.
 - **Phase 23** (Mission 1 polish capstone) — 9 new C# files, 1 master Editor menu, ~1,400 LOC.
 - **Phase 24** (Mission 2 scenes + director) — 2 new C# files, ~1,275 LOC.
-- **Phase 25** (UI activation hotfix) — 11 files modified across UI and Editor builders. See top of file for full detail.
-- **Phase 26** (narrative depth — Marin's Note + editor wiring) — 2 new C# files, parchment-note interactable + idempotent scene-hook builder.
-- **Phase 26.1** (asmdef-locality hotfix) — moved `MarinNoteInteractable.cs` from Player asmdef to Mission asmdef. D-035 added as the hard-rule preventing this class of error.
 - **HOTFIX** — SimpleFollowCamera + DreamHook extracted to runtime asmdefs.
 - 6-scene Build Settings configured automatically by the capstone.
 - Continue button + autosave round-trip working (Continue is dim until autosave exists).
-- Pause menu in every gameplay scene (Esc) — **Phase 25 fixes the Update() listener so this actually works**.
-- Help overlay auto-shows first run, toggle with H — **same Phase 25 fix**.
-- Mission title cards fade in on every mission scene start — **Phase 25 fixes the StartCoroutine path**.
+- Pause menu in every gameplay scene (Esc).
+- Help overlay auto-shows first run, toggle with H — now documents Sprint/Jump/Look/Zoom.
+- Mission title cards fade in on every mission scene start.
 - Ambient autumn loop in every gameplay scene, volume-gated by SettingsService.
 - Pickle the cat companion in the Hollow with PickleAI tail-flicks on polish completion.
 - Mission 1 → Mission 2 narrative hand-off (Doris's ledger now leads into the Garden).
-- Marin's Note on the workbench in the Hollow — first concrete encounter with the predecessor, sets `VillageState.readMarinNoteIds` and nudges `predecessorTrailWarmth +5`.
+- **Polished WASD controller** — camera-relative input, smooth acceleration, sprint + jump opt-in.
+- **Smooth follow camera** — spring-damped, mouse-orbit, zoom, wall-clip protected.
+- **Mixamo-ready Animator** — Humanoid-retargetable; ships working out-of-the-box with BoZo Idle+Walk.
 
 ## ⬜ What's NOT done (Mission 3+ deferred per Krieg Discipline)
 
 - Mission 3+ villagers (currently only Doris + Gerrold + 1 silent lane villager).
-- Predecessor (Marin) full arc — only one signed note ("— M.") references her, plus the new on-workbench note from Phase 26.
+- Predecessor (Marin) full arc — only one signed note ("— M.") references her.
 - Echo Hologram, Locked Room, Forgotten Year, Vance Arc, Mariska, Memory Bees, Composting, Borrowed Memory.
 - Weave / Sever / Listen / Read / Translate / Identify / Compose / Search / Negotiate / Compose Verse mini-games.
 - Letter-Bird Network, Pen-Pal Villages, Dream Cinema community, ARG, Photo Mode.
@@ -386,27 +269,6 @@ Earlier roadmap entries are preserved in `CHANGELOG.md`. Key landmarks:
 - Lightmap bake on Mission 2 scenes — done lazily by user when they're satisfied with the scene dressing.
 - Mobile build profile + ASTC compression — Mission 3+ scope (per Architecture § 10).
 - Mobile IAP, gacha, energy systems — **never** (per Architecture § 13).
-
-## 🟡 Next phase — Phase 26.2 (HEAT modern UI integration + dialogue/text polish)
-
-**Goal:** lift menus, settings, HUD, pause, and help out of the procedural-parchment placeholder into HEAT's modern UI vocabulary — *without* losing the cozy warmth.
-
-Scope:
-1. Replace the procedurally-built Main Menu buttons with HEAT `Button (Panel)` prefabs themed in our warm palette (97/85/62 amber over 18/12/08 deep cocoa).
-2. Replace the procedurally-built Settings panel with a HEAT `Modal Window` containing HEAT `Settings Element (Switch)` rows for Gentle Mode / Auto-Polish / Auto-Cleanse and a HEAT `Settings Element (Slider)` for Subtitle size.
-3. Replace the Pause Menu visual with a HEAT modal.
-4. Replace the Help Overlay with a HEAT custom-content modal.
-5. Modernize the HUD coin + day labels using HEAT `Widgets` (badge style).
-6. Author a Phase 26.2 capstone builder that swaps the visual children of each script-host GameObject without breaking the two-layer wiring established in Phase 25.
-
-Out of scope for Phase 26.2 (kept on procedural for now): in-world dialogue boxes (Bamao parchment is intentional cozy substance there); Mission Title Card (already polished); Tone Compass first-run card (intentional warm parchment).
-
-## 🟡 Next phase — Phase 27 (Mission 1+2 deeper depth polish per Mission_1_2_Focus)
-
-After Phase 26.2 ships:
-1. Audit Mission 1 against `Docs/Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md` — verify all 9 dialogue nodes from `Doris_M1.yarn` are wired, audit emotional beats.
-2. Audit Mission 2 against `Docs/Depth_Bible/Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md` — verify all 4 tariff branches, the 5 Dream 2 variants, and the Listen-path 4-beat narrative pause.
-3. Run the diagnostic menu, capture any warnings, and resolve them.
 
 ---
 
@@ -421,9 +283,8 @@ After Phase 26.2 ships:
 | Phase 23 — Pickle's PickleAI tail bone is null (placeholder sphere has no skeleton) | Cosmetic | 🟡 Acceptable for MVP — PickleAI's headBone/tailBone fields are optional; future polish replaces with real cat mesh |
 | Phase 24 — TeaBrewingUI auto-complete button always brews Lavender by default | Low | 🟡 Acceptable — Mission 2 only needs ONE tea to progress; pick the herb you want and click |
 | Mission02Director — uses `gerroldVillager` portrait for Marin's note lines in Garden | Cosmetic | 🟡 Acceptable — Marin has no portrait yet; the fallback is the speaker name only |
-| **2026-05-24 (late) — Phase 25 hotfix** — Tone Compass crash + Pause/Help Update() dead | **Blocker** | ✅ **Fixed** — 9 UI scripts self-heal + Phase23/OneClickSetup use two-layer wiring. See top of file. |
-| **2026-05-24 (even later) — Phase 26.1 hotfix** — `MarinNoteInteractable.cs` CS0234/CS0246 because it was placed in Player asmdef (which intentionally doesn't reference UI). | **Compile error** | ✅ **Fixed** — moved to Mission asmdef. D-035 added: pre-push asmdef-locality check. |
+| **Phase 26** — Run/Jump/Fall/Land Animator states show Idle pose without Mixamo clips | Cosmetic | 🟡 Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per `Docs/ANIMATION_REQUIREMENTS.md` § 3 |
 
 ---
 
-*Last updated: 2026-05-24 — Phase 26.1 fixed the MarinNoteInteractable asmdef-locality bug. Pull, recompile, re-test in Unity.*
+*Last updated: 2026-05-24 — Phase 26 (Player Controller + Animation) lands alongside the hotfix. Run Phase 23 then Phase 26 in Unity to regenerate scenes + AnimatorController.*
