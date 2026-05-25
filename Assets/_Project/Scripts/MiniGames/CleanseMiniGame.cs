@@ -6,6 +6,15 @@
 //
 // Outcomes: Perfect | Acceptable | Sloppy | CrossedCore (Focus 04 § 3.5)
 // The narrative absorbs the failure state; we never display "Failure" text.
+//
+// ── Phase 34 (2026-05-25) ───────────────────────────────────────
+// Same input-fallback fix as PolishMiniGame: when no
+// InputActionReference is wired, the old fallback treated
+// `pointerActiveAction == null` as "always pressed", so cleanse
+// tracing progressed on bare mouse motion. The on-screen tutorial
+// overlay (MiniGameTutorialUI) and help overlay both say "Hold left
+// mouse, trace each crack" — so the contract must match. Now the
+// fallback uses Input.GetMouseButton(0).
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -85,7 +94,14 @@ namespace HearthboundHollow.MiniGames
             Vector2 pos = pointerPositionAction != null && pointerPositionAction.action != null
                 ? pointerPositionAction.action.ReadValue<Vector2>()
                 : (Vector2)Input.mousePosition;
-            bool down = pointerActiveAction == null || pointerActiveAction.action == null || pointerActiveAction.action.IsPressed();
+            // Phase 34: same fix as PolishMiniGame — require LMB held in the
+            // fallback so cleanse-tracing matches the help overlay copy
+            // ("Hold left mouse, trace each crack").
+            bool down;
+            if (pointerActiveAction != null && pointerActiveAction.action != null)
+                down = pointerActiveAction.action.IsPressed();
+            else
+                down = Input.GetMouseButton(0);
 
             if (!down)
             {
