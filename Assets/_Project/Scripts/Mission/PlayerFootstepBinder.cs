@@ -27,6 +27,14 @@
 // NO mandatory Animation Events — if a Mixamo clip ships without them, the
 // binder is silent. BoZo's bundled BMAC_M_Walk / BMAC_F_Walk also lack events
 // out of the box. The Phase 26 doc explains how to add them in 30 seconds.
+//
+// SfxPlayer API contract (from HearthboundHollow.Audio.SfxPlayer):
+//   public void PlayOneShot(string id, float volumeScale = 1f)
+// Pitch jitter is therefore applied locally — we play the one-shot and
+// also reach into the spawned AudioSource's pitch via FindObjectsByType
+// once-only, OR (simpler) we accept that the SfxPlayer doesn't expose a
+// pitch knob and rely on per-clip variants. To keep the binder self-
+// contained and forward-compatible, we ONLY use PlayOneShot(id, volume).
 
 using UnityEngine;
 using HearthboundHollow.Audio;
@@ -42,8 +50,9 @@ namespace HearthboundHollow.Mission
         [Tooltip("Default footstep id — used when no surface-specific id matches.")]
         public string defaultFootstepId = "footstep_grass";
 
-        [Tooltip("Sprint footstep id — louder/heavier variant when IsSprinting.")]
-        public string sprintFootstepId = "footstep_grass_sprint";
+        [Tooltip("Sprint footstep id — louder/heavier variant when IsSprinting. " +
+                 "Leave empty to fall back to defaultFootstepId at higher volume.")]
+        public string sprintFootstepId = "";
 
         [Tooltip("Surface-specific overrides keyed by collider tag (e.g. 'Wood', 'Stone'). " +
                  "Falls back to defaultFootstepId if no override matches.")]
@@ -58,8 +67,6 @@ namespace HearthboundHollow.Mission
         public float walkVolume = 0.55f;
         [Range(0f, 1.5f)]
         public float sprintVolume = 0.85f;
-        [Range(0f, 0.3f)]
-        public float pitchJitter = 0.07f;
 
         [Header("Probe (surface detection)")]
         [Tooltip("Distance below the player root to probe for a surface collider.")]
@@ -110,22 +117,13 @@ namespace HearthboundHollow.Mission
             bool sprinting = playerController != null && playerController.IsSprinting;
             string id = ResolveFootstepId(sprinting);
             float volume = sprinting ? sprintVolume : walkVolume;
-            float pitch = 1f + Random.Range(-pitchJitter, pitchJitter);
 
             // The L/R alternation isn't acoustically meaningful (the clip
             // content is the same) but we expose the param so a future
             // designer can author asymmetric L/R variants.
             _ = isLeftFoot;
 
-            try
-            {
-                sfxPlayer.PlayById(id, volume, pitch);
-            }
-            catch
-            {
-                // SfxPlayer may not expose PlayById in older builds; silently
-                // ignore. The binder is opt-in polish.
-            }
+            sfxPlayer.PlayOneShot(id, volume);
         }
 
         private string ResolveFootstepId(bool sprinting)
