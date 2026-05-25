@@ -59,6 +59,12 @@ namespace HearthboundHollow.UI
         {
             // Hide only the visual panel — never the script-host.
             if (root != null && root != gameObject) root.SetActive(false);
+
+            // Phase 29 — defensive UI polish: force word-wrap + auto-size on
+            // the line text and speaker name so even legacy prefabs that
+            // pre-date Phase 14's polish layer don't clip long villager lines.
+            UIAutoFitText.ApplyToLabel(lineText, minSize: 16, maxSize: 28);
+            UIAutoFitText.ApplyToButtonLabel(speakerName, minSize: 18, maxSize: 32);
         }
 
         public void PresentLine(string speaker, string text, Sprite portrait)
