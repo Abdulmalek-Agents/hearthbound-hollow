@@ -37,7 +37,7 @@ namespace HearthboundHollow.EditorTools
         private const string BindingsDir = "Assets/_Project/ScriptableObjects/Setup";
         private const string BindingsPath = BindingsDir + "/MedievalVillageBindings.asset";
 
-        [MenuItem("Hearthbound/Phase 15 — Build Medieval Village Bindings", priority = 202)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 15 — Build Medieval Village Bindings", priority = 202)]
         public static void Build()
         {
             if (!AssetDatabase.IsValidFolder(MVRoot))
