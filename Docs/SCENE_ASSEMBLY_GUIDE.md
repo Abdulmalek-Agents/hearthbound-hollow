@@ -5,6 +5,17 @@
 
 ---
 
+## ⚡ Fast path (one menu click — recommended)
+
+If you've pulled the branch and just want a working build:
+
+1. **`Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`** — runs all capstones (Phase 23 polished scenes + Phase 26 Player Controller + Animation + Phase 26 NPC Animators + Phase 26 Narrative Hooks) in sequence (~45 s). Opens `00_Bootstrap.unity` when done.
+2. Press **Play**.
+
+The rest of this guide describes the **manual** assembly process — what each scene contains, in case you want to author by hand instead of letting the capstones do it.
+
+---
+
 ## Prerequisites
 
 After pulling `feat/mission-1-2-architecture`:
@@ -55,11 +66,15 @@ Build steps:
 
 Build steps:
 1. Save new scene.
-2. *GameObject → Camera*. Add **Cinemachine** → CinemachineCamera. Set Follow + LookAt to a placeholder Player Transform you'll create next.
+2. *GameObject → Camera*. Add the **SmoothFollowCamera** (Phase 26) component, OR the legacy SimpleFollowCamera, OR a Cinemachine virtual camera — any of the three works. The Phase 26 capstone auto-upgrades SimpleFollowCamera → SmoothFollowCamera when run.
 3. Drag from `Assets/MeshingunStudio/Medieval Village/Scenes/MedievalTownMain/` the demo scene's environment chunk (or open it additively and merge a slice).
 4. Place 6-8 cottage exteriors along a lane axis.
-5. Drag **BoZo Cleric** prefab from `Assets/BoZo_StylizedModularCharacters/Prefabs/` and rename to `Player`. Add `CharacterController` (radius 0.4, height 1.8). Add the **PlayerController** component. Drag the Cinemachine Camera's Follow + LookAt to this Transform.
-6. Place a separate `Doris` GameObject (also a BoZo Cleric prefab, reskinned with an apron — material override later). At her feet add a `HollowDoorInteractable` proxy collider (BoxCollider, IsTrigger=true) on a child marked **HollowDoor**.
+5. Drag the **Player prefab** from `Assets/_Project/Prefabs/Player/Player.prefab` (built by Phase 13 from BoZo). Set position appropriately. After Phase 26 runs, the prefab has:
+   - `CharacterController` (radius 0.4, height ≈ 1.9)
+   - `PlayerController` (camera-relative WASD, optional Sprint + Jump, Animator bridge)
+   - `Animator` on the Body child wired to `Assets/_Project/Animations/Hearthbound_Player.controller`
+   - `PlayerController.cameraReference` set to the Main Camera (done by Phase 26 builder)
+6. Place a separate `Doris` GameObject (also a BoZo wrapper from `Assets/_Project/Prefabs/NPCs/Doris.prefab`, reskinned with an apron — material override later). At her feet add a `HollowDoorInteractable` proxy collider (BoxCollider, IsTrigger=true) on a child marked **HollowDoor**.
 7. Add `DayCycleManager` to a `_Lighting` GameObject. Set Sun to your scene's directional light. Set `dayProgress01 = 0.6` (Afternoon).
 8. Add `LumenLightController` to the same `_Lighting` object. Wire it to a Lumen God-Ray mesh placed at the shop window (from `Packages/com.distantlands.lumen/Content/`).
 9. *Add to Scenes In Build* index 2.
@@ -76,7 +91,7 @@ Build steps:
 3. Place `Workbench` prop. On the workbench add a child `OrbCradle` empty.
 4. Drag your `MemoryOrb_Master.prefab` (Phase 11 — we'll author the shader graph below) and place it on `OrbCradle`.
 5. Add `MemoryOrbInteractable` component on the orb GameObject. Drag the DOR-001 MemoryNodeSO asset (you'll need to create this in Project — *Create → Hearthbound → Memory → Memory Node*, set id="DOR-001", title="First Loaves", primary tone Joy, weight 0.4, initial clarity 0.4).
-6. Add an empty `_Player` and copy the Player from the lane scene (same Cinemachine setup).
+6. Add an empty `_Player` and copy the Player from the lane scene (same Phase 26 wiring — PlayerController + Animator + SmoothFollowCamera).
 7. UI canvas: 2 root children — `DialogueUI` (parchment box + portrait + line text), `EveningLedgerUI` (book-style summary panel). Both prefab roots disabled at start; the scripts toggle them.
 8. Add `MissionRunner` to a root `_Mission` object. Reference `mission` (create *Create → Hearthbound → Mission → Mission* MissionSO with `missionId="Mission01"`).
 9. Add `PolishMiniGame` to a child of `_Mission`. Wire `Target Orb` to the workbench orb.
@@ -106,12 +121,36 @@ Build steps:
 Build steps:
 1. Save new scene.
 2. Place a small cottage interior using Medieval Village interior parts (one room, bed, table, chair).
-3. Drag a `Gerrold` BoZo Bard prefab (long coat + hat reskin).
+3. Drag a `Gerrold` BoZo Bard prefab from `Assets/_Project/Prefabs/NPCs/Gerrold.prefab` (long coat + hat reskin; Phase 13 + Phase 26-NPC wire the Animator + NpcAnimatorBridge).
 4. Place the `GER-007` orb (MemoryNodeSO with crackIntensity=0.6, primaryTone=Grief).
 5. Add `CleanseMiniGame` to a `_Mission` root with target orb wired.
 6. Add `ChoiceCardUI` to UI canvas. Wire `choiceTilePrefab` to a Bamao tile prefab you author with named children Label/CostPreview/Icon.
 7. Add `MemoryDreamSequencer` to a `_Cutscene` root. Add a `PlayableDirector` on the same object and wire to the sequencer.
 8. *Add to Scenes In Build* index 5.
+
+---
+
+## Phase 26 — Player Controller + Animation (post-build polish)
+
+After the 6 base scenes exist, run the Phase 26 capstone (or use the Phase 27 master menu). It will:
+
+| Step | Result |
+|---|---|
+| Build `Assets/_Project/Animations/Hearthbound_Player.controller` | 1D Blend Tree on Speed (Idle/Walk/Run) + Jump/Fall/Land states |
+| Build `Assets/_Project/Animations/Hearthbound_NPC.controller` | Idle ↔ Talking states for Doris/Gerrold |
+| Wire Player prefab Animator → player controller | Apply Root Motion = OFF; CharacterController owns position |
+| Wire Doris / Gerrold / SilentLane Animators → NPC controller | NpcAnimatorBridge listens for `DialogueStartedEvent` and toggles `IsTalking` |
+| Upgrade SimpleFollowCamera → SmoothFollowCamera in every gameplay scene | Spring-damped follow, RMB-orbit, scroll-zoom, sphere-cast wall-clip |
+| Set `PlayerController.cameraReference` to the upgraded camera | WASD becomes camera-relative |
+
+To run individually:
+- `Hearthbound → 🏃 Phase 26 — Player Controller + Animation` — player side
+- `Hearthbound → 🎭 Phase 26 — Wire NPC Animators` — NPC side
+- `Hearthbound → 🔍 Diagnose Phase 26 Build` — audit the result
+
+Optional polish:
+- Drop 6 Mixamo FBXs (Idle / Walking / Running / Jumping In Place / Falling Idle / Landing) into `Assets/_Project/Animations/Mixamo/` and re-run Phase 26 — full locomotion + jump-fall-land animation will activate automatically. Details in `Docs/ANIMATION_REQUIREMENTS.md` § 3.
+- Attach `PlayerFootstepBinder` to the Player root for surface-aware footstep SFX (see `Assets/_Project/Scripts/Mission/PlayerFootstepBinder.cs` header for the 30-second setup).
 
 ---
 
@@ -147,7 +186,9 @@ The `MemoryOrbInteractable` script's `SetClarity()` / `SetCrackIntensity()` alre
 - VoluSmokeFX / Skill Tree Builder / Colorize / LightMap Fusion Pro / Microdetail Terrain — these 5 Tier-A assets are not yet imported; the M1-2 scenes use built-in substitutes where they would have been used (basic particles for steam, custom MemoryMapUI for the tree, single bake for lighting). When you import them later, the existing prefabs accept their components as drop-ins.
 - Composer cues + VO recordings — Foley + placeholder VO are OK for the build; final audio is post-Mission 2.
 - Bake lightmaps — once scenes are populated, *Window → Rendering → Lighting → Bake.*
+- Mixamo locomotion clips beyond Idle/Walk — optional polish, see `Docs/ANIMATION_REQUIREMENTS.md`.
+- A Mixamo `Talking.fbx` clip for NPCs — optional polish, the NPC controller currently uses Idle for both states. Drop the FBX and re-run the NPC capstone.
 
 ---
 
-*This guide is the contract between scripts-on-GitHub and scenes-in-Unity. Update it any time the C# changes require scene-level revisions.*
+*This guide is the contract between scripts-on-GitHub and scenes-in-Unity. Update it any time the C# changes require scene-level revisions. Last updated Phase 27 (master capstone + Phase 26 player & NPC animator pipelines).*
