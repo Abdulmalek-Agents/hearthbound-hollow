@@ -1,23 +1,46 @@
 // SPDX-License-Identifier: MIT
 // Hearthbound Hollow — Mission / Mission01Director
 //
-// The runtime orchestrator for the Mission 1 MVP playable slice (Phase 12).
+// The runtime orchestrator for the Mission 1 MVP playable slice.
 //
-// Unlike the long-form Yarn-driven dialogue (Phase 6+, which requires the
-// optional Yarn Spinner package), this director sequences the gameplay
-// directly using DialogueUI.PresentLine / PresentChoices. This lets the
-// MVP run END-TO-END before the user installs Yarn Spinner.
+// ── Playtest pass fix (commit 3/6) ──────────────────────────────
+// QA simulated-playthrough audit found this director was running with
+// HARD-CODED Phase 12 placeholder strings ("Oh — you must be the new
+// Keeper...") that completely diverged from the canonical Doris voice
+// signature in Docs/Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md
+// and the shipped Doris_M1.yarn. The newly-expanded ~180-line Vellis-tier
+// Yarn dialogue was sitting unused.
+//
+// FIX: Replaced every hard-coded line with the canonical text from
+// Doris_M1.yarn. Added the missing 3-option opener ("Who was the old
+// one?" branch — the only way to plant the Marin reveal thread),
+// the iconic "Hold it like you'd hold a hot bun" offer line, the
+// refusal path (Mission 1 Guide § 9.4), and the 5-line "First Loaves"
+// aside about age 24.
+//
+// Pricing is in COPPERS (4/5/2) not silver (5/10/3) per Doris_M1.yarn
+// price-negotiation node.
+//
+// Compilation note: this fallback path runs even when Yarn Spinner is
+// NOT installed (Phase 12 MVP requirement). When Yarn IS installed,
+// future work will route through DialogueRunner.StartDialogue() against
+// the same Doris_M1 nodes — but the text shown to the player will be
+// identical either way.
 //
 // Flow:
-//   1. On Start: lock player input (until dialogue ends)
-//   2. Doris greets the player
-//   3. Player picks a price (3 choices)
-//   4. Doris hands off the orb (orb becomes visible on workbench)
-//   5. Director listens for player to approach workbench
-//   6. PolishMiniGame begins
-//   7. On polish complete: Doris reacts (clarity-tiered line)
-//   8. Evening Ledger opens
-//   9. End Day → MainMenu
+//   1. Doris greets the player ("You're the new one. I thought you'd be taller.")
+//   2. 3-option opener (Hello / silent / "Who was the old one?")
+//   3. Bakery enter + wooden-box scene ("Mind the flour.")
+//   4. "I'd like to be your first customer" preamble
+//   5. The iconic orb offer ("Hold it like you'd hold a hot bun")
+//   6. 3-option orb response (Take + price / Tell me more first / Refuse)
+//   7. If refused → quiet alternate path (Mission 1 Guide § 9.4)
+//   8. Otherwise: 3-option price negotiation (Honor 4cu / Pay 6→5cu / Underpay 2cu)
+//   9. Hand-off ("The cat watched me. Judged me, I think.")
+//   10. Polish mini-game
+//   11. Doris's after-polish line branches on $polish_quality
+//   12. "Sleep tonight. Dreams come."
+//   13. Evening Ledger → end of day
 
 using System.Collections;
 using System.Collections.Generic;
@@ -108,76 +131,174 @@ namespace HearthboundHollow.Mission
 
         internal void OnPlayerApproachedWorkbench()
         {
-            if (_polishStarted) return;
+            if (_polishStarted || _refusedPath) return;
             _polishStarted = true;
             StartCoroutine(PolishFlow());
         }
 
         private bool _greetingStarted;
         private bool _polishStarted;
+        private bool _refusedPath;
 
         // ───── The dialogue flow ────────────────────────────────────
+        // All canonical text below is from Doris_M1.yarn nodes
+        // (Doris_M1_Start, Doris_M1_BakeryEnter, Doris_M1_OfferOrb,
+        // Doris_M1_AboutTheLoaves, Doris_M1_PriceNegotiation,
+        // Doris_M1_HandOff, Doris_M1_RefusedPath).
+        // Voice signature: bread metaphors, no Elric named in M1, ~12-word
+        // sentences, no "goodbye" at end of M1.
 
         private IEnumerator GreetingFlow()
         {
             LockPlayer(true);
 
-            yield return Line(dorisVillager, "Doris", "Oh — you must be the new Keeper.");
-            yield return Line(dorisVillager, "Doris", "I'd heard. I just didn't expect... so soon.");
+            // Doris_M1_Start — canonical opener.
+            yield return Line(dorisVillager, "Doris", "You're the new one.");
+            yield return Line(dorisVillager, "Doris", "I thought you'd be taller.");
+            yield return Line(dorisVillager, "Doris", "Don't mind me — I thought that about the old one, too.");
+            yield return Line(dorisVillager, "Doris", "Come in. The kettle's only just stopped.");
 
-            // Choice 1: how does the player reply to the greeting?
+            // 3-option opener (Mission 1 Guide § 8.2).
             int reply = -1;
-            PresentChoices(new[] { "I'm here to help.", "I'm not sure I'm ready.", "(wait, in silence)" }, c => reply = c);
+            PresentChoices(new[]
+            {
+                "Hello. Are you Doris?",
+                "(Nod silently and follow her in)",
+                "Who was the old one?",
+            }, c => reply = c);
             while (reply < 0) yield return null;
+
+            var vs = ServiceLocator.Get<VillageState>();
             switch (reply)
             {
                 case 0:
-                    yield return Line(dorisVillager, "Doris", "That's kind. That's — kind.");
-                    AdjustTrust("doris", +5);
+                    yield return Line(dorisVillager, "Doris", "Aye. The very same.");
+                    yield return Line(dorisVillager, "Doris", "They've put my name on the sign and everything. Look — there.");
                     break;
                 case 1:
-                    yield return Line(dorisVillager, "Doris", "None of us ever are, dear. None of us ever are.");
+                    yield return Line(dorisVillager, "Doris", "A quiet one, then. Good.");
+                    yield return Line(dorisVillager, "Doris", "The bread likes quiet.");
+                    AdjustTrust("doris", +1);
                     break;
                 case 2:
-                    yield return Line(dorisVillager, "Doris", "It's all right. We can stand here a moment.");
+                    // The ONLY way to plant the Marin reveal thread in M1.
+                    yield return Line(dorisVillager, "Doris", "... Mm.");
+                    yield return Line(dorisVillager, "Doris", "That's a conversation for a longer day.");
+                    yield return Line(dorisVillager, "Doris", "Come in. Tea first.");
+                    if (vs != null) vs.askedAboutPredecessor = true;
+                    AdjustTrust("doris", +2);
                     break;
             }
 
-            yield return Line(dorisVillager, "Doris", "I have a memory. The morning I first baked bread on my own.");
-            yield return Line(dorisVillager, "Doris", "It's bright. So bright I sometimes can't go into the kitchen.");
-            yield return Line(dorisVillager, "Doris", "I'd like to look at it less. I'd like it not to ache. Would you buy it?");
+            // Doris_M1_BakeryEnter.
+            if (vs != null) vs.metDoris = true;
+            yield return Line(dorisVillager, "Doris", "Mind the flour.");
+            yield return Line(dorisVillager, "Doris", "I haven't swept since Tuesday. I keep meaning to.");
+            yield return Line(dorisVillager, "Doris", "... The shop next door is yours. The Hollow.");
+            yield return Line(dorisVillager, "Doris", "I've been keeping the key safe for you.");
 
-            // Choice 2: the price.
+            // "First customer" preamble.
+            yield return Line(dorisVillager, "Doris", "... I have something for you. Before you go in.");
+            yield return Line(dorisVillager, "Doris", "I'd like to be your first customer, if that's all right.");
+
+            // Doris_M1_OfferOrb — the iconic line.
+            yield return Line(dorisVillager, "Doris", "This is the memory.");
+            yield return Line(dorisVillager, "Doris", "Hold it like you'd hold a hot bun. Not by the side. Underneath.");
+            yield return Line(dorisVillager, "Doris", "It's a small thing.");
+            yield return Line(dorisVillager, "Doris", "First time I made bread that didn't shame me.");
+            yield return Line(dorisVillager, "Doris", "Most days I think of it.");
+            yield return Line(dorisVillager, "Doris", "I want to put it down, now, for a while.");
+            yield return Line(dorisVillager, "Doris", "Will you take it?");
+
+            // 3-option orb response.
+            int orbReply = -1;
+            PresentChoices(new[]
+            {
+                "I will. What do you want for it?",
+                "Tell me more about it first.",
+                "I'd rather not, today.",
+            }, c => orbReply = c);
+            while (orbReply < 0) yield return null;
+
+            if (orbReply == 2)
+            {
+                // Refusal path — Mission 1 Guide § 9.4. Fully valid route.
+                yield return Line(dorisVillager, "Doris", "Aye. Some days are not the day.");
+                yield return Line(dorisVillager, "Doris", "I'll be here when one is.");
+                if (vs != null)
+                {
+                    vs.refusedDorisOrb = true;
+                    vs.vow1Integrity = VillageState.Adjust(vs.vow1Integrity, +2);
+                }
+                yield return EnterRefusedPath();
+                yield break;
+            }
+
+            if (orbReply == 1)
+            {
+                // Doris_M1_AboutTheLoaves — the 5-line aside.
+                yield return Line(dorisVillager, "Doris", "I was twenty-four.");
+                yield return Line(dorisVillager, "Doris", "The oven was new. The bricks were new. I was new.");
+                yield return Line(dorisVillager, "Doris", "I'd been baking other people's bread for nine years.");
+                yield return Line(dorisVillager, "Doris", "That morning was the first morning that was just mine.");
+                yield return Line(dorisVillager, "Doris", "I want to take a rest from carrying it. That's all.");
+            }
+
+            // Doris_M1_PriceNegotiation — 3 options in COPPERS (per canonical).
+            yield return Line(dorisVillager, "Doris", "Four coppers, if you're asking.");
+            yield return Line(dorisVillager, "Doris", "It's a small memory. I'll not have you overpay your first day.");
+
             int price = -1;
             PresentChoices(new[]
             {
-                "I'll honor it. Five silver.",
-                "Ten silver — it looks important.",
-                "Three silver — I'm starting out.",
+                "Four coppers is fair. (Honor the price)",
+                "I'll pay six.",
+                "Two coppers. That's all I have.",
             }, c => price = c);
             while (price < 0) yield return null;
 
-            int coinDelta = 0;
+            int coinDelta;
             switch (price)
             {
-                case 0: coinDelta = -5;  AdjustTrust("doris", +5); break;
-                case 1: coinDelta = -10; AdjustTrust("doris", +8); break;
-                case 2: coinDelta = -3;  AdjustTrust("doris", +2); break;
+                case 0: // Honor
+                    yield return Line(dorisVillager, "Doris", "Aye. Thank you.");
+                    coinDelta = -4;
+                    if (vs != null) vs.vow5Integrity = VillageState.Adjust(vs.vow5Integrity, +2);
+                    break;
+                case 1: // Pay 6 → she settles at 5
+                    yield return Line(dorisVillager, "Doris", "That's too much. I'll not have you ruin yourself.");
+                    yield return Line(dorisVillager, "Doris", "Take it back. — Well. Take *some* back.");
+                    yield return Line(dorisVillager, "Doris", "Five, then. Final.");
+                    coinDelta = -5;
+                    if (vs != null)
+                    {
+                        vs.vow5Integrity = VillageState.Adjust(vs.vow5Integrity, +3);
+                        vs.trustDoris = VillageState.Adjust(vs.trustDoris, +1);
+                    }
+                    break;
+                default: // Underpay 2 → debt thread
+                    yield return Line(dorisVillager, "Doris", "...");
+                    yield return Line(dorisVillager, "Doris", "Aye, that'll do. Bring the rest when you find some.");
+                    coinDelta = -2;
+                    if (vs != null)
+                    {
+                        vs.dorisOwesPlayer = -2;
+                        vs.vow5Integrity = VillageState.Adjust(vs.vow5Integrity, -1);
+                    }
+                    break;
             }
-            var vs = ServiceLocator.Get<VillageState>();
             if (vs != null) vs.coin = Mathf.Max(0, vs.coin + coinDelta);
 
-            yield return Line(dorisVillager, "Doris", price == 1
-                ? "That's more than fair. Thank you."
-                : "That's — fair.");
-
-            yield return Line(dorisVillager, "Doris", "Polish it gently. The faster you press, the less the orb hears you.");
-            yield return Line(dorisVillager, "Doris", "There's a note pinned above the workbench. Marin's hand. It still helps.");
+            // Doris_M1_HandOff — the first hint that Pickle has been here for years.
+            yield return Line(dorisVillager, "Doris", "There.");
+            yield return Line(dorisVillager, "Doris", "The old keeper showed me how to make it. Took me four tries.");
+            yield return Line(dorisVillager, "Doris", "I cracked the first three. The cat watched me. Judged me, I think.");
+            yield return Line(dorisVillager, "Doris", "I'll be in the bakery if you want me. Knock twice.");
+            yield return Line(dorisVillager, "Doris", "There's a kettle on the workbench. Mind the wood stove — it bites.");
 
             // Hand off the orb visually.
             if (workbenchOrb != null) workbenchOrb.gameObject.SetActive(true);
             if (_workbenchProxy != null) _workbenchProxy.gameObject.SetActive(true);
-            // Doris no longer needs to greet us.
             if (dorisGreetingTrigger != null) dorisGreetingTrigger.enabled = false;
 
             if (dialogueUI != null) dialogueUI.Hide();
@@ -186,16 +307,54 @@ namespace HearthboundHollow.Mission
             Hh.Log(LogCategory.Mission, "Doris handed over the orb. Walk to the workbench to polish it.");
         }
 
+        // ───── Refused path (Mission 1 Guide § 9.4) ────────────────
+
+        private IEnumerator EnterRefusedPath()
+        {
+            _refusedPath = true;
+            yield return Line(dorisVillager, "Doris", "The shop's still yours.");
+            yield return Line(dorisVillager, "Doris", "Go in. Sit a while. The kettle is on.");
+            yield return Line(dorisVillager, "Doris", "I'll be here when you're ready.");
+
+            if (dorisGreetingTrigger != null) dorisGreetingTrigger.enabled = false;
+            if (dialogueUI != null) dialogueUI.Hide();
+            LockPlayer(false);
+
+            // No orb. No polish. No Memory Dream 1. The player explores the
+            // Hollow, then can open the Evening Ledger (which will use the
+            // EveningLedger_M1_Day1_Refused prose variant).
+            StartCoroutine(WaitForRefusedLedger());
+        }
+
+        private IEnumerator WaitForRefusedLedger()
+        {
+            // Give the player ~90 seconds to explore. Then open the Ledger
+            // automatically with the refusal-path prose.
+            yield return new WaitForSeconds(90f);
+            OpenRefusedLedger();
+        }
+
+        private void OpenRefusedLedger()
+        {
+            if (eveningLedger == null) return;
+            var titles = new List<string>(); // no memories held
+            string summary =
+                "You arrived at the Hollow. The door was unlocked. The kettle was warm.\n" +
+                "Doris, the baker, offered her First Loaves. You declined, this evening.\n" +
+                "She did not seem to mind.\n\n" +
+                "The shop is still yours.\n" +
+                "Some days are not the day.";
+            eveningLedger.Show(summary, titles);
+        }
+
         // ───── The polish flow ──────────────────────────────────────
 
         private IEnumerator PolishFlow()
         {
             LockPlayer(true);
 
-            yield return Line(dorisVillager, "Doris", "(stands back and watches)");
+            // Brief visual cue — Doris stays in the bakery; polish is private.
             if (dialogueUI != null) dialogueUI.Hide();
-
-            // Camera/cursor unlocked; polish input is the cursor itself.
             LockPlayer(false);
 
             if (polishGame == null)
@@ -204,7 +363,6 @@ namespace HearthboundHollow.Mission
                 yield break;
             }
             polishGame.BeginGame(workbenchOrb);
-            // Wait for OnGameFinished callback (sets the flag below).
         }
 
         private bool _polishFinishedHandled;
@@ -222,22 +380,51 @@ namespace HearthboundHollow.Mission
             yield return new WaitForSeconds(0.4f);
 
             float clarity = workbenchOrb != null ? workbenchOrb.runtimeClarity : 0.5f;
-            string line = clarity >= 0.95f
-                ? "... You did it cleaner than I remembered. That's how it was. Yes."
-                : clarity >= 0.55f
-                    ? "It's a little less bright than I remembered. That's all right."
-                    : "It's the morning still. A little dimmer. I'll come back tomorrow.";
-            yield return Line(dorisVillager, "Doris", line);
-            yield return Line(dorisVillager, "Doris", "Keep it on the shelf. Goodnight, Keeper.");
+            string polishQuality;
+            string afterPolishLine;
+            int trustDelta;
+
+            if (clarity >= 0.95f)
+            {
+                polishQuality = "Perfect";
+                afterPolishLine = "You did it cleaner than I remembered it. I think you'll do.";
+                trustDelta = 3;
+            }
+            else if (clarity >= 0.55f)
+            {
+                polishQuality = "Acceptable";
+                afterPolishLine = "You did it kindly. That's what matters.";
+                trustDelta = 2;
+            }
+            else
+            {
+                polishQuality = "Mild";
+                afterPolishLine = "... It's the morning still. A little dimmer. But mine. First days are like that. I won't hold it.";
+                trustDelta = 1;
+            }
+
+            var vs = ServiceLocator.Get<VillageState>();
+            if (vs != null) vs.polishQuality = polishQuality;
+
+            // Doris_M1_AfterPolish_Return — the warm exit.
+            yield return Line(dorisVillager, "Doris", "Aye.");
+            yield return Line(dorisVillager, "Doris", "There it is. That's the morning.");
+            yield return Line(dorisVillager, "Doris", afterPolishLine);
+            AdjustTrust("doris", trustDelta);
+
+            // Canonical M1 exit — no "goodbye." Vellis Rule § 2.1 #6.
+            yield return Line(dorisVillager, "Doris", "Sleep tonight. Dreams come.");
+            yield return Line(dorisVillager, "Doris", "I'll see you again, eventually.");
 
             if (dialogueUI != null) dialogueUI.Hide();
 
             // Save the memory to the held list.
-            var vs = ServiceLocator.Get<VillageState>();
             if (vs != null && dorisMemory != null && !vs.heldMemoryIds.Contains(dorisMemory.id))
                 vs.heldMemoryIds.Add(dorisMemory.id);
 
-            // Show the Evening Ledger.
+            // Show the Evening Ledger — canonical Day 1 Standard prose from
+            // EveningLedger.yarn (Esme Cordray, fix commit 6/10 of the prior
+            // content pass; this director routes the same text here).
             if (eveningLedger != null)
             {
                 var titles = new List<string>();
@@ -246,11 +433,16 @@ namespace HearthboundHollow.Mission
                     foreach (var id in vs.heldMemoryIds)
                         titles.Add(dorisMemory != null && id == dorisMemory.id ? dorisMemory.title : id);
                 }
-                string summary = clarity >= 0.95f
-                    ? "Doris's first loaves now rest on your shelf, bright as the morning they were baked."
-                    : clarity >= 0.55f
-                        ? "Doris's first loaves are warm on your shelf. Not perfect, but kept."
-                        : "The orb is dim. Doris said she'd come back. You think she will.";
+
+                string summary =
+                    "You arrived at the Hollow this evening.\n" +
+                    "The door was unlocked. The kettle was warm.\n\n" +
+                    "Doris, the baker, was your first visitor.\n" +
+                    "She offered her First Loaves — a memory from the morning her bakery opened, fifty years ago.\n" +
+                    "You polished it. You did your work. She seemed pleased.\n\n" +
+                    "Pickle, the cat who lives in the shop, was on the windowsill.\n" +
+                    "She did not move. She is watching you.\n\n" +
+                    "The shop is quiet. The shelf is no longer empty.";
                 eveningLedger.Show(summary, titles);
             }
             LockPlayer(false);
@@ -280,7 +472,6 @@ namespace HearthboundHollow.Mission
             Sprite portrait = villager != null ? villager.portraitNeutral : null;
             dialogueUI.PresentLine(speakerName, lineText, portrait);
             while (dialogueUI.IsBusy) yield return null;
-            // Wait briefly so the player can read, then advance on click.
             yield return WaitForAdvance();
         }
 

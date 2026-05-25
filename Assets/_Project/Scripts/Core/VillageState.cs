@@ -5,6 +5,25 @@
 // In Mission 1-2 only 4 dimensions are written to. The other 10 fields sit at
 // default values per the Krieg Discipline (Focus 00 § 5) — the schema is the
 // architectural contract that prevents rework when we scale to Mission 3+.
+//
+// ── Playtest pass fix (commit 1/6) ──────────────────────────────
+// QA simulated-playthrough audit found the following fields referenced by
+// the expanded Yarn files (Doris_M1, Gerrold_M2, Pickle, EveningLedger,
+// Codex, ChoiceCards) had no corresponding VillageState fields, breaking
+// the YarnVillageStateBridge bi-directional sync:
+//   - pickleApproval (gates 5 of Pickle's conditional lines)
+//   - cinder (Confession Booth currency; earnable only via Listen path)
+//   - pickleSassIntensity (1-5 setting; 3 = default)
+//   - firstMoralChoiceMade (Mission 3+ gate flag)
+//   - dorisOwesPlayer (the underpay-path debt thread)
+//   - sat_in_gerrold_chair / sat_in_margery_chair (chair-selection flags)
+//   - gerroldReturnsDay3 (Defer-path Mission 3 hook)
+//   - mission6RecoveryArcSeeded (Crossed-Core consequence)
+//   - offeredGerroldTea, deferredGerrold (M2 dialogue gates)
+//   - polishQuality, cleanseQuality, gerroldChoice (mini-game outcomes)
+//   - teaBrewed (Lavender/Valerian/None modifier)
+//
+// Added all 14 fields below + cleared in ResetToDefault().
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -28,6 +47,22 @@ namespace HearthboundHollow.Core
         [Range(0, 100)] public int vow1Integrity = 50;   // Honor the named
         [Range(0, 100)] public int vow3Integrity = 50;   // Refuse no one's grief
         [Range(0, 100)] public int vow7Integrity = 50;   // Keep the Hollow lit
+
+        [Header("M1-2 ACTIVE — Pickle (added in playtest pass commit 1/6)")]
+        [Range(0, 100)]
+        [Tooltip("Gates Pickle's 5 conditional pre-choice + chair lines at >=50. " +
+                 "Below 50, the moral choice is made in silence (Mission 2 Guide § 14.2).")]
+        public int pickleApproval = 50;
+        [Range(1, 5)]
+        [Tooltip("Pickle sass intensity. 1 = warm and gentle, 5 = full sarcasm. " +
+                 "M1-2 only differentiates 1, 3, 5 (settings 2 and 4 collapse to nearest). " +
+                 "Gentle Mode auto-routes to 1.")]
+        public int pickleSassIntensity = 3;
+
+        [Header("M1-2 ACTIVE — Confession Booth currency")]
+        [Tooltip("Earned ONLY via the Mission 2 Listen path (+2 or +3 per Listen sub-option). " +
+                 "Spent in M5+ at the Confession Booth.")]
+        public int cinder = 0;
 
         // ───── M3+ DORMANT dimensions (Krieg architectural seam) ────────
 
@@ -70,6 +105,50 @@ namespace HearthboundHollow.Core
         public List<string> harvestedHerbIds = new();
         public List<string> readMarinNoteIds = new();
 
+        // ───── M1-2 dialogue flags (added playtest pass commit 1/6) ─────
+
+        [Header("M1 dialogue flags")]
+        [Tooltip("True after player asked Doris 'Who was the old one?' in M1. " +
+                 "Unlocks Marin's name reveal in Doris's M2 morning greeting.")]
+        public bool askedAboutPredecessor = false;
+        [Tooltip("True if player declined Doris's First Loaves orb in M1. " +
+                 "Mission 1 takes the quiet alternate route per Guide § 9.4.")]
+        public bool refusedDorisOrb = false;
+        [Tooltip("Negative = player owes Doris this many coppers (Underpay path).")]
+        public int dorisOwesPlayer = 0;
+        [Tooltip("Mission 1 Polish result: 'Perfect' | 'Acceptable' | 'Mild'. " +
+                 "Branches Doris's after-polish line.")]
+        public string polishQuality = "";
+
+        [Header("M2 dialogue flags")]
+        public bool metDoris = false;
+        public bool metGerrold = false;
+        public bool offeredGerroldTea = false;
+        [Tooltip("'Lavender' | 'Valerian' | '' (no tea). Modifies Gerrold's cottage dialogue + " +
+                 "Cleanse mini-game difficulty per Focus 06 § 4.")]
+        public string teaBrewed = "";
+        public bool walkedToGerroldHouse = false;
+        public bool workedAtHollow = false;
+        public bool workedAlone = false;
+        public bool satInGerroldChair = false;
+        [Tooltip("Sitting in Margery's chair enables Pickle's M2_MargerysChair line " +
+                 "if pickleApproval >= 50. One of M1-2's most affecting moments.")]
+        public bool satInMargeryChair = false;
+        public bool deferredGerrold = false;
+
+        [Header("M2 moral-choice outcome")]
+        [Tooltip("'erase' | 'cleanse' | 'listen' | 'defer'. Set after the moral-choice " +
+                 "screen. Drives Memory Dream 2 variant + Day 2 Ledger prose.")]
+        public string gerroldChoice = "";
+        [Tooltip("'Perfect' | 'Acceptable' | 'Sloppy' | 'CrossedCore'. Cleanse mini-game outcome.")]
+        public string cleanseQuality = "";
+        [Tooltip("Locked true after Mission 2 choice is confirmed. Mission 3+ checks this.")]
+        public bool firstMoralChoiceMade = false;
+        [Tooltip("True if Defer path taken. Mission 3 will re-engage Gerrold.")]
+        public bool gerroldReturnsDay3 = false;
+        [Tooltip("Seeded by Erase Crossed-Core or Cleanse Crossed-Core. M6+ recovery arc unlock.")]
+        public bool mission6RecoveryArcSeeded = false;
+
         // ───── Operations ────────────────────────────────────────────────
 
         /// <summary>Reset every field to a fresh-play default.</summary>
@@ -95,6 +174,30 @@ namespace HearthboundHollow.Core
             heldMemoryIds.Clear();
             harvestedHerbIds.Clear();
             readMarinNoteIds.Clear();
+
+            // Playtest pass commit 1/6 — clear newly added fields.
+            pickleApproval = 50;
+            pickleSassIntensity = 3;
+            cinder = 0;
+            askedAboutPredecessor = false;
+            refusedDorisOrb = false;
+            dorisOwesPlayer = 0;
+            polishQuality = string.Empty;
+            metDoris = false;
+            metGerrold = false;
+            offeredGerroldTea = false;
+            teaBrewed = string.Empty;
+            walkedToGerroldHouse = false;
+            workedAtHollow = false;
+            workedAlone = false;
+            satInGerroldChair = false;
+            satInMargeryChair = false;
+            deferredGerrold = false;
+            gerroldChoice = string.Empty;
+            cleanseQuality = string.Empty;
+            firstMoralChoiceMade = false;
+            gerroldReturnsDay3 = false;
+            mission6RecoveryArcSeeded = false;
         }
 
         /// <summary>Clamp a trust/integrity delta safely.</summary>
