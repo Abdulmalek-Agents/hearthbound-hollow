@@ -16,7 +16,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using HearthboundHollow.Player;
+using HearthboundHollow.Mission;   // MarinNoteInteractable lives in the Mission asmdef (see D-035)
 using HearthboundHollow.UI;
 
 namespace HearthboundHollow.EditorTools
