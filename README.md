@@ -10,28 +10,31 @@ A **single-player cozy narrative simulation** set in a small autumnal village wh
 
 ## 🎮 Run the polished playable Mission 1 + 2 (Unity)
 
-The `feat/mission-1-2-architecture` branch ships a fully playable, polished vertical slice of Missions 1 and 2 — six scenes, two villager arcs, four moral choices, two memory dreams, a complete cozy-comfort/accessibility layer, **a robust WASD + sprint + jump controller, a smooth third-person follow camera, and a Mixamo-ready Humanoid Animator.**
+The `feat/mission-1-2-architecture` branch ships a fully playable, polished vertical slice of Missions 1 and 2 — six scenes, two villager arcs, four moral choices, two memory dreams, a complete cozy-comfort/accessibility layer, **a robust WASD + sprint + jump controller, a smooth third-person follow camera, a Mixamo-ready Humanoid Animator, and Doris/Gerrold animated dialogue beats.**
 
-### Two-click build
+### One-click build
 
 1. Clone the repo and check out `feat/mission-1-2-architecture`.
 2. Open the project in **Unity 6 LTS (6000.4.4f1)**. Packages auto-install (~30–90 s).
-3. Menu → **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`** — sit back ~30 s.
-4. Menu → **`Hearthbound → 🏃 Phase 26 — Player Controller + Animation`** — ~5 s.
-5. Press **Play**.
+3. Menu → **`Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`** — sit back ~45 s.
+4. Press **Play**.
 
-Those two menu items run all the build phases, set up Build Settings, build the Animator + camera pipeline, and leave a fully wired 6-scene playable on disk.
+That single menu item runs every build phase — polished scenes, player AnimatorController, NPC AnimatorController, narrative hooks — sets up Build Settings, and opens the Bootstrap scene. Reflection-driven so missing phases skip gracefully.
 
-> 💡 Want richer animation? Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) § 3 and re-run Phase 26. The game ships polished without them, but Run / Jump / Fall / Land states get real motion when they're present.
+> 💡 Want richer animation? Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) § 3 and re-run Phase 27. The game ships polished without them, but Run / Jump / Fall / Land states get real motion — and a `Talking.fbx` clip upgrades the NPC dialogue body language.
+
+> 🔍 Verify wiring any time with **`Hearthbound → 🔍 Diagnose Phase 26 Build`** — read-only audit, no scenes modified.
 
 ### Player-facing flow
 
 ```
 Bootstrap → Main Menu (Tone Compass on first run) →
 Lane (autumn dusk) → walk to the Hollow door →
-Hollow → meet Doris → choose a price → polish her First Loaves orb →
+Hollow → meet Doris (she visibly turns to face you and talks) → choose a price →
+polish her First Loaves orb → read Marin's Note on the workbench →
 Evening Ledger → Garden (Day 2) → harvest herb → brew tea →
-Cottage → meet Gerrold → moral choice (Erase / Cleanse / Listen / Defer) →
+Cottage → meet Gerrold (turns toward you when he speaks) →
+moral choice (Erase / Cleanse / Listen / Defer) →
 (optional Cleanse mini-game) → Dream 2 cutscene →
 Evening Ledger → Main Menu
 ```
@@ -69,11 +72,12 @@ Evening Ledger → Main Menu
 | [`GAME_DESIGN.md`](./GAME_DESIGN.md) | Full game design document — vision, mechanics, market analysis, monetization, revenue projections (~$44.7M 3-year potential) |
 | [`Docs/ARCHITECTURE.md`](./Docs/ARCHITECTURE.md) | Technical architecture — asmdef graph, service locator, save schema, mobile constraints, risk register |
 | [`Docs/PROGRESS.md`](./Docs/PROGRESS.md) | Live progress log — current phase, decisions, known issues, next steps |
-| [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) | **NEW** — Player Animator graph, clip roster, Mixamo download + Humanoid retargeting guide |
+| [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) | Player Animator graph, clip roster, Mixamo download + Humanoid retargeting guide |
+| [`Docs/SCENE_ASSEMBLY_GUIDE.md`](./Docs/SCENE_ASSEMBLY_GUIDE.md) | Per-scene build steps + the ⚡ Fast path (Phase 27 one click) |
 | [`Docs/Depth_Bible/`](./Docs/Depth_Bible/) | 16-codex deep design bible + 8-doc Mission 1-2 focus folder |
 | [`Docs/Asset_Analysis_Mission1-2.md`](./Docs/Asset_Analysis_Mission1-2.md) | Detailed asset selection + integration plan for the 17 imported asset packs |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Versioned release history (currently **0.3.0** — Player Controller + Animation) |
-| [`Assets/_Project/Scripts/`](./Assets/_Project/Scripts/) | ~8k LOC across 10 asmdef-isolated subsystems (Core, Memory, Player, MiniGames, UI, Dialogue, Cutscene, Save, Mission, Audio) |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Versioned release history (currently **0.4.0** — Phase 27 master capstone + NPC animator) |
+| [`Assets/_Project/Scripts/`](./Assets/_Project/Scripts/) | ~9k LOC across 10 asmdef-isolated subsystems (Core, Memory, Player, MiniGames, UI, Dialogue, Cutscene, Save, Mission, Audio) |
 | [`Assets/_Project/Scenes/`](./Assets/_Project/Scenes/) | 6 Unity scenes built procedurally by the Phase 23 capstone |
 | [`Assets/_Project/Yarn/`](./Assets/_Project/Yarn/) | 5 Yarn Spinner dialogue files (Doris M1, Gerrold M2, Marin notes, Pickle, Codex) |
 | [`prototype.html`](./prototype.html) | The original HTML5 prototype that proved the design before Unity work began |
@@ -115,7 +119,7 @@ See [`GAME_DESIGN.md`](./GAME_DESIGN.md) §2 for full demand-signal analysis.
 
 ## 🏗️ Implementation Status
 
-**Current version**: `0.3.0-player-controller-and-animation` (PR #7 open)
+**Current version**: `0.4.0-build-everything-and-npc-animator` (PR #7 open)
 
 | Stage | Status |
 |---|---|
@@ -124,7 +128,9 @@ See [`GAME_DESIGN.md`](./GAME_DESIGN.md) §2 for full demand-signal analysis.
 | Engineering playable Mission 1 (Phase 22) | ✅ Complete |
 | Polished playable Mission 1 + Mission 2 (Phase 23 + 24) | ✅ Complete |
 | UI activation hotfix (Phase 25) | ✅ Complete |
-| **Player Controller + Animation pipeline (Phase 26)** | ✅ **Complete — this branch** |
+| Player Controller + Animation pipeline (Phase 26) | ✅ Complete |
+| Narrative Hooks (Marin's Note, Phase 26 parallel thread) | ✅ Complete |
+| **Build EVERYTHING master capstone + NPC Animator + diagnostic + footstep hooks (Phase 27)** | ✅ **Complete — this branch** |
 | 20-person greenlight playtest | ⬜ Next |
 | Mission 3-10 + procedural villagers | ⬜ Post-greenlight |
 
