@@ -30,6 +30,15 @@
 //
 // After this phase, HearthboundOneClickSetup automatically uses these
 // prefabs in place of its primitive fallbacks (see SpawnCharacter helper).
+//
+// ── 2026-05-25 update ──────────────────────────────────────────────
+// The Player wrapper now ALSO carries a PlayerGroundClamp component +
+// CharacterController defaults aligned so the BoZo mesh feet end up at
+// the capsule bottom on Start. This is the build-time defensive layer
+// for the "half body in floor" fix. The runtime auto-correct in
+// PlayerGroundClamp will recover even if this prefab is overridden, but
+// shipping the prefab with sensible defaults avoids one frame of pose
+// flicker when entering a scene.
 
 using System.Collections.Generic;
 using System.IO;
@@ -182,11 +191,30 @@ namespace HearthboundHollow.EditorTools
             BuildVariant(source, PlayerPrefabPath, "Player", root =>
             {
                 root.tag = "Player";
+
+                // CharacterController defaults sized for a BoZo chibi.
+                // center.y = height/2 (= 0.95) so the capsule sits with its
+                // bottom at the GameObject's local Y=0 — i.e. the same place
+                // the BoZo mesh is anchored. PlayerGroundClamp (below) then
+                // shifts the Body child if the mesh origin doesn't actually
+                // sit at Y=0, so the visible feet always land on the floor.
                 var cc = root.AddComponent<CharacterController>();
-                cc.center = new Vector3(0, 1.0f, 0);
+                cc.center = new Vector3(0f, 0.95f, 0f);   // bottom at local Y=0
                 cc.height = 1.9f;
-                cc.radius = 0.4f;
+                cc.radius = 0.32f;
+                cc.skinWidth = 0.08f;
+                cc.stepOffset = 0.3f;
+                cc.slopeLimit = 45f;
+
                 root.AddComponent<PlayerController>();
+
+                // PlayerGroundClamp — runtime fix for the "half body in
+                // floor" sink. Aligns the Body mesh feet to the CC capsule
+                // bottom on Start. Auto-resolves its `body` field to the
+                // "Body" child created by BuildVariant.
+                var clamp = root.AddComponent<PlayerGroundClamp>();
+                var bodyT = root.transform.Find("Body");
+                if (bodyT != null) clamp.body = bodyT;
             });
         }
 
