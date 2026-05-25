@@ -10,6 +10,52 @@
 
 ---
 
+## 🚨 HOTFIX — Phase 30.1 (2026-05-25) — Mission asmdef missing `Unity.TextMeshPro`
+
+**Bug reported by user after pulling Phase 30:**
+
+```
+Assets/_Project/Scripts/Mission/ControlHintsHUD.cs(27,7):
+  error CS0246: type 'TMPro' not found
+Assets/_Project/Scripts/Mission/ControlHintsHUD.cs(44,16):
+  error CS0246: type 'TextMeshProUGUI' not found  (×6)
+```
+
+### Root cause
+
+`ControlHintsHUD.cs` (added in Phase 30) is the FIRST file in the `HearthboundHollow.Mission` asmdef to use TMPro types directly. Every prior Mission file (`Mission01Director`, `Mission02Director`, `MarinNoteInteractable`, `NpcAnimatorBridge`, `PlayerFootstepBinder`, etc.) only used UI's wrapper components (`DialogueUI`, `EveningLedgerUI`, …) and never touched `TextMeshProUGUI` itself — so the missing `Unity.TextMeshPro` reference was latent until Phase 30.
+
+**Asmdef references are not transitive.** Even though `HearthboundHollow.Mission` references `HearthboundHollow.UI`, and `HearthboundHollow.UI` references `Unity.TextMeshPro`, Mission does not automatically inherit TMPro symbols.
+
+### Fix (1 commit)
+
+Append `"Unity.TextMeshPro"` to the Mission asmdef's `references` array. One-line change:
+
+```jsonc
+"references": ["…","Unity.Addressables","Unity.TextMeshPro"]
+```
+
+### Audit performed to prevent recurrence
+
+Walked every new file added in Phase 28-30 and verified its `using` directives are matched by an entry in the owning asmdef's references:
+
+| File | Asmdef | Status |
+|---|---|---|
+| `Player/PlayerGroundClamp.cs` | Player | ✅ |
+| `Player/PlayerController.cs` (updated) | Player | ✅ |
+| `UI/UIAutoFitText.cs` | UI | ✅ |
+| `UI/OnboardingOverlay.cs` | UI | ✅ |
+| `Mission/ControlHintsHUD.cs` | Mission | ❌ → ✅ (this fix) |
+| `Editor/Phase30_OnboardingAndHintsCapstone.cs` | Editor | ✅ |
+| `Core/VillageState.cs` (updated) | Core | ✅ |
+
+### How this lesson is now in the architecture
+
+- **D-035 reinforced** — When a new file pulls in a new namespace, the owning asmdef's references MUST be audited before pushing. The previous Phase 26.1 hotfix only caught the case of `HearthboundHollow.X` cross-namespace references; this hotfix extends the same discipline to Unity built-in packages (`Unity.TextMeshPro`, `Unity.InputSystem`, etc.).
+- The Phase 26 diagnostic already verifies the Player prefab Animator wiring; Phase 31 could extend it to a pre-push asmdef-locality check that walks every C# file's `using` directives against its owning asmdef.
+
+---
+
 ## 🆕 Phase 30 — Onboarding + Control Hints HUD  🟢 (2026-05-25)
 
 **User request after the first playtest:**
@@ -350,6 +396,7 @@ Moved the file to `Assets/_Project/Scripts/Mission/MarinNoteInteractable.cs` wit
 | ✅ **29a** | **UIAutoFitText + word-wrap on every cozy UI label + ChoicesContainer reposition** | ✅ **Done** |
 | ✅ **29b** | **Player Rig Doctor — foot-bone anchor auto-discovery + Animator sanity pass** | ✅ **Done** |
 | ✅ **30** | **OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (persistent chips)** | ✅ **Done** |
+| ✅ **30.1** | **Hotfix — Mission asmdef missing `Unity.TextMeshPro` (6× CS0246 compile errors)** | ✅ **Done** |
 
 The project ships behind a **single menu click**: `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`. Phase 27 now chains six sub-capstones — Phase 23, Phase 26 (PC+Anim), Phase 26 (NPC), Phase 26 (Narrative Hooks), Phase 29 (Rig Doctor), Phase 30 (Onboarding + Hints).
 
@@ -441,11 +488,13 @@ See `CHANGELOG.md` for per-release decision tables.
 | **Phase 29a** | Cards & UI text appearing clipped on smaller canvases | **Visual** | ✅ **Fixed — UIAutoFitText on every TMP label + DialogueBox ChoicesContainer relocation** |
 | **Phase 29b** | Residual sink on rigs with padded culling AABBs | Cosmetic | ✅ **Fixed — Player Rig Doctor wires footAnchor to the actual toe bone** |
 | **Phase 30** | No onboarding for new players; controls discoverable only via H | Player-experience | ✅ **Fixed — OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (always-visible chips)** |
+| **Phase 30.1** | Mission asmdef missing `Unity.TextMeshPro` → CS0246 ×7 on `ControlHintsHUD.cs` | **Compile error** | ✅ **Fixed — appended `Unity.TextMeshPro` to Mission asmdef refs; D-035 audit performed for every Phase 28-30 file** |
 
 ---
 
-*Last updated: 2026-05-25 — Phase 28 / 29 / 30 trifecta landed:*
+*Last updated: 2026-05-25 — Phase 28 / 29 / 30 trifecta landed, plus Phase 30.1 asmdef hotfix:*
 - *Phase 28 — definitive body alignment via live world bounds + continuous correction window.*
 - *Phase 29a — UIAutoFitText on every TMP label, ChoicesContainer repositioned inside the dialogue box.*
 - *Phase 29b — Player Rig Doctor auto-discovers a foot bone and wires it as the clamp's `footAnchor`.*
 - *Phase 30 — OnboardingOverlay walks first-time players through the controls; ControlHintsHUD shows persistent context-aware key chips in every gameplay scene.*
+- *Phase 30.1 — Mission asmdef gained `Unity.TextMeshPro` reference so `ControlHintsHUD.cs` compiles. D-035 audit pass verified every Phase 28-30 file for asmdef-locality.*
