@@ -25,6 +25,14 @@
 // second-confirm prompt for Erase, the chair-selection sub-choice
 // (with Pickle's Margery-chair line gated by approval ≥50), and the
 // path-aware Day 2 Evening Ledger prose variants.
+//
+// ── Phase 34 (2026-05-25) ───────────────────────────────────────
+// Same UX fix as Mission01Director: the Cleanse mini-game (both Erase
+// and Cleanse paths) used to start silently after the choice line,
+// leaving the player wondering what to do. EnsureCleanseTutorialOverlay()
+// now attaches a MiniGameTutorialUI to the cleanse host before BeginGame,
+// so the on-screen overlay ("Trace cracks · don't cross the core" +
+// progress bar + Auto-Complete button) appears immediately.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -483,11 +491,14 @@ namespace HearthboundHollow.Mission
                     if (gerroldOrb != null) gerroldOrb.gameObject.SetActive(true);
                     if (cleanseGame != null)
                     {
+                        // Phase 34 — surface the cleanse tutorial UI before
+                        // starting the game, same fix as Mission01.PolishFlow.
+                        EnsureCleanseTutorialOverlay();
                         _cleanseStarted = true;
                         cleanseGame.gentleMode = false; // aggressive profile per Mission 2 Guide § 15.2
                         cleanseGame.BeginGame(gerroldOrb);
                     }
-                    else FallbackEndMission();
+                    else FallbackEndMission(); // no mini-game in scene; skip ahead
                     break;
 
                 case MoralChoice.Cleanse:
@@ -499,6 +510,8 @@ namespace HearthboundHollow.Mission
                     if (gerroldOrb != null) gerroldOrb.gameObject.SetActive(true);
                     if (cleanseGame != null)
                     {
+                        // Phase 34 — surface the cleanse tutorial UI.
+                        EnsureCleanseTutorialOverlay();
                         _cleanseStarted = true;
                         cleanseGame.gentleMode = (vs != null && vs.gentleModeEnabled);
                         cleanseGame.BeginGame(gerroldOrb);
@@ -591,6 +604,22 @@ namespace HearthboundHollow.Mission
             if (!_cleanseStarted) return;
             _cleanseStarted = false;
             StartCoroutine(PostCleanseFlow());
+        }
+
+        /// <summary>
+        /// Idempotently attaches a MiniGameTutorialUI to the cleanse game
+        /// host so the on-screen instructions ("Trace cracks · don't cross
+        /// the core") + progress UI show the moment the mini-game starts.
+        /// Auto-builds its own Canvas if none is present. (Phase 34.)
+        /// </summary>
+        private void EnsureCleanseTutorialOverlay()
+        {
+            if (cleanseGame == null) return;
+            var existing = cleanseGame.GetComponent<MiniGameTutorialUI>();
+            if (existing != null) return;
+            cleanseGame.gameObject.AddComponent<MiniGameTutorialUI>();
+            Hh.Log(LogCategory.Mission,
+                "Mission02Director: spawned MiniGameTutorialUI on the cleanse game host.");
         }
 
         private IEnumerator PostCleanseFlow()
