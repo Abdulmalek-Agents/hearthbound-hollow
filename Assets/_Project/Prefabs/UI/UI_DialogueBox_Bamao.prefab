@@ -664,7 +664,7 @@ RectTransform:
   - {fileID: 1874899862177854842}
   - {fileID: 8103746330778527855}
   - {fileID: 9174566157339315891}
-  - {fileID: 8594839990725175456}
+  - {fileID: 8813252863396697522}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.1, y: 0.06}
@@ -730,7 +730,10 @@ MonoBehaviour:
   choiceButtonPrefab: {fileID: 1488030960381636653}
   charsPerSecond: 45
   postLineLinger: 0.5
-  advancePrompt: {fileID: 614674366360125772}
+  advancePrompt: {fileID: 6358308644044953462}
+  pickleSpeakerName: Pickle
+  pickleSpeakerColor: {r: 0.69, g: 0.49, b: 0.21, a: 1}
+  pickleLineColor: {r: 0.54, g: 0.36, b: 0.12, a: 0.78}
 --- !u!1 &6562088365167878762
 GameObject:
   m_ObjectHideFlags: 0
@@ -793,7 +796,7 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!1 &8261094983526703689
+--- !u!1 &6751555005368141941
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -801,9 +804,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8594839990725175456}
-  - component: {fileID: 9003689131641204466}
-  - component: {fileID: 614674366360125772}
+  - component: {fileID: 8813252863396697522}
+  - component: {fileID: 1275960851513738433}
+  - component: {fileID: 6358308644044953462}
   m_Layer: 0
   m_Name: AdvancePrompt
   m_TagString: Untagged
@@ -811,13 +814,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!224 &8594839990725175456
+--- !u!224 &8813252863396697522
 RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8261094983526703689}
+  m_GameObject: {fileID: 6751555005368141941}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -830,21 +833,21 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &9003689131641204466
+--- !u!222 &1275960851513738433
 CanvasRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8261094983526703689}
+  m_GameObject: {fileID: 6751555005368141941}
   m_CullTransparentMesh: 1
---- !u!114 &614674366360125772
+--- !u!114 &6358308644044953462
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8261094983526703689}
+  m_GameObject: {fileID: 6751555005368141941}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
