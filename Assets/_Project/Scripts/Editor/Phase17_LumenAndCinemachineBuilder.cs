@@ -1,100 +1,118 @@
 // SPDX-License-Identifier: MIT
 // Hearthbound Hollow — Editor / Phase17_LumenAndCinemachineBuilder
 //
-// Phase 17 — Lumen Stylized Lighting + Cinemachine third-person camera.
+// Phase 17 — Lighting + Camera bindings.
 //
-// Replaces the Phase 12 plain directional light + SimpleFollowCamera with:
-//   • Lumen god-rays, candle glows, lantern halos (from
-//     Packages/com.distantlands.lumen/), discovered by structural scoring.
-//   • A Cinemachine 3.x virtual camera prefab (created via reflection so the
-//     Editor asmdef doesn't need a hard Cinemachine reference — matches D-009).
+// Catalogs the prefabs we'll use for cozy lighting (Lumen Stylized Light FX
+// 2 from Distant Lands) and the gameplay third-person camera (Cinemachine).
+// HearthboundOneClickSetup reads these bindings and spawns:
+//   • Lumen sunshafts in the Lane (autumn-evening shafts through trees)
+//   • Lumen candle / lantern in the Hollow (warm orange glow on the workbench)
+//   • Cinemachine third-person follow camera tracking the Player
 //
 // USE: Menu → Hearthbound → Phase 17 — Build Lumen + Cinemachine Bindings
 //
-// Output:
-//   • Assets/_Project/ScriptableObjects/Setup/LightingBindings.asset
-//     (catalogs Lumen god-ray + candle-glow + lantern prefabs)
-//   • Assets/_Project/Prefabs/Cameras/CM_PlayerFollow.prefab
-//     (Cinemachine virtual camera, body=Transposer/3rdPerson, target=Player tag)
-//
-// HearthboundOneClickSetup reads these in Phase 22 to dress the Hollow with
-// real god rays through the windows + candle glows on the shelves, and to
-// drive the camera with Cinemachine instead of the simple follow rig.
+// Approach: same fuzzy-search pattern as Phase 15. We don't author wrapper
+// prefabs — instead we point at the vendor prefab via a single bindings SO.
 
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
 namespace HearthboundHollow.EditorTools
 {
-    public class LightingBindings : ScriptableObject
+    public class LumenAndCinemachineBindings : ScriptableObject
     {
-        public GameObject godRayPrefab;       // Lumen god-ray mesh
-        public GameObject candleGlowPrefab;   // Lumen candle / point-light halo
-        public GameObject lanternHaloPrefab;  // Lumen lantern at shop entrance
-        public GameObject lensFlarePrefab;    // Optional Lumen lens flare
+        [Tooltip("Stylized sunshaft / god-ray prefab (Lumen). " +
+                 "Placed in the Lane for the autumn-dusk light through trees.")]
+        public GameObject sunshaftsPrefab;
+
+        [Tooltip("Stylized point/spot light prefab (Lumen). " +
+                 "Placed at the Hollow workbench for warm candle glow.")]
+        public GameObject cozyLightPrefab;
+
+        [Tooltip("Cinemachine FreeLook or third-person follow prefab. " +
+                 "Falls back to a programmatic CinemachineCamera if not found.")]
+        public GameObject cinemachineCameraPrefab;
     }
 
     public static class Phase17_LumenAndCinemachineBuilder
     {
-        private const string LumenRoot = "Packages/com.distantlands.lumen";
-        private const string BindingsDir = "Assets/_Project/ScriptableObjects/Setup";
-        private const string BindingsPath = BindingsDir + "/LightingBindings.asset";
-        private const string CamerasDir = "Assets/_Project/Prefabs/Cameras";
-        private const string CmFollowPrefabPath = CamerasDir + "/CM_PlayerFollow.prefab";
+        private const string LumenPackageRoot  = "Packages/com.distantlands.lumen";
+        private const string LumenAssetsRoot   = "Assets/Distant Lands/Lumen";
+        private const string AssetsRootGeneric = "Assets";
+        private const string BindingsDir       = "Assets/_Project/ScriptableObjects/Setup";
+        private const string BindingsPath      = BindingsDir + "/LumenAndCinemachineBindings.asset";
 
-        [MenuItem("Hearthbound/Phase 17 — Build Lumen + Cinemachine Bindings", priority = 204)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 17 — Build Lumen + Cinemachine Bindings", priority = 204)]
         public static void Build()
         {
             EnsureFolder(BindingsDir);
-            EnsureFolder(CamerasDir);
 
-            BuildLumenBindings();
-            BuildCinemachineFollowCamera();
-
-            EditorUtility.DisplayDialog(
-                "Phase 17 — Done",
-                $"Lighting bindings: {BindingsPath}\n" +
-                $"Cinemachine virtual camera: {CmFollowPrefabPath}\n\n" +
-                "Re-run 'Hearthbound → Build Playable Mission 1 (One Click)' — the scene builder " +
-                "will use these instead of the plain directional light + SimpleFollowCamera.",
-                "OK");
-        }
-
-        // ─── Lumen detection ──────────────────────────────────────
-
-        private static void BuildLumenBindings()
-        {
-            var bindings = AssetDatabase.LoadAssetAtPath<LightingBindings>(BindingsPath);
+            var bindings = AssetDatabase.LoadAssetAtPath<LumenAndCinemachineBindings>(BindingsPath);
             if (bindings == null)
             {
-                bindings = ScriptableObject.CreateInstance<LightingBindings>();
+                bindings = ScriptableObject.CreateInstance<LumenAndCinemachineBindings>();
                 AssetDatabase.CreateAsset(bindings, BindingsPath);
             }
 
-            if (AssetDatabase.IsValidFolder(LumenRoot))
-            {
-                bindings.godRayPrefab     = FindLumenPrefab("god ray", new[] { "godray", "god_ray", "shaft", "rays", "lightshaft" });
-                bindings.candleGlowPrefab = FindLumenPrefab("candle glow", new[] { "candle", "halo", "point_glow", "glow_warm" });
-                bindings.lanternHaloPrefab = FindLumenPrefab("lantern halo", new[] { "lantern", "torch", "fire" });
-                bindings.lensFlarePrefab  = FindLumenPrefab("lens flare", new[] { "flare", "lens" });
-            }
-            else
-            {
-                Debug.LogWarning($"[Hearthbound/Phase 17] {LumenRoot} not found. LightingBindings created empty — drop Lumen prefabs in manually.");
-            }
+            // ── Lumen sunshafts ─────────────────────────────────
+            bindings.sunshaftsPrefab = FindPrefab(
+                searchRoots: new[] { LumenPackageRoot, LumenAssetsRoot, AssetsRootGeneric },
+                roleLabel: "Lumen sunshafts",
+                nameKeywords: new[] { "sunshaft", "godray", "god_ray", "lightshaft", "shaft" },
+                pathKeywords: new[] { "lumen", "stylized" });
+
+            // ── Lumen cozy light (candle / lantern halo) ─────────
+            bindings.cozyLightPrefab = FindPrefab(
+                searchRoots: new[] { LumenPackageRoot, LumenAssetsRoot, AssetsRootGeneric },
+                roleLabel: "Lumen cozy light (candle / lantern)",
+                nameKeywords: new[] { "candle", "lantern", "halo", "orblight", "pointlight" },
+                pathKeywords: new[] { "lumen", "stylized" });
+
+            // ── Cinemachine third-person camera ──────────────────
+            bindings.cinemachineCameraPrefab = FindPrefab(
+                searchRoots: new[] { "Packages/com.unity.cinemachine", AssetsRootGeneric },
+                roleLabel: "Cinemachine third-person camera",
+                nameKeywords: new[] { "freelook", "thirdperson", "third_person", "follow", "cmcamera", "cinemachinecamera" },
+                pathKeywords: new[] { "cinemachine" });
 
             EditorUtility.SetDirty(bindings);
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            EditorUtility.DisplayDialog(
+                "Phase 17 — Done",
+                $"Lumen + Cinemachine bindings at:\n  {BindingsPath}\n\n" +
+                $"Lumen sunshafts:           {NameOrMissing(bindings.sunshaftsPrefab)}\n" +
+                $"Lumen cozy light:          {NameOrMissing(bindings.cozyLightPrefab)}\n" +
+                $"Cinemachine 3rd-person:    {NameOrMissing(bindings.cinemachineCameraPrefab)}\n\n" +
+                "Empty slots can be manually filled by selecting the bindings asset and " +
+                "dragging the right prefab in.\n\n" +
+                "Re-run 'Hearthbound → Build Playable Mission 1 (One Click)' — the scene builder " +
+                "will spawn the cozy lights + camera in the Lane and Hollow.",
+                "OK");
         }
 
-        private static GameObject FindLumenPrefab(string roleLabel, string[] keywords)
+        // ─── Detection helpers ────────────────────────────────────
+
+        private static string NameOrMissing(GameObject go) => go != null ? go.name : "MISSING";
+
+        private static GameObject FindPrefab(string[] searchRoots, string roleLabel,
+                                             string[] nameKeywords, string[] pathKeywords)
         {
-            var guids = AssetDatabase.FindAssets("t:Prefab", new[] { LumenRoot });
+            // Build the list of valid roots that actually exist (filter out missing UPM packages etc.).
+            var validRoots = new List<string>();
+            foreach (var r in searchRoots) if (AssetDatabase.IsValidFolder(r)) validRoots.Add(r);
+            if (validRoots.Count == 0)
+            {
+                Debug.LogWarning($"[Hearthbound/Phase 17] No valid asset root found for '{roleLabel}' (tried: {string.Join(", ", searchRoots)})");
+                return null;
+            }
+
             var candidates = new List<(string path, GameObject prefab, int score)>();
+            var guids = AssetDatabase.FindAssets("t:Prefab", validRoots.ToArray());
             foreach (var guid in guids)
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
@@ -103,83 +121,21 @@ namespace HearthboundHollow.EditorTools
                 int score = 0;
                 var lowerPath = path.ToLowerInvariant();
                 var lowerName = prefab.name.ToLowerInvariant();
-                foreach (var kw in keywords)
+                foreach (var kw in nameKeywords)
                 {
-                    if (lowerName.Contains(kw)) score += 20;
-                    else if (lowerPath.Contains(kw)) score += 8;
+                    if (lowerName.Contains(kw)) score += 22;
+                }
+                foreach (var kw in pathKeywords)
+                {
+                    if (lowerPath.Contains(kw)) score += 8;
                 }
                 if (score > 0) candidates.Add((path, prefab, score));
             }
             candidates.Sort((a, b) => b.score.CompareTo(a.score));
-            Debug.Log($"[Hearthbound/Phase 17] Top Lumen candidates for '{roleLabel}':");
+            Debug.Log($"[Hearthbound/Phase 17] Top candidates for '{roleLabel}':");
             for (int i = 0; i < Mathf.Min(3, candidates.Count); i++)
                 Debug.Log($"  #{i + 1} (score {candidates[i].score}): {candidates[i].path}");
             return candidates.Count > 0 ? candidates[0].prefab : null;
-        }
-
-        // ─── Cinemachine virtual camera prefab ─────────────────────
-
-        private static void BuildCinemachineFollowCamera()
-        {
-            // Use reflection to instantiate CinemachineCamera (Cinemachine 3.x)
-            // or CinemachineVirtualCamera (legacy 2.x). Avoid a hard asmdef dep.
-            Type cmCameraType =
-                FindType("Unity.Cinemachine.CinemachineCamera") ??
-                FindType("Cinemachine.CinemachineVirtualCamera") ??
-                FindType("Cinemachine.CinemachineCamera");
-
-            if (cmCameraType == null)
-            {
-                Debug.LogWarning(
-                    "[Hearthbound/Phase 17] Cinemachine type not found — skipping CM camera prefab. " +
-                    "The scene will fall back to SimpleFollowCamera.");
-                return;
-            }
-
-            var go = new GameObject("CM_PlayerFollow");
-            try
-            {
-                var cm = go.AddComponent(cmCameraType);
-                // Set priority field (varies between versions)
-                SetMemberIfPresent(cm, "Priority", 10);
-                SetMemberIfPresent(cm, "m_Priority", 10);
-
-                // For CM3, the LookAt + Follow are usually serialized as Target fields.
-                // We can't set the Player target at build time (it doesn't exist yet),
-                // so the scene builder will populate it after spawning the player.
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[Hearthbound/Phase 17] Cinemachine component add failed ({e.Message}); the prefab will be a plain GameObject placeholder.");
-            }
-
-            PrefabUtility.SaveAsPrefabAsset(go, CmFollowPrefabPath);
-            UnityEngine.Object.DestroyImmediate(go);
-            Debug.Log($"[Hearthbound/Phase 17] (created) {CmFollowPrefabPath}");
-        }
-
-        private static Type FindType(string fullName)
-        {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                try
-                {
-                    var t = asm.GetType(fullName, throwOnError: false, ignoreCase: false);
-                    if (t != null) return t;
-                }
-                catch { /* ignore */ }
-            }
-            return null;
-        }
-
-        private static void SetMemberIfPresent(object obj, string name, object value)
-        {
-            if (obj == null) return;
-            var type = obj.GetType();
-            var field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance);
-            if (field != null) { try { field.SetValue(obj, value); } catch { } return; }
-            var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            if (prop != null && prop.CanWrite) { try { prop.SetValue(obj, value); } catch { } }
         }
 
         private static void EnsureFolder(string path)
@@ -191,12 +147,7 @@ namespace HearthboundHollow.EditorTools
             AssetDatabase.CreateFolder(parent, leaf);
         }
 
-        // ─── Public lookups ───────────────────────────────────────
-
-        public static LightingBindings TryGetLightingBindings() =>
-            AssetDatabase.LoadAssetAtPath<LightingBindings>(BindingsPath);
-
-        public static GameObject TryGetCinemachineFollowPrefab() =>
-            AssetDatabase.LoadAssetAtPath<GameObject>(CmFollowPrefabPath);
+        public static LumenAndCinemachineBindings TryGetBindings() =>
+            AssetDatabase.LoadAssetAtPath<LumenAndCinemachineBindings>(BindingsPath);
     }
 }
