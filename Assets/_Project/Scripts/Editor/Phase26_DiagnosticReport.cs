@@ -14,8 +14,9 @@
 //   ✓ The follow camera's `target` set to the Player transform.
 //   ✓ An Animator (on Player root or any child).
 //   ✓ The Animator's runtimeAnimatorController == Hearthbound_Player.controller.
-//   ✓ `PlayerController.SetCameraReference()` has been called (we infer this
-//     by checking that movement would be camera-relative — best-effort).
+//   ✓ A PlayerGroundClamp on the Player root with `body` set (fix for the
+//     "half body in floor" issue).
+//   ✓ A best-effort foot-vs-CC vertical-alignment check.
 //
 // Also verifies the controller asset itself has the expected parameters
 // + states (Locomotion / Jump / Fall / Land).
@@ -134,6 +135,19 @@ namespace HearthboundHollow.EditorTools
                     else
                         Pass("Player Animator has Apply Root Motion = OFF.");
                 }
+
+                // PlayerGroundClamp — the half-body-in-floor fix.
+                var clampOnPrefab = playerPrefab.GetComponent<PlayerGroundClamp>();
+                if (clampOnPrefab == null)
+                    Warn("Player prefab has no PlayerGroundClamp — re-run Phase 26 to add the fix for the half-body-in-floor sink.");
+                else
+                {
+                    Pass("Player prefab has PlayerGroundClamp.");
+                    if (clampOnPrefab.body == null)
+                        Warn("PlayerGroundClamp.body is null on prefab — will auto-resolve to 'Body' child at runtime, but explicit is safer.");
+                    else
+                        Pass($"PlayerGroundClamp.body wired to '{clampOnPrefab.body.name}'.");
+                }
             }
             sb.AppendLine();
 
@@ -161,7 +175,8 @@ namespace HearthboundHollow.EditorTools
                 else
                 {
                     Pass($"Player GameObject present: {player.name}");
-                    if (player.GetComponent<CharacterController>() == null)
+                    var cc = player.GetComponent<CharacterController>();
+                    if (cc == null)
                         Warn("Player has no CharacterController (PlayerController requires one).");
                     var pc = player.GetComponentInChildren<PlayerController>(true);
                     if (pc == null) Fail("Player has no PlayerController script.");
@@ -183,6 +198,41 @@ namespace HearthboundHollow.EditorTools
                     else
                     {
                         Warn($"Player Animator → '{anim.runtimeAnimatorController.name}' (expected Hearthbound_Player).");
+                    }
+
+                    // PlayerGroundClamp — the half-body-in-floor fix.
+                    var clamp = player.GetComponent<PlayerGroundClamp>();
+                    if (clamp == null)
+                    {
+                        Fail("Player has NO PlayerGroundClamp — mesh will sink half-into-floor. Re-run Phase 26.");
+                    }
+                    else
+                    {
+                        Pass("Player has PlayerGroundClamp.");
+                        if (clamp.body == null)
+                            Warn("PlayerGroundClamp.body is null — runtime auto-resolve will look for a 'Body' child; explicit reference recommended.");
+                        else
+                            Pass($"PlayerGroundClamp.body → '{clamp.body.name}'.");
+
+                        // Best-effort vertical alignment check.
+                        if (cc != null && clamp.body != null)
+                        {
+                            var renderers = clamp.body.GetComponentsInChildren<Renderer>(true);
+                            if (renderers.Length > 0)
+                            {
+                                float minMeshY = float.PositiveInfinity;
+                                foreach (var r in renderers)
+                                    if (r != null && r.bounds.min.y < minMeshY) minMeshY = r.bounds.min.y;
+                                float ccBottomY = player.transform.position.y + cc.center.y - cc.height * 0.5f + cc.skinWidth;
+                                float deltaCm = (minMeshY - ccBottomY) * 100f;
+                                if (Mathf.Abs(deltaCm) <= 5f)
+                                    Pass($"Mesh foot ↔ CC capsule bottom aligned (Δ={deltaCm:F1} cm).");
+                                else if (Mathf.Abs(deltaCm) <= 20f)
+                                    Warn($"Mesh foot vs CC capsule bottom Δ={deltaCm:F1} cm — PlayerGroundClamp will correct on Start, but check the prefab pose.");
+                                else
+                                    Fail($"Mesh foot vs CC capsule bottom Δ={deltaCm:F1} cm — significant offset; clamp will correct but verify visually after Play.");
+                            }
+                        }
                     }
                 }
 
@@ -228,7 +278,7 @@ namespace HearthboundHollow.EditorTools
                 sb.AppendLine();
                 sb.AppendLine($"Scenes with problems: {scenesWithProblems}.");
                 if (fail > 0)
-                    sb.AppendLine("→ Failures mean the controller/animator/camera wiring is missing. Run Phase 26 menu.");
+                    sb.AppendLine("→ Failures mean the controller/animator/camera/ground-clamp wiring is missing. Run Phase 26 menu.");
                 if (warn > 0)
                     sb.AppendLine("→ Warnings are recoverable; re-running Phase 26 usually clears them.");
             }
