@@ -19,6 +19,14 @@
 // Continue button immediately when the coroutine path is unavailable
 // (e.g. when a parent Canvas is disabled), so the user is never trapped
 // in an un-skippable modal. Behaviour-equivalent for the normal case.
+//
+// ── Gameplay-Guide compliance pass (commit 5/10) ────────────────
+// QA audit found the default body text was a generic placeholder ("Welcome
+// to the Hollow. This is a quiet game about memory...") rather than the
+// canonical 6-paragraph primer specified in GAMEPLAY_GUIDE_OVERVIEW.md § 7.1
+// and Mission 1 Guide § 6.1. Author: Pell Doyne (Cozy Mechanics & Comfort
+// Loop Engineer). The primer is the single highest-ROI text in M1-2 for
+// refund-rate prevention (Codex 06 § 4.3 — Spiritfarer refund-rate lesson).
 
 using System.Collections;
 using TMPro;
@@ -45,14 +53,18 @@ namespace HearthboundHollow.UI
         public TextMeshProUGUI gentleModeLabel;
 
         [Header("Defaults")]
-        [TextArea(6, 14)]
+        [TextArea(8, 20)]
+        [Tooltip("The canonical 6-paragraph Tone Compass primer per Focus 07 § 7.1 " +
+                 "and GAMEPLAY_GUIDE_OVERVIEW.md § 7.1. The single highest-ROI text " +
+                 "in M1-2 for Steam-refund-rate prevention. Do NOT edit without a " +
+                 "Pell Doyne sign-off.")]
         public string defaultBody =
-            "Welcome to the Hollow.\n\n" +
-            "This is a quiet game about memory, choice, and care.\n" +
+            "This game will make you feel things. Some of those feelings are heavy.\n\n" +
+            "This first hour contains: the opening of a shop, a first transaction, a late-night brewing.\n\n" +
+            "The second hour contains: a widower's grief, a choice about memory, a short illustrated dream.\n\n" +
+            "At any point, you can take a Soft Day, enable Gentle Mode, or adjust any settings.\n\n" +
             "There is no combat. There are no failure screens. There are only choices.\n\n" +
-            "Some scenes are heavy. Some are warm. The pace is yours.\n" +
-            "Tools at the corner of the screen let you auto-complete any mini-game.\n" +
-            "Gentle Mode softens the harder moments. You can toggle it any time.";
+            "The cat will be there.";
 
         public event System.Action OnAcknowledged;
 
