@@ -10,6 +10,26 @@
 // PresentLine() now self-activates the script-host before running the
 // typewriter coroutine. Same defensive pattern applied across all UI
 // overlays in this release.
+//
+// ── Playtest pass fix (commit 5/6) ──────────────────────────────
+// QA simulated-playthrough audit found Pickle's 13 lines (4 canonical +
+// 4 conditional + 3 contextual + 2 hints) were being rendered IDENTICALLY
+// to Doris and Gerrold — same Bamao parchment box, same regular font.
+// Per:
+//   - Yarn STYLE_GUIDE.md § 2.5 (Dual-mode dialogue rendering)
+//   - Mission 2 Guide § 14.2 (Pickle's pre-choice commentary)
+//   - Codex 07 § 3.1 rule 7 (Pickle's lines are INTERNAL — only the
+//     player hears her)
+// Pickle's lines should render:
+//   • Italic font
+//   • Lower opacity (~75%)
+//   • NO portrait
+//   • Speaker name dimmed to amber
+//   • Subtle leitmotif tag visible
+//
+// FIX: PresentLine now detects speakerName == "Pickle" and routes through
+// the italic-mode visual. All other speakers (Doris, Gerrold, etc.)
+// render in the default Bamao parchment style — UNCHANGED.
 
 using System;
 using System.Collections;
@@ -52,23 +72,36 @@ namespace HearthboundHollow.UI
         [Header("Advance prompt (auto-created if null)")]
         [Tooltip("Pulsing 'Press [Space] to continue ▸' label that appears " +
                  "in the dialogue box's lower-right when the line is fully " +
-                 "rendered and no choices are showing. Created at runtime " +
-                 "if absent so existing prefabs get the affordance without " +
-                 "needing a rebuild.")]
+                 "rendered and no choices are showing.")]
         public TextMeshProUGUI advancePrompt;
+
+        [Header("Pickle styling (playtest pass commit 5/6)")]
+        [Tooltip("Speaker name that triggers Pickle's italic / no-portrait / " +
+                 "lower-opacity rendering mode. Case-insensitive match.")]
+        public string pickleSpeakerName = "Pickle";
+        [Tooltip("Color the speaker-name label tints to in Pickle mode. Warm amber.")]
+        public Color pickleSpeakerColor = new Color(0.69f, 0.49f, 0.21f, 1f);
+        [Tooltip("Color the line-text label tints to in Pickle mode. Dim amber.")]
+        public Color pickleLineColor = new Color(0.54f, 0.36f, 0.12f, 0.78f);
 
         private Coroutine _typeCoroutine;
         private Action<int> _choiceCallback;
         private readonly List<GameObject> _spawnedButtons = new();
-        private string _fullLineText;     // for click-to-skip-typewriter
+        private string _fullLineText;
+        private bool _pickleStyleActive;
+        // Cache the default colors so we can restore them when a non-Pickle
+        // line follows a Pickle line.
+        private Color _defaultSpeakerColor = Color.white;
+        private Color _defaultLineColor = Color.white;
+        private FontStyles _defaultLineFontStyle = FontStyles.Normal;
+        private FontStyles _defaultSpeakerFontStyle = FontStyles.Normal;
+        private bool _defaultColorsCached;
 
         public bool IsBusy { get; private set; }
 
         /// <summary>
         /// True while the dialogue box is visible, the typewriter is idle,
-        /// and no choices are showing. The Mission director / Yarn runner
-        /// is currently blocking on an advance click. Used by the in-box
-        /// prompt to know when to pulse.
+        /// and no choices are showing.
         /// </summary>
         public bool IsWaitingForAdvance =>
             (root == null || root.activeSelf) &&
@@ -78,28 +111,35 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            // Hide only the visual panel — never the script-host.
             if (root != null && root != gameObject) root.SetActive(false);
 
-            // Phase 29 — defensive UI polish: force word-wrap + auto-size on
-            // the line text and speaker name so even legacy prefabs that
-            // pre-date Phase 14's polish layer don't clip long villager lines.
             UIAutoFitText.ApplyToLabel(lineText, minSize: 16, maxSize: 28);
             UIAutoFitText.ApplyToButtonLabel(speakerName, minSize: 18, maxSize: 32);
 
-            // Phase 31 — heal the ChoicesContainer VerticalLayoutGroup so
-            // tiles stretch to full width regardless of the prefab's saved
-            // settings (older Phase 14 builds wrote childControlWidth = 0
-            // which caused tiles to render as ~100 px squares).
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
 
-            // Phase 31.1 — auto-create the advance prompt if the prefab is
-            // missing it. User playtest showed players didn't know they
-            // had to click to advance past "(stands back and watches)" —
-            // dialogue felt frozen. The visible "Press [Space] ▸" hint
-            // makes the affordance unmistakable.
             EnsureAdvancePromptExists();
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+
+            // Cache the inspector-set default colors + font styles so we can
+            // restore them when a non-Pickle line follows a Pickle line.
+            CacheDefaultStyles();
+        }
+
+        private void CacheDefaultStyles()
+        {
+            if (_defaultColorsCached) return;
+            if (speakerName != null)
+            {
+                _defaultSpeakerColor = speakerName.color;
+                _defaultSpeakerFontStyle = speakerName.fontStyle;
+            }
+            if (lineText != null)
+            {
+                _defaultLineColor = lineText.color;
+                _defaultLineFontStyle = lineText.fontStyle;
+            }
+            _defaultColorsCached = true;
         }
 
         private void EnsureAdvancePromptExists()
@@ -109,7 +149,6 @@ namespace HearthboundHollow.UI
             var go = new GameObject("AdvancePrompt", typeof(RectTransform));
             go.transform.SetParent(parent, false);
             var rt = (RectTransform)go.transform;
-            // Bottom-right inside the dialogue box.
             rt.anchorMin = new Vector2(0.70f, 0.02f);
             rt.anchorMax = new Vector2(0.98f, 0.16f);
             rt.offsetMin = Vector2.zero;
@@ -120,33 +159,45 @@ namespace HearthboundHollow.UI
             advancePrompt.fontStyle = FontStyles.Italic;
             advancePrompt.alignment = TextAlignmentOptions.MidlineRight;
             advancePrompt.color = new Color(0.42f, 0.24f, 0.10f, 0.85f);
-            advancePrompt.raycastTarget = false; // don't intercept clicks
+            advancePrompt.raycastTarget = false;
             UIAutoFitText.ApplyToButtonLabel(advancePrompt, minSize: 12, maxSize: 20);
         }
 
         public void PresentLine(string speaker, string text, Sprite portrait)
         {
-            // Self-heal in case the host was deactivated externally.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
-
             if (root != null) root.SetActive(true);
 
-            // Phase 31 — PresentChoices() hides lineText to free the body
-            // for the choice tiles. Restore it whenever a new line arrives.
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
+
+            // ── Playtest pass commit 5/6 — Pickle's italic / no-portrait mode ──
+            // Detect Pickle speaker case-insensitively. When she speaks the
+            // line renders italic + dim amber, with no portrait. Codex 07 §
+            // 3.1 rule 7: her lines are internal; only the player hears her.
+            CacheDefaultStyles();
+            bool isPickleLine = !string.IsNullOrEmpty(speaker) &&
+                speaker.Trim().Equals(pickleSpeakerName, StringComparison.OrdinalIgnoreCase);
+
+            ApplyPickleStyle(isPickleLine);
 
             if (speakerName != null) speakerName.text = speaker ?? string.Empty;
             if (portraitImage != null)
             {
-                portraitImage.sprite = portrait;
-                portraitImage.color = portrait != null ? Color.white : new Color(1, 1, 1, 0);
+                if (isPickleLine)
+                {
+                    // Hide portrait entirely for Pickle (Style Guide § 2.5).
+                    portraitImage.color = new Color(1, 1, 1, 0);
+                }
+                else
+                {
+                    portraitImage.sprite = portrait;
+                    portraitImage.color = portrait != null ? Color.white : new Color(1, 1, 1, 0);
+                }
             }
             ClearChoices();
             if (_typeCoroutine != null) StopCoroutine(_typeCoroutine);
 
-            // Phase 31.1 — cache full text so a click during typewriter can
-            // instantly skip to the fully-rendered line.
             _fullLineText = text ?? string.Empty;
 
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
@@ -157,7 +208,6 @@ namespace HearthboundHollow.UI
             }
             else
             {
-                // Defensive fallback — render full line without typewriter.
                 if (lineText != null) lineText.text = text;
                 IsBusy = false;
                 Hh.Warn(LogCategory.UI,
@@ -167,9 +217,27 @@ namespace HearthboundHollow.UI
         }
 
         /// <summary>
-        /// Immediately complete the running typewriter (showing the full
-        /// line) without advancing past it. Director's WaitForAdvance then
-        /// catches the *next* click to actually move on. Idempotent.
+        /// Apply (or revert) the Pickle italic / dim-amber / no-portrait visual.
+        /// Idempotent — safe to call every PresentLine.
+        /// </summary>
+        private void ApplyPickleStyle(bool pickle)
+        {
+            if (pickle == _pickleStyleActive) return;
+            _pickleStyleActive = pickle;
+            if (speakerName != null)
+            {
+                speakerName.color = pickle ? pickleSpeakerColor : _defaultSpeakerColor;
+                speakerName.fontStyle = pickle ? FontStyles.Italic : _defaultSpeakerFontStyle;
+            }
+            if (lineText != null)
+            {
+                lineText.color = pickle ? pickleLineColor : _defaultLineColor;
+                lineText.fontStyle = pickle ? FontStyles.Italic : _defaultLineFontStyle;
+            }
+        }
+
+        /// <summary>
+        /// Immediately complete the running typewriter without advancing past it.
         /// </summary>
         public void SkipTypewriter()
         {
@@ -184,33 +252,27 @@ namespace HearthboundHollow.UI
             _choiceCallback = onChoiceSelected;
             ClearChoices();
 
-            // Self-heal in case the host was deactivated externally.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             if (root != null && !root.activeSelf) root.SetActive(true);
 
-            // Phase 31 — silence the narration line while a decision is in
-            // front of the player. The body of the parchment box is reused
-            // for the choices, and leaving the previous spoken line visible
-            // underneath made the tiles look like floating fragments.
+            // Choices always render in the DEFAULT style (never Pickle italic)
+            // because the player is the one choosing, not Pickle.
+            ApplyPickleStyle(false);
+
             if (lineText != null) lineText.gameObject.SetActive(false);
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
             _fullLineText = null;
 
             if (choiceContainer == null || choiceButtonPrefab == null) return;
 
-            // Phase 31 — re-heal each present, in case a third party (eg.
-            // Yarn Spinner runner, Mission01Director) mutated the container
-            // between scenes.
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
 
             for (int i = 0; i < choices.Count; i++)
             {
                 int idx = i;
                 var go = Instantiate(choiceButtonPrefab, choiceContainer);
-                go.SetActive(true); // template prefab may have been inactive
+                go.SetActive(true);
                 var label = go.GetComponentInChildren<TextMeshProUGUI>();
-                // Phase 31 — prefix with [1]/[2]/… so the keyboard shortcut
-                // (handled in Update) is discoverable without a tutorial.
                 if (label != null) label.text = $"<b><color=#7a5314>[{idx + 1}]</color></b>  {choices[i]}";
                 var btn = go.GetComponent<Button>();
                 if (btn != null)
@@ -220,8 +282,6 @@ namespace HearthboundHollow.UI
                 }
                 _spawnedButtons.Add(go);
 
-                // Phase 31 — fix the tile layout (full-width, wrapping,
-                // tap-friendly height) on the freshly instantiated clone.
                 DialogueChoiceLayoutHealer.HealTile(go);
             }
         }
@@ -230,8 +290,9 @@ namespace HearthboundHollow.UI
         {
             if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
             ClearChoices();
-            // Phase 31 — leave lineText re-enabled so the next PresentLine()
-            // does not surprise the player with an empty parchment body.
+            // Restore default colors so subsequent shows don't inherit
+            // Pickle's dim amber from a stale state.
+            ApplyPickleStyle(false);
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
@@ -251,9 +312,6 @@ namespace HearthboundHollow.UI
             var cb = _choiceCallback;
             _choiceCallback = null;
             ClearChoices();
-            // Phase 31 — once a choice has resolved, restore the lineText
-            // area so the next spoken line from the director / Yarn runner
-            // lands in its expected slot.
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
@@ -276,21 +334,8 @@ namespace HearthboundHollow.UI
             IsBusy = false;
         }
 
-        // Phase 31 — keyboard shortcuts for choices. Pressing 1/2/3/4 picks
-        // the corresponding choice without forcing the player to mouse over
-        // small tiles. Defensive: only fires while choices are on-screen and
-        // a callback is registered.
-        // Phase 31.1 — also drives the visible "Click or [Space] ▸" advance
-        // hint pulse, so players never miss that the dialogue is waiting on
-        // them. (Skip-typewriter is exposed as `SkipTypewriter()` for the
-        // mission director or Yarn runner to call — calling it from Update
-        // here would race with WaitForAdvance on the same Space press and
-        // double-advance, robbing the player of a chance to read the line.)
         private void Update()
         {
-            // Pulse the advance prompt when the line is fully rendered and
-            // no choices are showing — i.e. the director is blocked on a
-            // click. PingPong 0.55–1.0 alpha at ~1.4 Hz.
             if (advancePrompt != null)
             {
                 bool waiting = IsWaitingForAdvance;
@@ -305,7 +350,6 @@ namespace HearthboundHollow.UI
                 }
             }
 
-            // Number-key shortcuts for the spawned choice tiles.
             if (_choiceCallback == null || _spawnedButtons.Count == 0) return;
             int picked = -1;
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) picked = 0;
