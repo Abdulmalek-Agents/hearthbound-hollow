@@ -9,6 +9,21 @@
 //   * Median completion: ~78 s @ Default difficulty.
 //   * Threshold checkpoints @ 0.55 ("midway chime") and 0.85 ("reveal swell").
 //   * Auto-Complete plays a 12 s sped-up animation reaching clarity 0.95.
+//
+// ── Phase 34 (2026-05-25) ───────────────────────────────────────
+// User-reported bug: "the game is stuck after few dialog mainly after I
+// play it when it reach to the dialogue 'Doris stands back and watches'".
+// One contributor to that confusion is that the old fallback path treated
+// a null `pointerActiveAction` as "always active" — so polish progressed
+// on ANY mouse motion, even without holding LMB. This directly contradicted
+// the help overlay copy that says "Hold left mouse, draw slow circles"
+// and made the mini-game's interaction model invisible to the player.
+//
+// Fix: when no InputActionReference is wired, require Input.GetMouseButton(0)
+// in the fallback. The MiniGameTutorialUI now displays "Hold Left Mouse"
+// prominently and the contract matches. The InputActionReference path is
+// preserved for when Phase 26's HearthboundInput.inputactions is wired
+// to these fields.
 
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -70,7 +85,20 @@ namespace HearthboundHollow.MiniGames
             Vector2 cur = pointerPositionAction != null && pointerPositionAction.action != null
                 ? pointerPositionAction.action.ReadValue<Vector2>()
                 : (Vector2)Input.mousePosition;
-            bool active = pointerActiveAction == null || pointerActiveAction.action == null || pointerActiveAction.action.IsPressed();
+
+            // Phase 34 fix: when no InputActionReference is wired (Phase
+            // 22/23 builders don't set one), `pointerActiveAction` is
+            // null. The old fallback treated that as "always active",
+            // which let the polish progress on any mouse motion — even
+            // without holding the button — directly contradicting the
+            // tutorial card that says "Hold left mouse, draw slow circles".
+            // Now we require LMB held in the fallback, matching the help
+            // overlay and the OnboardingOverlay copy.
+            bool active;
+            if (pointerActiveAction != null && pointerActiveAction.action != null)
+                active = pointerActiveAction.action.IsPressed();
+            else
+                active = Input.GetMouseButton(0);
 
             Vector2 delta = _pointerWasActive ? (cur - _lastPointer) : Vector2.zero;
             float speed = delta.magnitude / Mathf.Max(0.001f, Screen.width);
