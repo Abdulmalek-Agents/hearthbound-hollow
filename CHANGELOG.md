@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.5.0-onboarding-hints-and-rig-doctor] — 2026-05-25
+
+**Branch:** `feat/mission-1-2-architecture` → PR #7 (open, accumulating)
+**Theme:** Phase 28 / 29 / 30 trifecta. Definitive body alignment + UI-never-clips + Onboarding & Control Hints.
+
+After the 0.4.0 first-playtest, the user reported three issues:
+1. *"Half of the body is in the floor"* — even after the Phase 27.1 / 27.2 fixes.
+2. *"The cards and UI is not appearing well and text is cut."*
+3. *"Create the onboarding and control guidance UI."*
+
+This release closes all three with three thematic phases pushed one-commit-per-concern.
+
+### Phase 28 — Definitive body alignment (live world bounds + continuous correction window)
+
+- **`Player/PlayerGroundClamp.cs`** (rewritten) — Switched from `SkinnedMeshRenderer.localBounds` (often a padded culling AABB) to live `Renderer.bounds.min.y` (current pose after Animator update). New `continuousDuration` (0.75 s default) re-aligns every frame during the Animator's bind→idle settle. Optional `footAnchor` Transform override for surgical anchoring on rigs with weird padded bounds. Filters out ParticleSystemRenderer / LineRenderer / TrailRenderer (huge AABBs would corrupt min-Y).
+- **`Player/PlayerController.cs`** — Embedded clamp matches PlayerGroundClamp algorithm verbatim. `intrinsicAlignContinuousDuration` + `bodyAlignEpsilon` Inspector knobs. Tolerance guard prevents FP chatter.
+
+**D-041 amendment:** Mesh-bottom MUST be measured from world-space `Renderer.bounds`, never `SkinnedMeshRenderer.localBounds`.
+
+### Phase 29a — UI Polish (text never gets clipped)
+
+- **`UI/UIAutoFitText.cs`** (NEW, +173 LOC) — Single MonoBehaviour helper + two static methods (`ApplyToLabel`, `ApplyToButtonLabel`) that force `enableWordWrapping = true` + `enableAutoSizing = true` between configured min/max + `OverflowMode.Ellipsis` fallback. Designed to be called from any builder script or attached defensively in `Awake()`.
+- **DialogueBox ChoicesContainer relocated** — Phase 14 was anchoring it at `anchorY = 1.05..2.10` (i.e. **above** the prefab bounds). The scene builder was supposed to reposition it but in practice the anchors stuck and choice tiles rendered off-screen. Now anchored INSIDE the dialogue box at `(0.22-0.96, 0.08-0.78)`.
+- **Defensive Awake() autofit pass** on every UI script: `DialogueUI`, `ChoiceCardUI` (+ per-tile `WireTile` autofit), `EveningLedgerUI`, `HelpOverlayUI`, `ToneCompassCard`.
+- **Editor builder autofit** in `Phase14_BamaoUIBuilder` (DialogueBox / ChoiceTile / EveningLedger / TooltipFrame) and `Phase23_Mission1PolishCapstone` (PauseMenu / HelpOverlay / Settings / MissionTitleCard / buttons / toggles / sliders).
+
+**D-042 (NEW):** Any TMP label created by a builder script MUST go through `UIAutoFitText.ApplyToLabel / ApplyToButtonLabel` before the prefab is saved.
+
+### Phase 29b — Player Rig Doctor
+
+- **`Editor/Phase29_PlayerRigDoctor.cs`** (NEW) — Auto-discovers a foot bone on the Player rig using Mixamo / BoZo / generic humanoid naming heuristics. Wires it as `PlayerGroundClamp.footAnchor`, which the clamp prefers over bounds scanning. Surgical anchor at the actual toe position.
+- Also: force-disables `applyRootMotion` on every Player Animator, verifies the Humanoid avatar, sanity-checks the GameObject scale chain, and auto-adds a Ground BoxCollider if the scene lacks one.
+
+### Phase 30 — Onboarding overlay + Control Hints HUD
+
+- **`UI/OnboardingOverlay.cs`** (NEW, ~350 LOC) — 6-step multi-card walkthrough that runs once per save on the Lane scene. Welcome → WASD → E → LMB polish → Esc/H comfort → "You're ready". Data-driven `Step[]`, optional `expects` input expectations (`press_wasd` etc.) auto-advance steps when satisfied. Skippable from frame 1 (Esc / Skip Tutorial button). Pauses `Time.timeScale = 0` while open; resumes on completion or skip. Uses `unscaledDeltaTime` for input polling.
+- **`Mission/ControlHintsHUD.cs`** (NEW, ~155 LOC, in Mission asmdef per D-035) — Always-visible parchment chip strip (Move · Interact · Help) at the bottom-left of every gameplay scene. The [E] chip emphasises to full alpha + swaps caption to the interactable's `PromptText` when one is in range; idles at `alpha = 0.45` otherwise.
+- **`Editor/Phase30_OnboardingAndHintsCapstone.cs`** (NEW, ~380 LOC) — Idempotent Editor builder. Drops OnboardingOverlay on the Lane canvas + ControlHintsHUD on every gameplay scene canvas. Two-layer pattern (host always active, Visual child toggled) for both. Uses UIAutoFitText on every label.
+- **`Core/VillageState.cs`** — Added `onboardingCompleted` bool. `ResetToDefault()` clears it so fresh saves see the walkthrough.
+
+**D-043 (NEW):** Onboarding is per-save (gated by `VillageState.onboardingCompleted`), not per-play.
+**D-044 (NEW):** Context-aware HUD chips live in the Mission asmdef (not UI), because they query `PlayerController.CurrentFocus`.
+
+### Master capstone extended
+
+- **`Editor/Phase27_BuildEverything.cs`** — Now chains six sub-capstones (was four): adds Phase 29 (Player Rig Doctor) and Phase 30 (Onboarding + Hints) to the reflection-driven sequence. Total run time still ≈60 s; missing phases skip gracefully.
+
+### Files added / changed
+
+| File | Status | LOC | Phase |
+|---|---|---|---|
+| `Assets/_Project/Scripts/Player/PlayerGroundClamp.cs` | Rewritten | 352 | 28 |
+| `Assets/_Project/Scripts/Player/PlayerController.cs` | Updated | 660 | 28 |
+| `Assets/_Project/Scripts/UI/UIAutoFitText.cs` | **NEW** | 173 | 29a |
+| `Assets/_Project/Scripts/UI/DialogueUI.cs` | Updated | (autofit) | 29a |
+| `Assets/_Project/Scripts/UI/ChoiceCardUI.cs` | Updated | (autofit) | 29a |
+| `Assets/_Project/Scripts/UI/EveningLedgerUI.cs` | Updated | (autofit) | 29a |
+| `Assets/_Project/Scripts/UI/HelpOverlayUI.cs` | Updated | (autofit) | 29a |
+| `Assets/_Project/Scripts/UI/ToneCompassCard.cs` | Updated | (autofit) | 29a |
+| `Assets/_Project/Scripts/Editor/Phase14_BamaoUIBuilder.cs` | Updated | (autofit + ChoicesContainer reposition) | 29a |
+| `Assets/_Project/Scripts/Editor/Phase23_Mission1PolishCapstone.cs` | Updated | (autofit pass) | 29a |
+| `Assets/_Project/Scripts/Editor/Phase29_PlayerRigDoctor.cs` | **NEW** | ~750 | 29b |
+| `Assets/_Project/Scripts/UI/OnboardingOverlay.cs` | **NEW** | 350 | 30 |
+| `Assets/_Project/Scripts/Mission/ControlHintsHUD.cs` | **NEW** | 155 | 30 |
+| `Assets/_Project/Scripts/Editor/Phase30_OnboardingAndHintsCapstone.cs` | **NEW** | 380 | 30 |
+| `Assets/_Project/Scripts/Core/VillageState.cs` | Updated (+`onboardingCompleted`) | — | 30 |
+| `Assets/_Project/Scripts/Editor/Phase27_BuildEverything.cs` | Updated (+chains 29 & 30) | — | 27 |
+| `Docs/PROGRESS.md` | Updated | — | doc |
+| `README.md` | Updated | — | doc |
+
+### Decisions
+
+| # | Decision | Phase |
+|---|---|---|
+| D-041 (amendment) | Mesh-bottom MUST be measured from world-space `Renderer.bounds`, never `SkinnedMeshRenderer.localBounds`. | 28 |
+| D-042 | Any TMP label created by a builder script MUST go through `UIAutoFitText.ApplyToLabel / ApplyToButtonLabel`. | 29 |
+| D-043 | Onboarding is per-save (`VillageState.onboardingCompleted` flag). | 30 |
+| D-044 | Context-aware HUD chips live in `Mission` asmdef (not UI) because they query `PlayerController`. | 30 |
+
+---
+
 ## [0.4.0-build-everything-and-npc-animator] — 2026-05-25
 
 **Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
@@ -222,4 +303,4 @@ This is the **packaging + polish release** on top of v0.3.0. No new design decis
 
 ---
 
-*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 with Phase 26 (player controller + animation), 0.4.0 with Phase 27 (master capstone + NPC animator pipeline). 1.0.0 when the 20-person greenlight playtest passes.*
+*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 with Phase 26 (player controller + animation), 0.4.0 with Phase 27 (master capstone + NPC animator pipeline), 0.5.0 with Phase 28 / 29 / 30 (body-alignment / UI / onboarding trifecta). 1.0.0 when the 20-person greenlight playtest passes.*
