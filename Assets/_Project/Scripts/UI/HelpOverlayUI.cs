@@ -61,6 +61,12 @@ namespace HearthboundHollow.UI
             // Update() can listen for the toggle key.
             if (root != null && root != gameObject) root.SetActive(false);
             if (closeButton != null) closeButton.onClick.AddListener(Hide);
+
+            // Phase 29 — defensive autofit so the controls reference card
+            // wraps + shrinks rather than clipping on smaller canvases.
+            UIAutoFitText.ApplyToButtonLabel(titleLabel,    minSize: 22, maxSize: 40);
+            UIAutoFitText.ApplyToLabel(subtitleLabel,        minSize: 14, maxSize: 22);
+            UIAutoFitText.ApplyToLabel(bodyText,             minSize: 13, maxSize: 24);
         }
 
         private void Start()
