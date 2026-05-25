@@ -27,6 +27,19 @@
 // the same Doris_M1 nodes — but the text shown to the player will be
 // identical either way.
 //
+// ── Phase 34 (2026-05-25) ───────────────────────────────────────
+// User report: "the game is stuck after few dialog mainly after I play
+// it when it reach to the dialogue 'Doris stands back and watches'".
+// Root cause: the old stage-direction line "(stands back and watches)"
+// dismissed the dialogue and then the Polish mini-game ran silently
+// with no on-screen instructions. Players assumed the game crashed.
+//
+// FIX: replaced the stage-direction line with a proper cozy dialogue
+// beat ("I'll wait. Take your time, Keeper.") AND attached a runtime
+// MiniGameTutorialUI via EnsureTutorialOverlay() that auto-builds an
+// on-screen overlay with "Hold LMB · slow circles" instructions, a
+// live progress bar, and a "Skip · Auto-Complete" button.
+//
 // Flow:
 //   1. Doris greets the player ("You're the new one. I thought you'd be taller.")
 //   2. 3-option opener (Hello / silent / "Who was the old one?")
@@ -37,7 +50,7 @@
 //   7. If refused → quiet alternate path (Mission 1 Guide § 9.4)
 //   8. Otherwise: 3-option price negotiation (Honor 4cu / Pay 6→5cu / Underpay 2cu)
 //   9. Hand-off ("The cat watched me. Judged me, I think.")
-//   10. Polish mini-game
+//   10. Polish mini-game (with on-screen tutorial overlay — Phase 34 fix)
 //   11. Doris's after-polish line branches on $polish_quality
 //   12. "Sleep tonight. Dreams come."
 //   13. Evening Ledger → end of day
@@ -353,7 +366,14 @@ namespace HearthboundHollow.Mission
         {
             LockPlayer(true);
 
-            // Brief visual cue — Doris stays in the bakery; polish is private.
+            // Phase 34 (2026-05-25) — replace the awkward stage-direction
+            // line "(stands back and watches)" with a proper cozy dialogue
+            // beat that explicitly hands control to the player. (Doris
+            // stays in the bakery; the polish itself is private.) Then
+            // surface the polish tutorial UI before unlocking input.
+            yield return Line(dorisVillager, "Doris",
+                "I'll wait. Take your time, Keeper.");
+
             if (dialogueUI != null) dialogueUI.Hide();
             LockPlayer(false);
 
@@ -362,7 +382,30 @@ namespace HearthboundHollow.Mission
                 Hh.Err(LogCategory.Mission, "Mission01Director: PolishMiniGame not wired.");
                 yield break;
             }
+
+            // Ensure the on-screen tutorial overlay exists. It auto-subscribes
+            // to PolishMiniGame events and shows: headline, "Hold LMB · slow
+            // circles" instructions, clarity progress bar, friction warnings,
+            // and an Auto-Complete escape hatch. Fixes the user-reported
+            // "game stuck after 'Doris stands back and watches'" UX bug.
+            EnsureTutorialOverlay();
+
             polishGame.BeginGame(workbenchOrb);
+        }
+
+        /// <summary>
+        /// Idempotently attaches a MiniGameTutorialUI to the polish game
+        /// host so the overlay shows up the moment the mini-game starts.
+        /// Auto-builds its own Canvas if none is present. (Phase 34.)
+        /// </summary>
+        private void EnsureTutorialOverlay()
+        {
+            if (polishGame == null) return;
+            var existing = polishGame.GetComponent<MiniGameTutorialUI>();
+            if (existing != null) return;
+            polishGame.gameObject.AddComponent<MiniGameTutorialUI>();
+            Hh.Log(LogCategory.Mission,
+                "Mission01Director: spawned MiniGameTutorialUI on the polish game host.");
         }
 
         private bool _polishFinishedHandled;
