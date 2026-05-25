@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import sys; ch='🧰'; print\\(''.join\\('\\\\\\\\\\\\\\\\u%04x'%ord\\(c\\) for c in ch\\)\\)\")",
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\).hex\\)\")",
+      "Bash(git add *)",
+      "Bash(git fetch *)",
+      "Bash(git reset *)",
+      "Bash(git push *)",
+      "Bash(git lfs *)"
+    ]
+  }
+}
