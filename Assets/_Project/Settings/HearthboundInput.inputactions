@@ -49,6 +49,51 @@
                     "processors": "",
                     "interactions": "Press",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Sprint",
+                    "type": "Button",
+                    "id": "66666666-6666-6666-6666-666666666666",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Hold(duration=0.05)",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Jump",
+                    "type": "Button",
+                    "id": "77777777-7777-7777-7777-777777777777",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Press",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "CameraLook",
+                    "type": "Value",
+                    "id": "88888888-8888-8888-8888-888888888888",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "CameraZoom",
+                    "type": "Value",
+                    "id": "99999999-9999-9999-9999-999999999999",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "AllowLook",
+                    "type": "Button",
+                    "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -69,7 +114,20 @@
                 { "name": "",           "id": "d1111111-1111-1111-1111-111111111111", "path": "<Mouse>/leftButton",  "interactions": "", "processors": "", "groups": "Keyboard&Mouse",   "action": "PointerActive",   "isComposite": false, "isPartOfComposite": false },
                 { "name": "",           "id": "d1111111-1111-1111-1111-111111111112", "path": "<Touchscreen>/press", "interactions": "", "processors": "", "groups": "Touch",            "action": "PointerActive",   "isComposite": false, "isPartOfComposite": false },
                 { "name": "",           "id": "e1111111-1111-1111-1111-111111111111", "path": "<Keyboard>/escape",   "interactions": "", "processors": "", "groups": "Keyboard&Mouse",   "action": "Pause",           "isComposite": false, "isPartOfComposite": false },
-                { "name": "",           "id": "e1111111-1111-1111-1111-111111111112", "path": "<Gamepad>/start",     "interactions": "", "processors": "", "groups": "Gamepad",          "action": "Pause",           "isComposite": false, "isPartOfComposite": false }
+                { "name": "",           "id": "e1111111-1111-1111-1111-111111111112", "path": "<Gamepad>/start",     "interactions": "", "processors": "", "groups": "Gamepad",          "action": "Pause",           "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f1111111-1111-1111-1111-111111111111", "path": "<Keyboard>/leftShift", "interactions": "", "processors": "", "groups": "Keyboard&Mouse",  "action": "Sprint",          "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f1111111-1111-1111-1111-111111111112", "path": "<Keyboard>/rightShift","interactions": "", "processors": "", "groups": "Keyboard&Mouse",  "action": "Sprint",          "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f1111111-1111-1111-1111-111111111113", "path": "<Gamepad>/leftStickPress","interactions": "", "processors": "", "groups": "Gamepad",      "action": "Sprint",          "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f2222222-2222-2222-2222-222222222221", "path": "<Keyboard>/space",    "interactions": "", "processors": "", "groups": "Keyboard&Mouse",   "action": "Jump",            "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f2222222-2222-2222-2222-222222222222", "path": "<Gamepad>/buttonSouth","interactions":"","processors":"","groups":"Gamepad",            "action": "Jump",            "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f3333333-3333-3333-3333-333333333331", "path": "<Mouse>/delta",       "interactions": "", "processors": "", "groups": "Keyboard&Mouse",   "action": "CameraLook",      "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f3333333-3333-3333-3333-333333333332", "path": "<Gamepad>/rightStick","interactions": "", "processors": "scaleVector2(x=120,y=120)", "groups": "Gamepad",   "action": "CameraLook",      "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f4444444-4444-4444-4444-444444444441", "path": "<Mouse>/scroll/y",    "interactions": "", "processors": "scale(factor=0.1)", "groups": "Keyboard&Mouse", "action": "CameraZoom",      "isComposite": false, "isPartOfComposite": false },
+                { "name": "ZoomAxisGP", "id": "f4444444-4444-4444-4444-444444444442", "path": "1DAxis",              "interactions": "", "processors": "", "groups": "",                  "action": "CameraZoom",      "isComposite": true,  "isPartOfComposite": false },
+                { "name": "negative",   "id": "f4444444-4444-4444-4444-444444444443", "path": "<Gamepad>/leftShoulder","interactions":"","processors":"","groups":"Gamepad",            "action": "CameraZoom",      "isComposite": false, "isPartOfComposite": true  },
+                { "name": "positive",   "id": "f4444444-4444-4444-4444-444444444444", "path": "<Gamepad>/rightShoulder","interactions":"","processors":"","groups":"Gamepad",           "action": "CameraZoom",      "isComposite": false, "isPartOfComposite": true  },
+                { "name": "",           "id": "f5555555-5555-5555-5555-555555555551", "path": "<Mouse>/rightButton", "interactions": "", "processors": "", "groups": "Keyboard&Mouse",   "action": "AllowLook",       "isComposite": false, "isPartOfComposite": false },
+                { "name": "",           "id": "f5555555-5555-5555-5555-555555555552", "path": "<Gamepad>/rightStickPress","interactions":"","processors":"","groups":"Gamepad",        "action": "AllowLook",       "isComposite": false, "isPartOfComposite": false }
             ]
         }
     ],
