@@ -7,6 +7,8 @@ All notable changes to this project will be documented here. Entries follow the 
 **Branch:** `feat/mission-1-2-architecture` → PR #7 (open)
 **Theme:** Phase 26 — Complete WASD player controller (sprint + jump + camera-relative input) + smooth follow camera (mouse orbit, scroll zoom, wall-clip) + Mixamo-ready Humanoid Animator Controller (1D blend tree, jump/fall/land states).
 
+> ℹ️ Two Phase 26 workstreams landed on this branch in parallel: the *Narrative Hooks* thread (MarinNoteInteractable + Phase26_NarrativeHooks editor menu, plus the Phase 26.1 asmdef-locality hotfix) and the *Player Controller + Animation* thread (this entry). The decisions table has been renumbered to D-036..D-040 for PC+Animation so it doesn't collide with Phase 25's D-033/D-034 and Phase 26.1's D-035.
+
 ### Added — Phase 26 runtime (≈580 LOC)
 
 #### New runtime scripts
@@ -64,20 +66,20 @@ All notable changes to this project will be documented here. Entries follow the 
 
 ### Added — Documentation (≈280 LOC)
 
-- **`Docs/ANIMATION_REQUIREMENTS.md`** — Complete reference: animator state graph, parameter contract, clip roster, Mixamo download list (6 FBXs), Humanoid retargeting steps, Asset Store alternatives (Mixamo Animation Pack, ACS, Easy Character Movement 2, Synty), performance notes, validation checklist, design decisions D-035 → D-039.
-- **`Docs/PROGRESS.md`** — Phase 26 entry + decisions table renumbered to D-035..D-039 + updated menu list.
-- **`Docs/ARCHITECTURE.md`** — § 0 controller/camera/animator rows + § 4.4 PlayerController surface + § 4.5 SmoothFollowCamera + § 15 Decisions Index covering D-033..D-039.
+- **`Docs/ANIMATION_REQUIREMENTS.md`** — Complete reference: animator state graph, parameter contract, clip roster, Mixamo download list (6 FBXs), Humanoid retargeting steps, Asset Store alternatives (Mixamo Animation Pack, ACS, Easy Character Movement 2, Synty), performance notes, validation checklist, design decisions D-036 → D-040.
+- **`Docs/PROGRESS.md`** — Phase 26 Player Controller + Animation entry merged with Narrative Hooks thread + Phase 26.1 hotfix; decisions table reaches D-040.
+- **`Docs/ARCHITECTURE.md`** — § 0 controller/camera/animator rows + § 4.4 PlayerController surface + § 4.5 SmoothFollowCamera + § 15 Decisions Index covering D-033..D-040.
 - **`README.md`** — controls table + 2-click quickstart.
 
 ### Decisions adopted in this release
 
-> ℹ️ Phase 25 (UI activation hotfix, landed in parallel) consumed D-033 + D-034. Phase 26's decisions therefore start at D-035.
+> ℹ️ The branch already used D-033 + D-034 (Phase 25 UI two-layer + self-heal) and D-035 (Phase 26.1 asmdef-locality). Phase 26 *Player Controller + Animation* decisions therefore start at **D-036**.
 
-- **D-035** Sprint + Jump are opt-in runtime flags (`enableSprint`, `enableJump`). Gentle Mode disables both. Cozy GDD doesn't ask for them; we add them so playtesters who reach for Shift/Space don't perceive the controller as broken.
-- **D-036** Player Animator is a single 1D blend tree on `Speed`, not a 2D tree. Cozy character always faces movement direction.
-- **D-037** Animator parameter names are configurable strings on the `PlayerController` Inspector — swapping to a community controller is a name-retype, no code rewrite.
-- **D-038** `SmoothFollowCamera` is the M1+M2 default. Phase 17 still creates a Cinemachine prefab when the package is present; the two coexist (Phase 26 doesn't touch the Cinemachine path).
-- **D-039** Animations live in `Assets/_Project/Animations/` (Mixamo subfolder optional) — single search path keeps auto-detection deterministic.
+- **D-036** Sprint + Jump are opt-in runtime flags (`enableSprint`, `enableJump`). Gentle Mode disables both. Cozy GDD doesn't ask for them; we add them so playtesters who reach for Shift/Space don't perceive the controller as broken.
+- **D-037** Player Animator is a single 1D blend tree on `Speed`, not a 2D tree. Cozy character always faces movement direction.
+- **D-038** Animator parameter names are configurable strings on the `PlayerController` Inspector — swapping to a community controller is a name-retype, no code rewrite.
+- **D-039** `SmoothFollowCamera` is the M1+M2 default. Phase 17 still creates a Cinemachine prefab when the package is present; the two coexist (Phase 26 doesn't touch the Cinemachine path).
+- **D-040** Animations live in `Assets/_Project/Animations/` (Mixamo subfolder optional) — single search path keeps auto-detection deterministic.
 
 ### Files net delta (vs 0.2.1)
 
@@ -110,8 +112,9 @@ Six scenes; Phase 26 doesn't add new ones.
 1. Pull the branch. Unity recompiles.
 2. `Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`. *[unchanged]*
 3. `Hearthbound → 🏃 Phase 26 — Player Controller + Animation`. *[NEW, ~5 s]*
-4. (Optional) Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per `Docs/ANIMATION_REQUIREMENTS.md` § 3 and re-run Phase 26.
-5. Press Play. WASD moves camera-relative; Shift sprints; Space jumps; Right Mouse + drag orbits camera; scroll zooms.
+4. `Hearthbound → Phase 26 — Wire Narrative Hooks`. *[from the Narrative Hooks thread — drops Marin's Note on the workbench]*
+5. (Optional) Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per `Docs/ANIMATION_REQUIREMENTS.md` § 3 and re-run Phase 26.
+6. Press Play. WASD moves camera-relative; Shift sprints; Space jumps; Right Mouse + drag orbits camera; scroll zooms.
 
 ---
 
@@ -166,34 +169,16 @@ Six scenes; Phase 26 doesn't add new ones.
 - **`UI/HelpOverlayUI.cs`** — H-toggled controls reference card with in-fiction Marin quote. Auto-shows on first start (`VillageState.tutorialCompleted == false`); marks tutorial complete on first close.
 - **`UI/MissionTitleCard.cs`** — CanvasGroup fade-in title card. Pulls displayName + toneOneLine from MissionSO. Skippable on click/space/enter. Uses `Time.unscaledDeltaTime` so it runs even when the pause menu is up.
 - **`Audio/AmbientAudio.cs`** — Looping ambient bed. Resolves AudioClip via `SfxLibrarySO` entry id (or direct clip). Volume gated by `SettingsService.EffectiveVolume(Ambient)`; hot-refreshes on `OnSettingsChanged`.
-- **`Mission/MainMenuSaveCoordinator.cs`** — Bridges UI → Save asmdef. Awake: ensures SaveService is registered. Start: enables Continue button only if autosave (slot -1) exists. On click: `SaveService.Load(-1, vs)` + `GameManager.LoadScene(vs.lastSceneName ?? fallback)`.
-- **`Mission/PauseSaveCoordinator.cs`** — Listens to `PauseMenuUI.OnSaveAndQuitRequested` + `DayEndedEvent`. Captures active scene name into `VillageState.lastSceneName` and writes autosave.
-
-#### Updated
-- **`UI/MainMenuController.cs`** — Emits `OnContinueRequested` + `OnSettingsRequested` events (replacing direct save-service calls). Adds `SetContinueEnabled(bool)` for the coordinator to call. Continue button starts dim. 7 cozy tip strings (was 5). Settings opens the panel + `ComfortToolsMenu` when wired.
+- **`Mission/MainMenuSaveCoordinator.cs`** — Bridges UI → Save asmdef.
+- **`Mission/PauseSaveCoordinator.cs`** — Listens to `PauseMenuUI.OnSaveAndQuitRequested` + `DayEndedEvent`.
 
 #### Editor capstone
 - **`Editor/Phase23_Mission1PolishCapstone.cs`** (~670 LOC). Menu: **`Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)`**.
-  - Runs Phase 22 (which chains Phases 13–21).
-  - Runs Phase 24 (Mission 2 scenes).
-  - Post-processes 6 scenes:
-    - Bootstrap: adds `SettingsServiceBootstrap` on `_GameRoot`.
-    - MainMenu: builds Settings panel (procedural Bamao-tone) with `ComfortToolsMenu` (Gentle Mode toggle, Auto-Polish toggle, Auto-Cleanse toggle, Subtitle Size slider) + adds `MainMenuSaveCoordinator`.
-    - Lane: spawns `_AmbientAudio` (autumn loop, 0.40 base) + `PauseMenu` + `HelpOverlay` + `MissionTitleCard` ("Day 1 — Opening the Hollow").
-    - Hollow: spawns ambient (0.30 hearth-quiet) + Pause + Help + TitleCard + **Pickle the cat** (sphere primitive with PickleAI wired to player + orb) + sets `Mission01Director.sceneAfterEndOfDay = "04_Mission02_Garden"` (the M1→M2 hand-off).
-    - Garden: ambient (0.45 outdoor wind) + Pause + Help.
-    - Cottage: ambient (0.25 hearth-quiet) + Pause + Help.
-  - Updates Build Settings to 6 scenes in correct order.
-  - Opens Bootstrap so the user can Press Play immediately.
 
 ### Added — Phase 24 (Mission 2 Garden + Cottage scenes, ~1,275 LOC)
 
-- **`Mission/Mission02Director.cs`** (479 LOC) — single runtime orchestrator that handles both Mission 2 scenes via `SceneRole` enum.
-  - **Garden flow**: title card → Marin's intro → herb harvest (HerbHarvestedEvent listener) → kettle activation → TeaBrewingUI → TeaBrewedEvent → garden exit unlocks → loads Cottage scene.
-  - **Cottage flow**: title card → Gerrold greeting (3 lines + 3-option reply, +0/+3/+6 trust ripple) → ChoiceCardUI with 4 tariffs.
-  - **Branch logic**: Erase → CleanseMiniGame (gentleMode) → Dream 2 Variant A. Cleanse → CleanseMiniGame → Dream 2 Variant B/C (depending on CleanseOutcome). Listen → no mini-game + 4-beat narrative pause + Variant D. Defer → no mini-game + Variant E.
-  - **Outcome-specific Evening Ledger** — 5 distinct passages (one for each cleanse-outcome and each non-cleanse branch).
-- **`Editor/Phase24_Mission2SceneBuilder.cs`** (795 LOC) — Menu: **`Hearthbound → Phase 24 — Build Mission 2 Scenes`**. Builds both scenes from scratch.
+- **`Mission/Mission02Director.cs`** (479 LOC).
+- **`Editor/Phase24_Mission2SceneBuilder.cs`** (795 LOC).
 
 ### Decisions adopted in this release
 - **D-028** SettingsService is a plain C# class, not a ScriptableObject.
@@ -220,10 +205,7 @@ Six scenes; Phase 26 doesn't add new ones.
 **Theme:** Bug-fix cycle (Phase 10.5) + quality-of-life tooling (Phase 11).
 
 ### Fixed
-- **CS1739 in SaveService.cs** — `VillageStateSavedEvent` ctor parameter is named `autosave`, not `isAutosave`.
-- **CS0234 / CS0246 in MiniGames** — MiniGames asmdef missing Player reference.
-- **CS0234 (preemptive) in Dialogue** — Dialogue asmdef now references Save proactively.
-- **"Project has invalid dependencies"** — Removed `com.unity.textmeshpro` from manifest (folded into UGUI 2.0 in Unity 6).
+- **CS1739 in SaveService.cs**, **CS0234/CS0246 in MiniGames + Dialogue**, **"Project has invalid dependencies"** — removed `com.unity.textmeshpro` from manifest (folded into UGUI 2.0 in Unity 6).
 
 ### Added — Editor tooling (Phase 11)
 - `Editor/SeedAssetGenerator.cs` — generates the 17 canonical ScriptableObjects.
@@ -231,11 +213,11 @@ Six scenes; Phase 26 doesn't add new ones.
 - Menu items: `Hearthbound → Create Mission 1-2 Seed Assets`, `Hearthbound → Validate Mission 1-2 Seed Assets`.
 
 ### Added — Runtime (Phase 11)
-- `Cutscene/ListenSceneSequencer.cs` — Mission 2 Listen-path Timeline driver.
+- `Cutscene/ListenSceneSequencer.cs`.
 - `Settings/HearthboundInput.inputactions` — Move / Interact / PointerPosition / PointerActive / Pause across K&M / Gamepad / Touch.
 
 ### Added — Tests (Phase 11)
-- `Tests/EditMode/SaveAndRippleTests.cs` — +13 NUnit tests, bringing EditMode coverage from 8 to 21.
+- `Tests/EditMode/SaveAndRippleTests.cs` — +13 NUnit tests.
 
 ### Decisions adopted
 - D-008 Drop `com.unity.textmeshpro` from manifest.
@@ -262,7 +244,7 @@ Six scenes; Phase 26 doesn't add new ones.
 - 10 production + 2 test, full dependency graph.
 
 ### Added — Scripts (32 files, ~4 k lines)
-- **Core (7), Memory (8), Player (9), MiniGames (3), UI (9), Dialogue (1), Cutscene (1), Save (2), Mission (3), Tests (1).** See `PROGRESS.md` for the full list.
+- **Core (7), Memory (8), Player (9), MiniGames (3), UI (9), Dialogue (1), Cutscene (1), Save (2), Mission (3), Tests (1).**
 
 ### Added — Yarn dialogue (5 files)
 - `Doris_M1.yarn` (9 nodes), `Gerrold_M2.yarn` (10 nodes), `Marin_Notes.yarn` (3 nodes), `Pickle.yarn` (4 nodes), `Codex.yarn` (6 nodes).
