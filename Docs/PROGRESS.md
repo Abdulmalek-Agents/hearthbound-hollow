@@ -10,6 +10,113 @@
 
 ---
 
+## 🆕 Phase 31 — Dialogue Choice Card Repair  🟢 (2026-05-25)
+
+**User report after first Phase 30 playtest (screenshot attached):**
+
+> *"the game stuck during the dialogue and as shown in screenshots the cards
+> not appear well so please fix this issue and enhance the gameplay to make
+> the game playable"*
+
+### Symptoms (from the screenshot)
+
+- Doris's greeting line "*I'd heard. I just didn't expect... so soon.*"
+  is shown, and the two choice tiles **"I'm here to help."** and
+  **"I'm not sure I'm ready."** are stacked vertically as **tiny ~100 px
+  squares on the right** of the parchment body, with the labels broken
+  one-word-per-line ("I'm | here | to | help.").
+- Player cannot easily click the cramped tiles → dialogue feels stuck.
+
+### Root cause
+
+`Phase14_BamaoUIBuilder` saved `UI_DialogueBox_Bamao.prefab` with a
+`VerticalLayoutGroup` on `ChoicesContainer` that had:
+
+```yaml
+m_ChildForceExpandWidth: 1   # children stretch to fill width
+m_ChildControlWidth:     0   # ← BUG — layout group never resizes children
+```
+
+With `childControlWidth = false`, the layout group only redistributes
+leftover space — it does **not** change each child's `RectTransform`
+width. Because the choice tile prefab is saved with
+`sizeDelta = (100, 100)`, every instantiated tile rendered at ~100 px.
+Compounded by:
+
+| Symptom | Cause |
+|---|---|
+| Tiles render in narrow column | `childControlWidth = 0` + tile saved `sizeDelta.x = 100` |
+| Labels split one-word-per-line | Word-wrap kicked in but width was only 100 px |
+| Tiles bunched in centre | `childAlignment = MiddleCenter` |
+| Narration line still visible under choices | `PresentChoices()` never hid `lineText` |
+| `LayoutElement.preferredWidth` missing | Only `preferredHeight = 62` set on tile |
+
+### Fix (one PR — touches 5 files, adds 2 new files)
+
+| File | Role | Status |
+|---|---|---|
+| `Scripts/UI/DialogueChoiceLayoutHealer.cs` | **NEW**. Runtime self-heal helper with `HealContainer(Transform)` + `HealTile(GameObject)`. Enforces `childControlWidth = true` + `childControlHeight = true` on the VLG, and `LayoutElement.minHeight = 56 / preferredHeight = 64 / flexibleWidth = 1` on each instantiated tile. Also fixes `RectTransform.anchorMin.x = 0 / anchorMax.x = 1 / sizeDelta.x = 0` so a clone never flashes at 100×100 before the VLG repositions it. Resets the tile's TMP label to word-wrap + auto-size + ellipsis. Idempotent. | NEW |
+| `Scripts/UI/DialogueUI.cs` | `Awake()` heals container. `PresentChoices()` heals container again + heals each instantiated tile + **hides `lineText` while choices are on screen** (and `PresentLine()` / `HandleChoice()` / `Hide()` re-show it). New `Update()` handler maps **`1`-`4` keys to choice indices** so players can advance without hunting for tiles with the cursor. Labels are prefixed with `<b>[1]</b>` etc. so the shortcut is discoverable. | updated |
+| `Scripts/UI/ChoiceCardUI.cs` | Same `HealContainer` / `HealTile` calls for the moral-choice card (memory tariff tiles) — identical root cause. | updated |
+| `Scripts/Editor/Phase14_BamaoUIBuilder.cs` | `BuildDialogueBox` now writes `childControlWidth = true / childControlHeight = true / childAlignment = UpperCenter` on the VLG. `MakeChoiceTileVisuals` pre-shapes the tile's `RectTransform` to full-width + writes `LayoutElement.minHeight = 56 / preferredHeight = 64 / flexibleWidth = 1`. Fresh Phase 14 builds bake the fix into the saved prefab. | updated |
+| `Scripts/Editor/Phase31_DialogueChoiceCardRepair.cs` | **NEW**. `Hearthbound → 🧰 Phase 31 — Repair Dialogue Choice Cards`. Walks `UI_DialogueBox_Bamao.prefab`, `UI_ChoiceTile_Bamao.prefab`, and every gameplay scene; surgically repairs the VLG + LayoutElement + label settings IN PLACE so users do **not** need to re-run Phase 14 (which would lose inspector tweaks). Idempotent — safe to re-run. | NEW |
+| `Scripts/Editor/Phase27_BuildEverything.cs` | Master capstone now chains Phase 31 after Phase 30. Seven sub-capstones in one click. | updated |
+
+### What the user does after pulling
+
+```
+1. Pull feat/mission-1-2-architecture.
+2. Unity recompiles (~10 s) and re-imports the modified prefabs.
+3. Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click).
+     ↳ This now chains Phase 31 at the end and surgically repairs the
+       saved DialogueBox + ChoiceTile prefabs + the four gameplay scenes.
+   (or just run Phase 31 directly: Hearthbound → 🧰 Phase 31 — Repair
+    Dialogue Choice Cards.)
+4. Press Play in 00_Bootstrap. Walk to Doris.
+     ↳ Both choice tiles are now full-width parchment scrolls with
+       readable labels prefixed [1]/[2]/[3]. Click or press 1/2/3 to
+       advance. The narration line hides while choices are visible.
+```
+
+The runtime self-heal in `DialogueUI.Awake()` + `PresentChoices()` means
+the fix lands **even on existing saves that pre-date the Phase 31
+prefab rebuild** — the moment the user walks up to Doris, the container
++ tiles are healed on the live UI before the first tile is spawned.
+
+### Decisions adopted
+
+- **D-045 (NEW):** Any `VerticalLayoutGroup` / `HorizontalLayoutGroup`
+  used to spawn variable-width children **MUST** set both
+  `childControlWidth = true` and `childForceExpandWidth = true`. The
+  `childForce` flag alone is insufficient — it only redistributes
+  leftover space without resizing. Codified in
+  `DialogueChoiceLayoutHealer.HealContainer()`.
+- **D-046 (NEW):** Choice tile prefabs **MUST** set `LayoutElement`
+  with `minHeight ≥ 56` (mobile finger-tap budget), `preferredHeight ≥ 64`
+  (cozy default), and `flexibleWidth = 1` (share horizontal slack).
+  Codified in `DialogueChoiceLayoutHealer.HealTile()`.
+- **D-047 (NEW):** `DialogueUI` MUST hide `lineText` while choices are on
+  screen and restore it on the next `PresentLine()` / `HandleChoice()` /
+  `Hide()`. The narration body and the choice body share the same
+  rectangle by design.
+- **D-048 (NEW):** Player-facing UI with up to 4 buttons should expose
+  number-key shortcuts (1/2/3/4) and prefix labels with `[N]`. Mouse-only
+  flows have an accessibility tax; the cost of the shortcut is one
+  `Update()` poll per dialogue frame.
+
+### How this lesson is now in the architecture
+
+- **D-035 reinforced** (asmdef-locality) — `DialogueChoiceLayoutHealer`
+  lives in the `HearthboundHollow.UI` asmdef next to `DialogueUI` and
+  `ChoiceCardUI`. The Phase 31 editor capstone is in
+  `HearthboundHollow.Editor` and uses `UI` references already declared
+  in the asmdef.
+- **D-041 reinforced** (runtime auto-correct over build-time guessing) —
+  same pattern as `PlayerGroundClamp`: the prefab gets it right, but
+  the runtime healer recovers any legacy or third-party-mutated state.
+
+---
+
 ## 🚨 HOTFIX — Phase 30.1 (2026-05-25) — Mission asmdef missing `Unity.TextMeshPro`
 
 **Bug reported by user after pulling Phase 30:**

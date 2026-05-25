@@ -2,6 +2,78 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.5.1-dialogue-choice-card-repair] — 2026-05-25
+
+**Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.5.0)
+**Theme:** Phase 31 — fix the dialogue choice tiles so the game is playable past Doris's first greeting.
+
+### User report (with screenshot)
+
+> *"the game stuck during the dialogue and as shown in screenshots the cards
+> not appear well so please fix this issue and enhance the gameplay to make
+> the game playable"*
+
+The screenshot showed Doris saying "I'd heard. I just didn't expect... so soon."
+with two choice tiles rendered as **tiny ~100 px squares** on the right of the
+parchment box, each label broken into one-word-per-line shards ("I'm | here |
+to | help"). Players could not realistically click them → dialogue stalled.
+
+### Root cause
+
+`Phase14_BamaoUIBuilder` saved `UI_DialogueBox_Bamao.prefab` with
+`ChoicesContainer.VerticalLayoutGroup.childControlWidth = false`. With this
+flag off, `childForceExpandWidth = true` only redistributes leftover space —
+it does **not** resize children. The choice tile prefab is saved with
+`sizeDelta = (100, 100)`, so every instantiated tile rendered at 100 × 100 in
+the centre of the body. Compounded by missing `LayoutElement.preferredWidth`
+on the tile and `lineText` never being hidden while choices were on screen.
+
+### Phase 31 — Dialogue Choice Card Repair
+
+- **`UI/DialogueChoiceLayoutHealer.cs`** (NEW, ~120 LOC) — Runtime self-heal
+  helper. `HealContainer(Transform)` enforces `childControlWidth = true /
+  childControlHeight = true / childForceExpandWidth = true /
+  childAlignment = UpperCenter / padding = (16,16,10,10) / spacing ≥ 8` on
+  the VLG. `HealTile(GameObject)` resets the tile's `RectTransform.anchorMin.x
+  = 0 / anchorMax.x = 1 / sizeDelta.x = 0` (defeats the saved 100×100),
+  ensures `LayoutElement.minHeight = 56 / preferredHeight = 64 /
+  flexibleWidth = 1`, and heals every TMP label under the tile
+  (word-wrap + auto-size + ellipsis + full-rect anchors). Defensive: also
+  re-enables button `interactable` + `targetGraphic.raycastTarget`.
+  Idempotent.
+- **`UI/DialogueUI.cs`** — `Awake()` heals the container. `PresentChoices()`
+  heals again + heals every clone + **hides `lineText`** while choices are
+  visible. `PresentLine()` / `HandleChoice()` / `Hide()` restore `lineText`.
+  New `Update()` handler maps **`1`/`2`/`3`/`4` keys** to choice indices.
+  Choice labels are prefixed with `<b>[1]</b>` etc. so the shortcut is
+  discoverable.
+- **`UI/ChoiceCardUI.cs`** — Same heal calls on the moral-choice (tariff)
+  card. Identical root cause.
+- **`Editor/Phase14_BamaoUIBuilder.cs`** — Fresh builds bake the correct
+  settings: `childControlWidth = true`, `childAlignment = UpperCenter`, tile
+  pre-shaped to full-width, `LayoutElement.minHeight = 56 / preferredHeight
+  = 64 / flexibleWidth = 1`.
+- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** (NEW, ~340 LOC) —
+  `Hearthbound → 🧰 Phase 31 — Repair Dialogue Choice Cards`. Walks the two
+  saved UI prefabs + four gameplay scenes; surgically repairs the VLG +
+  LayoutElement + label settings IN PLACE. Idempotent, opens each scene in
+  single-mode, marks dirty, saves. Reports per-asset whether a change was
+  needed.
+- **`Editor/Phase27_BuildEverything.cs`** — Master capstone now chains Phase
+  31 after Phase 30. `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one
+  click)` is now a 7-phase chain.
+
+**D-045 (NEW):** VLG / HLG with variable-width children MUST set both
+`childControlWidth = true` AND `childForceExpandWidth = true`.
+**D-046 (NEW):** Choice tile prefabs MUST set `LayoutElement.minHeight ≥ 56
+/ preferredHeight ≥ 64 / flexibleWidth = 1`.
+**D-047 (NEW):** `DialogueUI` MUST hide `lineText` while choices are
+on-screen and restore it on the next presentation.
+**D-048 (NEW):** Player-facing UI with ≤4 buttons should expose 1/2/3/4
+keyboard shortcuts and prefix labels with `[N]`.
+
+---
+
 ## [0.5.0-onboarding-hints-and-rig-doctor] — 2026-05-25
 
 **Branch:** `feat/mission-1-2-architecture` → PR #7 (open, accumulating)

@@ -46,6 +46,11 @@ namespace HearthboundHollow.UI
             // moral-choice card never clips long memory titles or the prompt.
             UIAutoFitText.ApplyToLabel(promptLine, minSize: 14, maxSize: 24);
             UIAutoFitText.ApplyToButtonLabel(memoryTitle, minSize: 18, maxSize: 32);
+
+            // Phase 31 — fix the choice-tile container's VerticalLayoutGroup
+            // so tariff tiles render full-width (same root cause as the
+            // DialogueUI choice cards — see DialogueChoiceLayoutHealer).
+            DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
         }
 
         public void Show(MemoryNodeSO memory, string promptText, IReadOnlyList<TariffSO> tariffs)
@@ -61,6 +66,11 @@ namespace HearthboundHollow.UI
 
             ClearTiles();
             if (choiceContainer == null || choiceTilePrefab == null) return;
+
+            // Phase 31 — re-heal in case the container was mutated between
+            // shows (Yarn runner, mission director, scene reload).
+            DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
+
             foreach (var tariff in tariffs)
             {
                 if (tariff == null) continue;
@@ -68,6 +78,7 @@ namespace HearthboundHollow.UI
                 go.SetActive(true); // template prefab may be inactive
                 _spawned.Add(go);
                 WireTile(go, tariff);
+                DialogueChoiceLayoutHealer.HealTile(go);
             }
         }
 

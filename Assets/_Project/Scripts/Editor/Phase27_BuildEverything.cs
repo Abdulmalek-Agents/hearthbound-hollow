@@ -87,9 +87,19 @@ namespace HearthboundHollow.EditorTools
 
                 // Step 6: Phase 30 — Onboarding overlay + ControlHintsHUD on
                 // every gameplay scene.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 30 (Onboarding + Hints HUD) …", 0.93f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 30 (Onboarding + Hints HUD) …", 0.90f);
                 if (TryRun("Phase 30 — Onboarding + Hints HUD",
                           "HearthboundHollow.EditorTools.Phase30_OnboardingAndHintsCapstone", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 7: Phase 31 — Dialogue choice-card layout repair so
+                // the choice tiles render full-width, wrap long labels, and
+                // the narration line hides while a decision is on screen.
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 31 (Dialogue Choice Repair) …", 0.95f);
+                if (TryRun("Phase 31 — Dialogue Choice Card Repair",
+                          "HearthboundHollow.EditorTools.Phase31_DialogueChoiceCardRepair", "Build"))
                     ran++;
                 else
                     skipped++;

@@ -226,18 +226,23 @@ namespace HearthboundHollow.EditorTools
             textRT.offsetMin = Vector2.zero; textRT.offsetMax = Vector2.zero;
             UIAutoFitText.ApplyToLabel(lineText, minSize: 16, maxSize: 28);
 
-            // ChoicesContainer — Phase 29: positioned INSIDE the dialogue box
-            // covering the body / portrait area. Previously this was anchored
-            // OUTSIDE the prefab bounds (1.05–2.10) and the scene builder didn't
-            // always reposition it, so choice scrolls rendered off-screen.
+            // ChoicesContainer — Phase 31: VerticalLayoutGroup must control
+            // child width (childControlWidth = true). Phase 29 set
+            // childForceExpandWidth alone, which redistributes leftover space
+            // but does NOT resize the child's RectTransform — every tile
+            // rendered at its prefab default 100×100 in a tiny column in
+            // the centre of the body. childControlWidth fixes the resize;
+            // childControlHeight allows long-wrapped labels to grow the tile.
             var choicesGO = new GameObject("ChoicesContainer", typeof(RectTransform));
             choicesGO.transform.SetParent(root.transform, false);
             var choicesLayout = choicesGO.AddComponent<VerticalLayoutGroup>();
             choicesLayout.spacing = 10;
+            choicesLayout.childControlWidth = true;
+            choicesLayout.childControlHeight = true;
             choicesLayout.childForceExpandWidth = true;
             choicesLayout.childForceExpandHeight = false;
             choicesLayout.padding = new RectOffset(20, 20, 12, 12);
-            choicesLayout.childAlignment = TextAnchor.MiddleCenter;
+            choicesLayout.childAlignment = TextAnchor.UpperCenter;
             var choicesRT = choicesGO.GetComponent<RectTransform>();
             // Overlay the line text area; ChoiceCardUI / DialogueUI hide
             // the lineText while choices are presented, so they don't fight.
@@ -269,6 +274,16 @@ namespace HearthboundHollow.EditorTools
         private static GameObject MakeChoiceTileVisuals(Sprite scrollBtn, string name)
         {
             var go = new GameObject(name, typeof(RectTransform));
+
+            // Phase 31 — pre-shape the RectTransform to full-width so a clone
+            // of this prefab does not flash at 100×100 before the parent
+            // VerticalLayoutGroup recomputes width on the next layout pass.
+            var goRT = go.GetComponent<RectTransform>();
+            goRT.anchorMin = new Vector2(0f, 0.5f);
+            goRT.anchorMax = new Vector2(1f, 0.5f);
+            goRT.pivot = new Vector2(0.5f, 0.5f);
+            goRT.sizeDelta = new Vector2(0f, 64f);
+
             var img = go.AddComponent<Image>();
             if (scrollBtn != null)
             {
@@ -289,8 +304,13 @@ namespace HearthboundHollow.EditorTools
             cb.selectedColor   = new Color(1f, 0.92f, 0.68f, 1f);
             btn.colors = cb;
 
+            // Phase 31 — minHeight + flexibleWidth so VLG-controlled tiles
+            // are tap-friendly on mobile (≥56 px) and properly share extra
+            // horizontal slack across the row of tiles.
             var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = 62;
+            le.minHeight = 56;
+            le.preferredHeight = 64;
+            le.flexibleWidth = 1f;
 
             var labelGO = new GameObject("Label", typeof(RectTransform));
             labelGO.transform.SetParent(go.transform, false);
@@ -300,6 +320,7 @@ namespace HearthboundHollow.EditorTools
             label.color = SpeakerInk;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
+            label.enableWordWrapping = true;
             var labelRT = label.rectTransform;
             labelRT.anchorMin = Vector2.zero; labelRT.anchorMax = Vector2.one;
             labelRT.offsetMin = new Vector2(20, 6); labelRT.offsetMax = new Vector2(-20, -6);

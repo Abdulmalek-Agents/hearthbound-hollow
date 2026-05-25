@@ -65,6 +65,12 @@ namespace HearthboundHollow.UI
             // pre-date Phase 14's polish layer don't clip long villager lines.
             UIAutoFitText.ApplyToLabel(lineText, minSize: 16, maxSize: 28);
             UIAutoFitText.ApplyToButtonLabel(speakerName, minSize: 18, maxSize: 32);
+
+            // Phase 31 — heal the ChoicesContainer VerticalLayoutGroup so
+            // tiles stretch to full width regardless of the prefab's saved
+            // settings (older Phase 14 builds wrote childControlWidth = 0
+            // which caused tiles to render as ~100 px squares).
+            DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
         }
 
         public void PresentLine(string speaker, string text, Sprite portrait)
@@ -73,6 +79,12 @@ namespace HearthboundHollow.UI
             if (!gameObject.activeSelf) gameObject.SetActive(true);
 
             if (root != null) root.SetActive(true);
+
+            // Phase 31 — PresentChoices() hides lineText to free the body
+            // for the choice tiles. Restore it whenever a new line arrives.
+            if (lineText != null && !lineText.gameObject.activeSelf)
+                lineText.gameObject.SetActive(true);
+
             if (speakerName != null) speakerName.text = speaker ?? string.Empty;
             if (portraitImage != null)
             {
@@ -101,17 +113,44 @@ namespace HearthboundHollow.UI
         {
             _choiceCallback = onChoiceSelected;
             ClearChoices();
+
+            // Self-heal in case the host was deactivated externally.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+            if (root != null && !root.activeSelf) root.SetActive(true);
+
+            // Phase 31 — silence the narration line while a decision is in
+            // front of the player. The body of the parchment box is reused
+            // for the choices, and leaving the previous spoken line visible
+            // underneath made the tiles look like floating fragments.
+            if (lineText != null) lineText.gameObject.SetActive(false);
+
             if (choiceContainer == null || choiceButtonPrefab == null) return;
+
+            // Phase 31 — re-heal each present, in case a third party (eg.
+            // Yarn Spinner runner, Mission01Director) mutated the container
+            // between scenes.
+            DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
+
             for (int i = 0; i < choices.Count; i++)
             {
                 int idx = i;
                 var go = Instantiate(choiceButtonPrefab, choiceContainer);
                 go.SetActive(true); // template prefab may have been inactive
                 var label = go.GetComponentInChildren<TextMeshProUGUI>();
-                if (label != null) label.text = choices[i];
+                // Phase 31 — prefix with [1]/[2]/… so the keyboard shortcut
+                // (handled in Update) is discoverable without a tutorial.
+                if (label != null) label.text = $"<b><color=#7a5314>[{idx + 1}]</color></b>  {choices[i]}";
                 var btn = go.GetComponent<Button>();
-                if (btn != null) btn.onClick.AddListener(() => HandleChoice(idx));
+                if (btn != null)
+                {
+                    btn.onClick.RemoveAllListeners();
+                    btn.onClick.AddListener(() => HandleChoice(idx));
+                }
                 _spawnedButtons.Add(go);
+
+                // Phase 31 — fix the tile layout (full-width, wrapping,
+                // tap-friendly height) on the freshly instantiated clone.
+                DialogueChoiceLayoutHealer.HealTile(go);
             }
         }
 
@@ -119,6 +158,10 @@ namespace HearthboundHollow.UI
         {
             if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
             ClearChoices();
+            // Phase 31 — leave lineText re-enabled so the next PresentLine()
+            // does not surprise the player with an empty parchment body.
+            if (lineText != null && !lineText.gameObject.activeSelf)
+                lineText.gameObject.SetActive(true);
             if (root != null && root != gameObject) root.SetActive(false);
             IsBusy = false;
         }
@@ -134,6 +177,11 @@ namespace HearthboundHollow.UI
             var cb = _choiceCallback;
             _choiceCallback = null;
             ClearChoices();
+            // Phase 31 — once a choice has resolved, restore the lineText
+            // area so the next spoken line from the director / Yarn runner
+            // lands in its expected slot.
+            if (lineText != null && !lineText.gameObject.activeSelf)
+                lineText.gameObject.SetActive(true);
             cb?.Invoke(index);
         }
 
@@ -150,6 +198,24 @@ namespace HearthboundHollow.UI
             }
             yield return new WaitForSeconds(postLineLinger);
             IsBusy = false;
+        }
+
+        // Phase 31 — keyboard shortcuts for choices. Pressing 1/2/3/4 picks
+        // the corresponding choice without forcing the player to mouse over
+        // small tiles. Defensive: only fires while choices are on-screen and
+        // a callback is registered.
+        private void Update()
+        {
+            if (_choiceCallback == null || _spawnedButtons.Count == 0) return;
+            int picked = -1;
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) picked = 0;
+            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) picked = 1;
+            else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) picked = 2;
+            else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) picked = 3;
+            if (picked >= 0 && picked < _spawnedButtons.Count)
+            {
+                HandleChoice(picked);
+            }
         }
     }
 }
