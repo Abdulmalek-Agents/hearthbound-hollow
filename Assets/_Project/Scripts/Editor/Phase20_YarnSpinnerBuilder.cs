@@ -34,7 +34,7 @@ namespace HearthboundHollow.EditorTools
         private const string PrefabDir = "Assets/_Project/Prefabs/Dialogue";
         private const string YarnRunnerPrefabPath = PrefabDir + "/YarnRunner.prefab";
 
-        [MenuItem("Hearthbound/Phase 20 — Build Yarn Spinner Runner", priority = 207)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 20 — Build Yarn Spinner Runner", priority = 207)]
         public static void Build()
         {
             if (!IsYarnInstalled())
@@ -203,7 +203,7 @@ namespace HearthboundHollow.EditorTools
                 "Open the YarnRunner prefab and drag the .yarn files manually onto the DialogueRunner's source list.");
         }
 
-        // ─── Folder helpers ───────────────────────────────────────
+        // ─── Folder helpers ──────────────────────────────────────
 
         private static void EnsureFolder(string path)
         {
