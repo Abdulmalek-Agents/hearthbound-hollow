@@ -281,28 +281,16 @@ namespace HearthboundHollow.UI
         // small tiles. Defensive: only fires while choices are on-screen and
         // a callback is registered.
         // Phase 31.1 — also drives the visible "Click or [Space] ▸" advance
-        // hint pulse, and lets a click during typewriter skip to the fully-
-        // rendered line so dialogue feels snappy instead of stuck.
+        // hint pulse, so players never miss that the dialogue is waiting on
+        // them. (Skip-typewriter is exposed as `SkipTypewriter()` for the
+        // mission director or Yarn runner to call — calling it from Update
+        // here would race with WaitForAdvance on the same Space press and
+        // double-advance, robbing the player of a chance to read the line.)
         private void Update()
         {
-            // Skip the typewriter on click/Space while a line is mid-type.
-            // The Mission director's WaitForAdvance will catch the *next*
-            // click to advance past the fully rendered line. This double-
-            // tap pattern is the standard cozy-RPG dialogue UX.
-            if (IsBusy && _fullLineText != null)
-            {
-                if (Input.GetMouseButtonDown(0) ||
-                    Input.GetKeyDown(KeyCode.Space) ||
-                    Input.GetKeyDown(KeyCode.Return) ||
-                    Input.GetKeyDown(KeyCode.E))
-                {
-                    SkipTypewriter();
-                }
-            }
-
             // Pulse the advance prompt when the line is fully rendered and
             // no choices are showing — i.e. the director is blocked on a
-            // click. Sinusoidal 0.55–1.0 alpha at ~1.4 Hz.
+            // click. PingPong 0.55–1.0 alpha at ~1.4 Hz.
             if (advancePrompt != null)
             {
                 bool waiting = IsWaitingForAdvance;
