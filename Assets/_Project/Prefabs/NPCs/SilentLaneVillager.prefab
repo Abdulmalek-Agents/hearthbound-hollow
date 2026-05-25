@@ -9,55 +9,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2372459800067185478}
-  - component: {fileID: 2391243954738505451}
-  - component: {fileID: 7155830625075204188}
-  - component: {fileID: 8155830625075204189}
+  - component: {fileID: 105281272918787555}
   m_Layer: 0
   m_Name: SilentLaneVillager
-  m_TagString: NPC
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!136 &7155830625075204188
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3259766028887695279}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  m_Radius: 0.33
-  m_Height: 1.8
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.9, z: 0}
---- !u!114 &8155830625075204189
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3259766028887695279}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9d2e3f4a5b6c7d8e9fa1b2c3d4e5f6a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HearthboundHollow.Mission::HearthboundHollow.Mission.NpcAnimatorChoreographer
-  animator: {fileID: 2074415188458801996}
-  bodyOverride: {fileID: 2876072214404029403}
-  autoAlignFeet: 1
-  alignBias: 0
-  npcRole: 2
 --- !u!4 &2372459800067185478
 Transform:
   m_ObjectHideFlags: 0
@@ -74,7 +33,7 @@ Transform:
   - {fileID: 2876072214404029403}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2391243954738505451
+--- !u!114 &105281272918787555
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -116,11 +75,7 @@ PrefabInstance:
     - target: {fileID: 6147143813860675873, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 4b21c8d3e5f64a78b1c92f3e6d8a4b1c, type: 2}
-    - target: {fileID: 6147143813860675873, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
-      propertyPath: m_ApplyRootMotion
-      value: 0
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 9100000, guid: fe00fdc3b410d40669e3e36785f245dc, type: 2}
     - target: {fileID: 7288174367802448652, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
       propertyPath: m_Name
       value: Body

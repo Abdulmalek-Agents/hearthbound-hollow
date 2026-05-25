@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4930927612652028847}
   - component: {fileID: 7991497291113574587}
   - component: {fileID: 4174097829015807029}
-  - component: {fileID: 9990001829015807031}
+  - component: {fileID: 5215923000322867480}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -33,62 +33,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4661773504986349428}
-  - {fileID: 5550100829015807030}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &8881100829015807029
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5550100829015807030}
-  m_Layer: 0
-  m_Name: InteractOrigin
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5550100829015807030
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8881100829015807029}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.35, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4930927612652028847}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9990001829015807031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8910678567546032767}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b9b4f179a0fc402ab0e5b1bd9706aa3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HearthboundHollow.Player::HearthboundHollow.Player.PlayerGroundClamp
-  body: {fileID: 4661773504986349428}
-  footAnchor: {fileID: 0}
-  alignOnStart: 1
-  continuousDuration: 0.75
-  periodicInterval: 0.5
-  epsilon: 0.005
-  preferWorldBounds: 1
-  bias: 0
-  verbose: 0
-  _appliedShiftDebug: 0
 --- !u!143 &7991497291113574587
 CharacterController:
   m_ObjectHideFlags: 0
@@ -108,12 +54,12 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 1.9
-  m_Radius: 0.4
+  m_Radius: 0.32
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 1, z: 0}
+  m_Center: {x: 0, y: 0.95, z: 0}
 --- !u!114 &4174097829015807029
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,12 +85,17 @@ MonoBehaviour:
   jumpBuffer: 0.12
   groundedStickVelocity: -2
   enableSprint: 1
+  autoAlignBodyOnStart: 1
+  bodyOverride: {fileID: 0}
+  intrinsicAlignContinuousDuration: 0.75
+  bodyAlignBias: 0
+  bodyAlignEpsilon: 0.005
   interactRange: 2.2
   interactRadius: 0.45
   interactMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  interactOrigin: {fileID: 5550100829015807030}
+  interactOrigin: {fileID: 0}
   animator: {fileID: 8904148227157569507}
   animSpeedParam: Speed
   animMoveXParam: MoveX
@@ -158,6 +109,28 @@ MonoBehaviour:
   interactAction: {fileID: 0}
   sprintAction: {fileID: 0}
   jumpAction: {fileID: 0}
+--- !u!114 &5215923000322867480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8910678567546032767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b9b4f179a0fc402ab0e5b1bd9706aa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HearthboundHollow.Player::HearthboundHollow.Player.PlayerGroundClamp
+  body: {fileID: 4661773504986349428}
+  footAnchor: {fileID: 8272214076102957590}
+  alignOnStart: 1
+  continuousDuration: 0.75
+  periodicInterval: 0.5
+  epsilon: 0.005
+  preferWorldBounds: 1
+  bias: 0
+  verbose: 0
+  _appliedShiftDebug: -0.10954034
 --- !u!1001 &3377393060857085634
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -196,7 +169,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7957609120742801846, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.10954034
       objectReference: {fileID: 0}
     - target: {fileID: 7957609120742801846, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
       propertyPath: m_LocalPosition.z
@@ -238,6 +211,11 @@ PrefabInstance:
 --- !u!4 &4661773504986349428 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7957609120742801846, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+  m_PrefabInstance: {fileID: 3377393060857085634}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8272214076102957590 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6634408940804973780, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
   m_PrefabInstance: {fileID: 3377393060857085634}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &8904148227157569507 stripped
