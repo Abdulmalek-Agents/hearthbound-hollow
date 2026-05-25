@@ -47,6 +47,14 @@
 //     HearthboundHollow.Dialogue so no asmdef change required.
 // Both fixes are targeted (one `using` line + 2-char casing changes).
 // No behavioural change.
+//
+// ── Trigger-proxy regression fix (2026-05-25) ───────────────────
+// Caught during code-review of the build-fix: my playtest-pass commit
+// (dce436a) accidentally copy-pasted the GardenExitProxy body into the
+// GerroldGreetingProxy, so the cottage's Gerrold-approach trigger was
+// calling OnPlayerExitedGarden() — which re-loaded the cottage scene
+// instead of starting Gerrold's dialogue. Restored to
+// OnPlayerEnteredGerrold().
 
 using System.Collections;
 using System.Collections.Generic;
@@ -951,7 +959,11 @@ namespace HearthboundHollow.Mission
             public Mission02Director director;
             private void OnTriggerEnter(Collider other)
             {
-                if (other.CompareTag("Player")) director?.OnPlayerExitedGarden();
+                // FIX: must call OnPlayerEnteredGerrold (not OnPlayerExitedGarden).
+                // A copy-paste regression in commit dce436a meant approaching
+                // Gerrold in the cottage was re-loading the cottage scene
+                // instead of starting his dialogue.
+                if (other.CompareTag("Player")) director?.OnPlayerEnteredGerrold();
             }
         }
     }
