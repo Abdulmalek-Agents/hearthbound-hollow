@@ -6,8 +6,9 @@
 // Phase 23 builds the polished scenes. Phase 26 (Player Controller + Animation)
 // builds the AnimatorController + upgrades cameras. Phase 26 (NPC Animators)
 // wires Doris/Gerrold's IsTalking dialogue beats. Phase 26 (Narrative Hooks)
-// drops Marin's Note on the workbench. Until now the user had to run FOUR menu
-// items in order. Phase 27 chains them — single click, ~45 s, fully wired.
+// drops Marin's Note on the workbench. Phase 29 runs the Player Rig Doctor
+// foot-bone anchor pass. Phase 30 wires the OnboardingOverlay + ControlHintsHUD.
+// Phase 27 chains them all — single click, ~60 s, fully wired.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times.
 //
@@ -46,7 +47,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 2: Phase 26 — Player Controller + Animation (this PR's capstone).
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Player Controller + Animation) …", 0.45f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Player Controller + Animation) …", 0.40f);
                 if (TryRun("Phase 26 — Player Controller + Animation",
                           "HearthboundHollow.EditorTools.Phase26_PlayerControllerAndAnimation", "Build"))
                     ran++;
@@ -54,7 +55,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 3: Phase 26 — NPC Animators (Doris/Gerrold IsTalking).
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (NPC Animators) …", 0.70f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (NPC Animators) …", 0.62f);
                 if (TryRun("Phase 26 — NPC Animators",
                           "HearthboundHollow.EditorTools.Phase26_NpcAnimatorCapstone", "Build"))
                     ran++;
@@ -63,10 +64,7 @@ namespace HearthboundHollow.EditorTools
 
                 // Step 4: Phase 26 — Narrative Hooks (Marin's Note). Optional;
                 // not all branches have this thread.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Narrative Hooks) …", 0.88f);
-                // The Narrative Hooks builder exposes its menu method under a
-                // few possible names depending on which agent shipped it. Try
-                // the conventional ones in order.
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Narrative Hooks) …", 0.74f);
                 if (TryRun("Phase 26 — Narrative Hooks",
                           "HearthboundHollow.EditorTools.Phase26_NarrativeHooks", "WireNarrativeHooks") ||
                     TryRun("Phase 26 — Narrative Hooks",
@@ -77,7 +75,26 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 5: Open Bootstrap so the user can press Play.
+                // Step 5: Phase 29 — Player Rig Doctor (foot-bone anchor +
+                // root-motion sanity pass). Defensive belt-and-braces for the
+                // half-body sink fix.
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 29 (Player Rig Doctor) …", 0.84f);
+                if (TryRun("Phase 29 — Player Rig Doctor",
+                          "HearthboundHollow.EditorTools.Phase29_PlayerRigDoctor", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 6: Phase 30 — Onboarding overlay + ControlHintsHUD on
+                // every gameplay scene.
+                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 30 (Onboarding + Hints HUD) …", 0.93f);
+                if (TryRun("Phase 30 — Onboarding + Hints HUD",
+                          "HearthboundHollow.EditorTools.Phase30_OnboardingAndHintsCapstone", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Opening Bootstrap …", 0.98f);
                 if (System.IO.File.Exists(SceneBootstrap))
                     EditorSceneManager.OpenScene(SceneBootstrap, OpenSceneMode.Single);
@@ -162,15 +179,17 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • 6 scenes in Build Settings (Bootstrap → Cottage)");
             sb.AppendLine("  • Assets/_Project/Animations/Hearthbound_Player.controller built");
             sb.AppendLine("  • Assets/_Project/Animations/Hearthbound_NPC.controller built");
-            sb.AppendLine("  • Player prefab Animator wired to player controller");
+            sb.AppendLine("  • Player prefab Animator wired to player controller + foot-bone anchor (Phase 29)");
             sb.AppendLine("  • Doris / Gerrold / SilentLane prefabs wired with NPC controller + NpcAnimatorBridge");
             sb.AppendLine("  • Lane / Hollow / Garden / Cottage — SmoothFollowCamera in place");
             sb.AppendLine("  • Lane / Hollow / Garden / Cottage — PlayerController.cameraReference set");
             sb.AppendLine("  • Marin's Note dropped on the Hollow workbench (if Narrative Hooks shipped)");
+            sb.AppendLine("  • Lane — OnboardingOverlay (6-step walkthrough on first play)");
+            sb.AppendLine("  • Every gameplay scene — ControlHintsHUD (always-visible key chips)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
-            sb.AppendLine("Controls (visible any time via H):");
+            sb.AppendLine("Controls (visible any time via H, also via the on-screen ControlHintsHUD):");
             sb.AppendLine("  Move      WASD / Arrows / Left Stick");
             sb.AppendLine("  Sprint    Left Shift / LStick click   (Gentle Mode disables)");
             sb.AppendLine("  Jump      Space / Gamepad south       (Gentle Mode disables)");
