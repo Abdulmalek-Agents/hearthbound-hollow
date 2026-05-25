@@ -14,6 +14,12 @@
 // script-host, Update() stopped firing and the H key did nothing. The
 // script-host now stays active; only the visual `root` child gets
 // toggled. Show() self-heals defensively.
+//
+// ── Phase 26 update ─────────────────────────────────────────────
+// The new PlayerController exposes sprint (Shift), jump (Space) and the
+// SmoothFollowCamera exposes orbit (RMB + drag) + zoom (scroll). The
+// reference card is rewritten to document them. Gentle Mode-aware: when
+// SettingsService.GentleMode == true we strip the sprint + jump lines.
 
 using TMPro;
 using UnityEngine;
@@ -111,22 +117,38 @@ namespace HearthboundHollow.UI
             if (subtitleLabel != null && string.IsNullOrEmpty(subtitleLabel.text))
                 subtitleLabel.text = "A quick word from Marin's notes …";
 
-            if (bodyText != null && string.IsNullOrEmpty(bodyText.text))
+            // Always re-build the body so toggling Gentle Mode at runtime is
+            // immediately reflected on the next H-open.
+            if (bodyText != null) bodyText.text = BuildBody();
+        }
+
+        private static string BuildBody()
+        {
+            bool gentle = false;
+            var s = ServiceLocator.Get<SettingsService>();
+            if (s != null) gentle = s.GentleMode;
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("<b>Move</b>      WASD / Arrow Keys / Left Stick");
+            if (!gentle)
             {
-                bodyText.text =
-                    "<b>Move</b>      WASD / Arrow Keys / Left Stick\n" +
-                    "<b>Interact</b>  E / Gamepad ▢\n" +
-                    "<b>Advance</b>   Click / Space / Enter\n" +
-                    "<b>Polish</b>    Hold left mouse, draw slow circles\n" +
-                    "                — cover all sides of the orb\n" +
-                    "                — slower is better\n" +
-                    "<b>Help</b>      H to toggle this card\n" +
-                    "<b>Pause</b>     Esc\n" +
-                    "\n" +
-                    "<i>\"There is no wrong way to keep a memory.</i>\n" +
-                    "<i>There is only the gentle way, and the others.\"</i>\n" +
-                    "                                                — M.";
+                sb.AppendLine("<b>Sprint</b>    Left Shift / Left-stick click");
+                sb.AppendLine("<b>Jump</b>      Space / Gamepad south");
             }
+            sb.AppendLine("<b>Interact</b>  E / Gamepad ▢");
+            sb.AppendLine("<b>Advance</b>   Click / Space / Enter");
+            sb.AppendLine("<b>Polish</b>    Hold left mouse, draw slow circles");
+            sb.AppendLine("                — cover all sides of the orb");
+            sb.AppendLine("                — slower is better");
+            sb.AppendLine("<b>Look</b>      Hold Right Mouse + drag (or Right Stick)");
+            sb.AppendLine("<b>Zoom</b>      Mouse scroll / Gamepad LB-RB");
+            sb.AppendLine("<b>Help</b>      H to toggle this card");
+            sb.AppendLine("<b>Pause</b>     Esc");
+            sb.AppendLine();
+            sb.AppendLine("<i>\"There is no wrong way to keep a memory.</i>");
+            sb.AppendLine("<i>There is only the gentle way, and the others.\"</i>");
+            sb.Append("                                                — M.");
+            return sb.ToString();
         }
     }
 }
