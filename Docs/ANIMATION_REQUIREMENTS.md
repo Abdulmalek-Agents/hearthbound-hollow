@@ -192,14 +192,16 @@ If any check fails, run `Hearthbound → 🔍 Diagnose Phase 23 Build` for a col
 
 ## 9. Design Decisions
 
+> ℹ️ The branch already used D-033 + D-034 for Phase 25's UI two-layer + self-heal patterns. Phase 26's decisions therefore start at **D-035**.
+
 | # | Decision | Why |
 |---|----------|-----|
-| D-033 | Sprint + Jump are **opt-in** runtime flags (`enableSprint`, `enableJump`). | The cozy GDD never asks for them. We add them so the controller is a complete reference, and so playtesters who reach for Shift / Space don't bounce off the "feels broken" perception. Gentle Mode disables both. |
-| D-034 | Player Animator is **single 1D blend tree on `Speed`** — not a 2D tree. | Speed is a single scalar (input magnitude × sprint multiplier). A 2D tree would only help if we wanted strafe-only animations; the cozy character always faces movement direction so it's wasted work. We expose `MoveX/MoveY` parameters anyway so the upgrade path is one-Inspector-click. |
-| D-035 | Animator parameter names are **fixed strings on the controller** (`Speed`, `MoveX`, …) and configurable on `PlayerController` (`animSpeedParam`, …). | Lets us swap to a community controller (Starter Assets etc.) by changing the strings on the component — no code rewrite. |
-| D-036 | Camera uses our own `SmoothFollowCamera`, not Cinemachine, as the M1+M2 default. | Cinemachine is great but heavier and adds a hard package dep to every gameplay scene. Phase 17 still creates a Cinemachine prefab when the package is present — both can coexist. |
-| D-037 | Animations live in **`Assets/_Project/Animations/`** (top-level project folder), Mixamo subfolder optional. | Single search path keeps Phase 26's auto-detection deterministic. Don't scatter clips under per-character folders for M1+M2. |
+| D-035 | Sprint + Jump are **opt-in** runtime flags (`enableSprint`, `enableJump`). | The cozy GDD never asks for them. We add them so the controller is a complete reference, and so playtesters who reach for Shift / Space don't bounce off the "feels broken" perception. Gentle Mode disables both. |
+| D-036 | Player Animator is **single 1D blend tree on `Speed`** — not a 2D tree. | Speed is a single scalar (input magnitude × sprint multiplier). A 2D tree would only help if we wanted strafe-only animations; the cozy character always faces movement direction so it's wasted work. We expose `MoveX/MoveY` parameters anyway so the upgrade path is one-Inspector-click. |
+| D-037 | Animator parameter names are **fixed strings on the controller** (`Speed`, `MoveX`, …) and configurable on `PlayerController` (`animSpeedParam`, …). | Lets us swap to a community controller (Starter Assets etc.) by changing the strings on the component — no code rewrite. |
+| D-038 | Camera uses our own `SmoothFollowCamera`, not Cinemachine, as the M1+M2 default. | Cinemachine is great but heavier and adds a hard package dep to every gameplay scene. Phase 17 still creates a Cinemachine prefab when the package is present — both can coexist. |
+| D-039 | Animations live in **`Assets/_Project/Animations/`** (top-level project folder), Mixamo subfolder optional. | Single search path keeps Phase 26's auto-detection deterministic. Don't scatter clips under per-character folders for M1+M2. |
 
 ---
 
-*Document version 1.0 — sealed Phase 26.*
+*Document version 1.1 — sealed Phase 26 (renumbered to D-035..D-039 after Phase 25 UI hotfix claimed D-033/D-034).*
