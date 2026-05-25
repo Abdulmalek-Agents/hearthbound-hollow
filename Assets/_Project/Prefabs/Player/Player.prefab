@@ -72,17 +72,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HearthboundHollow.Player::HearthboundHollow.Player.PlayerController
   walkSpeed: 2.4
+  sprintSpeed: 4.2
+  acceleration: 16
+  deceleration: 22
   turnLerp: 12
+  cameraReference: {fileID: 0}
+  enableJump: 1
+  jumpVelocity: 5.2
+  gravity: -22
+  coyoteTime: 0.15
+  jumpBuffer: 0.12
+  groundedStickVelocity: -2
+  enableSprint: 1
   interactRange: 2.2
   interactRadius: 0.45
   interactMask:
     serializedVersion: 2
     m_Bits: 4294967295
   interactOrigin: {fileID: 0}
-  animator: {fileID: 0}
+  animator: {fileID: 8904148227157569507}
   animSpeedParam: Speed
+  animMoveXParam: MoveX
+  animMoveYParam: MoveY
+  animVelocityYParam: VelocityY
+  animIsGroundedParam: IsGrounded
+  animIsSprintingParam: IsSprinting
+  animJumpTriggerParam: Jump
+  animatorDamp: 0.1
   moveAction: {fileID: 0}
   interactAction: {fileID: 0}
+  sprintAction: {fileID: 0}
+  jumpAction: {fileID: 0}
 --- !u!1001 &3377393060857085634
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -91,6 +111,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4930927612652028847}
     m_Modifications:
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.6520514
+      objectReference: {fileID: 0}
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.08991554
+      objectReference: {fileID: 0}
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.75046307
+      objectReference: {fileID: 0}
+    - target: {fileID: 3354706585603732783, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.059577
+      objectReference: {fileID: 0}
+    - target: {fileID: 6147143813860675873, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 991524318345d42ceb410c1612f0dd15, type: 2}
     - target: {fileID: 7288174367802448652, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
       propertyPath: m_Name
       value: Body
@@ -143,5 +183,10 @@ PrefabInstance:
 --- !u!4 &4661773504986349428 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7957609120742801846, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
+  m_PrefabInstance: {fileID: 3377393060857085634}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &8904148227157569507 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6147143813860675873, guid: 828d2ce3c8fb74f498e8bb757fa113a6, type: 3}
   m_PrefabInstance: {fileID: 3377393060857085634}
   m_PrefabAsset: {fileID: 0}
