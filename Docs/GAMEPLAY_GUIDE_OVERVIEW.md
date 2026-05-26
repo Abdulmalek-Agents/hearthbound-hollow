@@ -627,7 +627,7 @@ Pickle has exactly **four lines** in Mission 1-2 plus four conditional pre-choic
 
 ### Q: The character is half-sunk into the floor / pops up when I press WASD.
 
-This was a Phase 27 bug — already fixed. Pull the latest of `feat/mission-1-2-architecture`, run `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)` from the Unity menu, then press Play. The `PlayerGroundClamp` runtime component auto-corrects mesh alignment.
+This was a Phase 27 bug — already fixed. Pull the latest of `feat/mission-1-2-architecture`, run `Hearthbound → 🚀 Build Everything` from the Unity menu, then press Play. The `PlayerGroundClamp` runtime component auto-corrects mesh alignment.
 
 ### Q: The dialogue isn't rendering / appears in Console only.
 
@@ -681,6 +681,6 @@ If you want to go even deeper, every `[CODEX-XX § Y.Z]` and `[FOCUS-NN § Y.Z]`
 
 ---
 
-*Document version 1.0 — authored for the `feat/mission-1-2-architecture` branch, Phase 27.1 build.*
+*Document version 1.0 — authored for the `feat/mission-1-2-architecture` branch, Phase 27.1 build. Phase 32 (menu collapse) update — § 17 troubleshooting now points at `Hearthbound → 🚀 Build Everything` (the single top-level entry post-D-051).*
 *Companion files: `GAMEPLAY_GUIDE_MISSION_1.md`, `GAMEPLAY_GUIDE_MISSION_2.md`.*
 *Part of the Abdulmalek Agents game-concept portfolio · 2026.*
