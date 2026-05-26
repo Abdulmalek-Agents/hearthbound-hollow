@@ -11,7 +11,10 @@
 // foot-bone anchor pass. Phase 30 wires the OnboardingOverlay + ControlHintsHUD.
 // Phase 31 surgically repairs the dialogue choice cards. Phase 32 layers the
 // Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes).
-// Phase 27 chains them all — single click, ~60 s, fully wired.
+// Phase 36 builds the Dream 2 + Listen Timeline library. Phase 37 generates the
+// procedural audio (music, ambience, missing SFX, mumble VO). Phase 38 wires
+// every audio asset to the scenes + dialogue UI + cutscene timelines.
+// Phase 27 chains them all — single click, ~90 s, fully wired.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
@@ -55,7 +58,7 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 32 chain (~60 s).\n" +
+                "This runs the full Phase 13 → 38 chain (~90 s).\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -71,8 +74,8 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 2: Phase 26 — Player Controller + Animation (this PR's capstone).
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Player Controller + Animation) …", 0.40f);
+                // Step 2: Phase 26 — Player Controller + Animation.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Player Controller + Animation) …", 0.30f);
                 if (TryRun("Phase 26 — Player Controller + Animation",
                           "HearthboundHollow.EditorTools.Phase26_PlayerControllerAndAnimation", "Build"))
                     ran++;
@@ -80,7 +83,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 3: Phase 26 — NPC Animators (Doris/Gerrold IsTalking).
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (NPC Animators) …", 0.62f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (NPC Animators) …", 0.45f);
                 if (TryRun("Phase 26 — NPC Animators",
                           "HearthboundHollow.EditorTools.Phase26_NpcAnimatorCapstone", "Build"))
                     ran++;
@@ -89,7 +92,7 @@ namespace HearthboundHollow.EditorTools
 
                 // Step 4: Phase 26 — Narrative Hooks (Marin's Note). Optional;
                 // not all branches have this thread.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Narrative Hooks) …", 0.74f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Narrative Hooks) …", 0.55f);
                 if (TryRun("Phase 26 — Narrative Hooks",
                           "HearthboundHollow.EditorTools.Phase26_NarrativeHooks", "WireNarrativeHooks") ||
                     TryRun("Phase 26 — Narrative Hooks",
@@ -100,47 +103,75 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 5: Phase 29 — Player Rig Doctor (foot-bone anchor +
-                // root-motion sanity pass). Defensive belt-and-braces for the
-                // half-body sink fix.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 29 (Player Rig Doctor) …", 0.84f);
+                // Step 5: Phase 29 — Player Rig Doctor.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 29 (Player Rig Doctor) …", 0.65f);
                 if (TryRun("Phase 29 — Player Rig Doctor",
                           "HearthboundHollow.EditorTools.Phase29_PlayerRigDoctor", "Build"))
                     ran++;
                 else
                     skipped++;
 
-                // Step 6: Phase 30 — Onboarding overlay + ControlHintsHUD on
-                // every gameplay scene.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 30 (Onboarding + Hints HUD) …", 0.90f);
+                // Step 6: Phase 30 — Onboarding + ControlHintsHUD.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 30 (Onboarding + Hints HUD) …", 0.72f);
                 if (TryRun("Phase 30 — Onboarding + Hints HUD",
                           "HearthboundHollow.EditorTools.Phase30_OnboardingAndHintsCapstone", "Build"))
                     ran++;
                 else
                     skipped++;
 
-                // Step 7: Phase 31 — Dialogue choice-card layout repair so
-                // the choice tiles render full-width, wrap long labels, and
-                // the narration line hides while a decision is on screen.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 31 (Dialogue Choice Repair) …", 0.93f);
+                // Step 7: Phase 31 — Dialogue Choice Card Repair.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 31 (Dialogue Choice Repair) …", 0.78f);
                 if (TryRun("Phase 31 — Dialogue Choice Card Repair",
                           "HearthboundHollow.EditorTools.Phase31_DialogueChoiceCardRepair", "Build"))
                     ran++;
                 else
                     skipped++;
 
-                // Step 8: Phase 32 — Mission 1 Polish v2 (cottage assembler,
-                // Lane v2, Hollow Interior v2, cozy URP volumes). Optional
-                // — skips gracefully if not shipped on this branch.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Mission 1 Polish v2) …", 0.96f);
+                // Step 8: Phase 32 — Mission 1 Polish v2.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Mission 1 Polish v2) …", 0.84f);
                 if (TryRun("Phase 32 — Mission 1 Polish v2",
                           "HearthboundHollow.EditorTools.Phase32_MissionOnePolishCapstone", "Build"))
                     ran++;
                 else
                     skipped++;
 
+                // Step 9: Phase 36 — Cutscene Library Completion. Builds
+                // Dream 2 variants A/B/C/D/E + Listen scene Timelines and
+                // re-wires the MemoryDreamRig prefab so the missing 6
+                // PlayableAsset slots are filled (per D-052).
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 36 (Cutscene Library) …", 0.89f);
+                if (TryRun("Phase 36 — Cutscene Library",
+                          "HearthboundHollow.EditorTools.Phase36_CutsceneLibraryBuilder", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 10: Phase 37 — Procedural Audio Studio. Imports the
+                // pre-generated music + ambience + SFX + mumble VO WAVs into
+                // the project, builds MusicLibrarySO + AmbienceLibrarySO +
+                // MumbleVoiceLibrarySO, refreshes SfxLibrary so the
+                // previously-empty entries (polish_hum_*, ambient_autumn_loop)
+                // are now mapped. Idempotent.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 37 (Procedural Audio Studio) …", 0.93f);
+                if (TryRun("Phase 37 — Procedural Audio Studio",
+                          "HearthboundHollow.EditorTools.Phase37_ProceduralAudioStudio", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 11: Phase 38 — Audio + Cutscene Wiring. Binds the
+                // Phase 37 audio assets to the Phase 36 Timeline AudioTracks,
+                // attaches AmbientAudio + MusicPlayer to every scene, and
+                // wires MumbleVoicePlayer onto the DialogueUI prefab.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 38 (Audio + Cutscene Wiring) …", 0.97f);
+                if (TryRun("Phase 38 — Audio + Cutscene Wiring",
+                          "HearthboundHollow.EditorTools.Phase38_AudioAndCutsceneWiring", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
                 // Final: Open Bootstrap so the user can press Play.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.98f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
                 if (System.IO.File.Exists(SceneBootstrap))
                     EditorSceneManager.OpenScene(SceneBootstrap, OpenSceneMode.Single);
             }
@@ -232,6 +263,10 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Lane — OnboardingOverlay (6-step walkthrough on first play)");
             sb.AppendLine("  • Every gameplay scene — ControlHintsHUD (always-visible key chips)");
             sb.AppendLine("  • Phase 32 v2 — 8 cottages + Hollow facade + cozy URP volume (if shipped)");
+            sb.AppendLine("  • Phase 36 — MemoryDreamRig.prefab wired with Dream 1 + 5× Dream 2 variants + Listen scene Timelines");
+            sb.AppendLine("  • Phase 37 — MusicLibrarySO, AmbienceLibrarySO, MumbleVoiceLibrarySO built");
+            sb.AppendLine("                + 30+ procedural WAV cues in Assets/_Project/Audio/Generated/");
+            sb.AppendLine("  • Phase 38 — Per-scene MusicPlayer + AmbientAudio attached, DialogueUI MumbleVoicePlayer wired");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
