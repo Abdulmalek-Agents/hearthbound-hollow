@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: MIT
 // Hearthbound Hollow — Editor / Phase27_BuildEverything
 //
-// PHASE 27 — The "one menu click" master capstone.
+// PHASE 27 — The "one menu click" master capstone, promoted in Phase 32 to
+// the *only* top-level entry point the user ever needs: `🚀 Build Everything`.
 //
 // Phase 23 builds the polished scenes. Phase 26 (Player Controller + Animation)
 // builds the AnimatorController + upgrades cameras. Phase 26 (NPC Animators)
 // wires Doris/Gerrold's IsTalking dialogue beats. Phase 26 (Narrative Hooks)
 // drops Marin's Note on the workbench. Phase 29 runs the Player Rig Doctor
 // foot-bone anchor pass. Phase 30 wires the OnboardingOverlay + ControlHintsHUD.
+// Phase 31 surgically repairs the dialogue choice cards. Phase 32 layers the
+// Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes).
 // Phase 27 chains them all — single click, ~60 s, fully wired.
 //
-// IDEMPOTENT — every step is safe to re-run any number of times.
+// IDEMPOTENT — every step is safe to re-run any number of times. Re-running
+// this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
 //
-// USE: Menu → Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)
+// USE: Menu → Hearthbound → 🚀 Build Everything
 //
 // Detection-driven: if any phase's prerequisites aren't present (e.g. Phase 26
 // Narrative Hooks isn't installed because the Narrative thread hasn't shipped
@@ -31,11 +35,32 @@ namespace HearthboundHollow.EditorTools
         private const string SceneBootstrap = "Assets/_Project/Scenes/00_Bootstrap.unity";
 
         // ─── Master menu ──────────────────────────────────────────
+        //
+        // Promoted in Phase 32 to the single top-level user entry point.
+        // Priority -100 puts it above every other Hearthbound menu item.
+        // The legacy `✨ Build EVERYTHING (Phase 27 — one click)` label has
+        // been retired; the same method now backs `🚀 Build Everything`.
+        // (D-051 — only three top-level entries are allowed.)
 
-        [MenuItem("Hearthbound/\u2728 Build EVERYTHING (Phase 27 — one click)", priority = -10)]
+        [MenuItem("Hearthbound/🚀 Build Everything", priority = -100)]
         public static void Build()
         {
-            EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 23 (polished scenes) …", 0.05f);
+            // Phase 32 — Safety note. The chain rebuilds 6 scenes + every
+            // capstone-managed prefab. Re-running is safe (idempotent) but
+            // any *manual* scene tweaks made directly to the GameObjects
+            // owned by the chain (e.g. `_Phase27Env_Lane`, the auto-built
+            // cottage prefabs, the Player AnimatorController) will be
+            // overwritten. Inspector overrides on user-owned GameObjects
+            // and on the per-scene Player / NPC instances survive because
+            // every chained phase uses load-or-create + heal-then-save.
+            if (!EditorUtility.DisplayDialog(
+                "Build Everything",
+                "This runs the full Phase 13 → 32 chain (~60 s).\n" +
+                "Safe to re-run after every pull — every step is idempotent.\n\n" +
+                "Continue?",
+                "Build", "Cancel")) return;
+
+            EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 23 (polished scenes) …", 0.05f);
             int ran = 0, skipped = 0;
             try
             {
@@ -47,7 +72,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 2: Phase 26 — Player Controller + Animation (this PR's capstone).
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Player Controller + Animation) …", 0.40f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Player Controller + Animation) …", 0.40f);
                 if (TryRun("Phase 26 — Player Controller + Animation",
                           "HearthboundHollow.EditorTools.Phase26_PlayerControllerAndAnimation", "Build"))
                     ran++;
@@ -55,7 +80,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 3: Phase 26 — NPC Animators (Doris/Gerrold IsTalking).
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (NPC Animators) …", 0.62f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (NPC Animators) …", 0.62f);
                 if (TryRun("Phase 26 — NPC Animators",
                           "HearthboundHollow.EditorTools.Phase26_NpcAnimatorCapstone", "Build"))
                     ran++;
@@ -64,7 +89,7 @@ namespace HearthboundHollow.EditorTools
 
                 // Step 4: Phase 26 — Narrative Hooks (Marin's Note). Optional;
                 // not all branches have this thread.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 26 (Narrative Hooks) …", 0.74f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Narrative Hooks) …", 0.74f);
                 if (TryRun("Phase 26 — Narrative Hooks",
                           "HearthboundHollow.EditorTools.Phase26_NarrativeHooks", "WireNarrativeHooks") ||
                     TryRun("Phase 26 — Narrative Hooks",
@@ -78,7 +103,7 @@ namespace HearthboundHollow.EditorTools
                 // Step 5: Phase 29 — Player Rig Doctor (foot-bone anchor +
                 // root-motion sanity pass). Defensive belt-and-braces for the
                 // half-body sink fix.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 29 (Player Rig Doctor) …", 0.84f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 29 (Player Rig Doctor) …", 0.84f);
                 if (TryRun("Phase 29 — Player Rig Doctor",
                           "HearthboundHollow.EditorTools.Phase29_PlayerRigDoctor", "Build"))
                     ran++;
@@ -87,7 +112,7 @@ namespace HearthboundHollow.EditorTools
 
                 // Step 6: Phase 30 — Onboarding overlay + ControlHintsHUD on
                 // every gameplay scene.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 30 (Onboarding + Hints HUD) …", 0.90f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 30 (Onboarding + Hints HUD) …", 0.90f);
                 if (TryRun("Phase 30 — Onboarding + Hints HUD",
                           "HearthboundHollow.EditorTools.Phase30_OnboardingAndHintsCapstone", "Build"))
                     ran++;
@@ -97,7 +122,7 @@ namespace HearthboundHollow.EditorTools
                 // Step 7: Phase 31 — Dialogue choice-card layout repair so
                 // the choice tiles render full-width, wrap long labels, and
                 // the narration line hides while a decision is on screen.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 31 (Dialogue Choice Repair) …", 0.93f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 31 (Dialogue Choice Repair) …", 0.93f);
                 if (TryRun("Phase 31 — Dialogue Choice Card Repair",
                           "HearthboundHollow.EditorTools.Phase31_DialogueChoiceCardRepair", "Build"))
                     ran++;
@@ -107,7 +132,7 @@ namespace HearthboundHollow.EditorTools
                 // Step 8: Phase 32 — Mission 1 Polish v2 (cottage assembler,
                 // Lane v2, Hollow Interior v2, cozy URP volumes). Optional
                 // — skips gracefully if not shipped on this branch.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 32 (Mission 1 Polish v2) …", 0.96f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Mission 1 Polish v2) …", 0.96f);
                 if (TryRun("Phase 32 — Mission 1 Polish v2",
                           "HearthboundHollow.EditorTools.Phase32_MissionOnePolishCapstone", "Build"))
                     ran++;
@@ -115,7 +140,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Final: Open Bootstrap so the user can press Play.
-                EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Opening Bootstrap …", 0.98f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.98f);
                 if (System.IO.File.Exists(SceneBootstrap))
                     EditorSceneManager.OpenScene(SceneBootstrap, OpenSceneMode.Single);
             }
@@ -125,7 +150,7 @@ namespace HearthboundHollow.EditorTools
             }
 
             EditorUtility.DisplayDialog(
-                "Hearthbound — Phase 27 — Build EVERYTHING",
+                "Hearthbound — 🚀 Build Everything",
                 BuildSummary(ran, skipped),
                 "OK");
         }
@@ -142,28 +167,28 @@ namespace HearthboundHollow.EditorTools
             Type t = FindType(typeFullName);
             if (t == null)
             {
-                Debug.LogWarning($"[Hearthbound/Phase 27] (skip) {label} — type '{typeFullName}' not found in any loaded assembly. " +
+                Debug.LogWarning($"[Hearthbound/Build Everything] (skip) {label} — type '{typeFullName}' not found in any loaded assembly. " +
                                  "Likely the phase isn't shipped on this branch yet.");
                 return false;
             }
             var m = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic);
             if (m == null)
             {
-                Debug.LogWarning($"[Hearthbound/Phase 27] (skip) {label} — '{typeFullName}.{methodName}()' not found. Phase exists but uses a different entry-point name.");
+                Debug.LogWarning($"[Hearthbound/Build Everything] (skip) {label} — '{typeFullName}.{methodName}()' not found. Phase exists but uses a different entry-point name.");
                 return false;
             }
             try
             {
-                Debug.Log($"[Hearthbound/Phase 27] → Running {label} …");
+                Debug.Log($"[Hearthbound/Build Everything] → Running {label} …");
                 m.Invoke(null, null);
-                Debug.Log($"[Hearthbound/Phase 27] ✓ {label} complete.");
+                Debug.Log($"[Hearthbound/Build Everything] ✓ {label} complete.");
                 return true;
             }
             catch (Exception e)
             {
                 // Unwrap reflection target exceptions so the real cause shows.
                 var inner = e.InnerException ?? e;
-                Debug.LogError($"[Hearthbound/Phase 27] ✗ {label} threw: {inner}");
+                Debug.LogError($"[Hearthbound/Build Everything] ✗ {label} threw: {inner}");
                 return false;
             }
         }
@@ -187,7 +212,7 @@ namespace HearthboundHollow.EditorTools
         private static string BuildSummary(int ran, int skipped)
         {
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"Phase 27 complete — {ran} of {ran + skipped} sub-capstones ran.");
+            sb.AppendLine($"🚀 Build Everything complete — {ran} of {ran + skipped} sub-capstones ran.");
             if (skipped > 0)
             {
                 sb.AppendLine();
