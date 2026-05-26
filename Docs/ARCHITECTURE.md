@@ -21,10 +21,13 @@ This is the **single source of truth** for the technical implementation of Missi
 | **Player Animator** | Procedurally-built `Hearthbound_Player.controller` (Phase 26) — Humanoid avatar, 1D blend tree on `Speed`, Jump/Fall/Land states | Mixamo-retargetable; BoZo's existing M_Idle/M_Walk are the fallback (D-037) |
 | **Save** | JSON local + 3-rolling-slot + autosave | Mobile-safe; no cloud in M1-2 |
 | **OpenAI dialogue addon** | DO NOT USE | Tagged `Reference – Do Not Use In Build` |
+| **Editor entry point** (Phase 32) | **`Hearthbound → 🚀 Build Everything`** — single top-level click, chains every Phase 13 → 32 sub-builder, idempotent | **D-051** — top-level Hearthbound menu reserved for `🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu (every legacy per-phase entry). |
 
 ---
 
 ## 1. Phased Delivery Plan
+
+> 🚀 **User-facing entry point (Phase 32).** The user-facing entry point is **`Hearthbound → 🚀 Build Everything`**. All per-phase menu items have been moved to **`Hearthbound → ⚙️ Advanced/…`** for power users. After every `git pull`, press **🚀 Build Everything** — it is idempotent (every step uses load-or-create + heal-then-save; Phase 12 / 22 / 24 scene capstones rebuild scenes 00-05 by design — Inspector tweaks belong on prefabs, not scenes). A one-line `EditorUtility.DisplayDialog` confirms before the chain runs. The second top-level entry, **`Hearthbound → 🔍 Diagnose Build`**, runs the Phase 33 aggregate diagnostic (read-only) and is safe to invoke at any time. See `Docs/PROGRESS.md → Phase 32 — Menu collapse + idempotency audit` for the full migration table and audit results.
 
 The build is sliced into micro-phases, each producing a buildable, mergeable, minimal-reimport delta.
 
@@ -48,7 +51,17 @@ The build is sliced into micro-phases, each producing a buildable, mergeable, mi
 | **25** | UI activation hotfix — two-layer wiring + self-heal Show() in every overlay | ✅ |
 | **26 (Narrative Hooks)** | Marin's Note interactable + Phase26_NarrativeHooks editor menu | ✅ |
 | **26.1** | Asmdef-locality hotfix — MarinNoteInteractable moved to Mission asmdef | ✅ |
-| **26 (Player Controller + Animation)** | **PlayerController WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator** | ✅ |
+| **26 (Player Controller + Animation)** | PlayerController WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator | ✅ |
+| **27** | Master `Build EVERYTHING` capstone + Phase 26 polish layer (NPC animators, narrative hooks, diagnostic, footstep hooks) | ✅ |
+| **27.1 / 27.2 / 28 / 29b** | "Half body in floor" fix progression — culminating in PlayerGroundClamp (live world bounds + continuous correction window) + Player Rig Doctor foot-bone anchor | ✅ |
+| **29a** | UIAutoFitText on every TMP label + DialogueBox ChoicesContainer relocation | ✅ |
+| **30** | OnboardingOverlay (6-step) + ControlHintsHUD (context-aware chips) | ✅ |
+| **30.1** | Mission asmdef `Unity.TextMeshPro` reference hotfix | ✅ |
+| **31** | Dialogue Choice Card Repair — full-width tiles + 1/2/3/4 keyboard shortcuts | ✅ |
+| **31.1** | "Press [Space] ▸" advance prompt + DreamCanvas auto-hide | ✅ |
+| **32 (Mission 1 polish v2)** | 8-cottage village + Hollow facade + hearth dressing + cozy URP volumes | ✅ |
+| **32 (Menu collapse UX track)** | **`🚀 Build Everything` is the only top-level entry; safety dialog + idempotency audit + D-051** | ✅ **This PR** |
+| **33** | Aggregate `Diagnose Build` — chains Phase 23/26/32 sub-diagnostics under one top-level read-only audit | ✅ |
 | **QA** | secret-scan, unit tests, README, CHANGELOG, PR to main | 🟡 In progress |
 
 ---
@@ -235,6 +248,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 | Scaling rework | All 14 VillageState dimensions + Echo Web + Vignette schema present at default values |
 | **Controller perception** | **Sprint + Jump available but off in Gentle Mode (D-036)** — playtester who reaches for Shift/Space doesn't bounce off a "broken" controller |
 | **Mixamo unavailable** | **Phase 26 falls back to BoZo's existing 2 anims (Idle/Walk) and the AnimatorController degrades gracefully** — game ships polished without any Mixamo downloads |
+| **Editor menu archaeology** (Phase 32) | **`🚀 Build Everything` is the only entry the user needs after every pull (D-051). Power users have full per-phase access under `⚙️ Advanced ►`. Safety confirmation dialog prevents accidental ~60 s rebuild.** |
 
 ---
 
@@ -268,7 +282,7 @@ Every PR to this branch updates `Docs/PROGRESS.md` with:
 
 ## 15. Decisions Index (cross-ref → PROGRESS.md)
 
-D-001 → D-040 are catalogued in `Docs/PROGRESS.md`. Newest:
+D-001 → D-051 are catalogued in `Docs/PROGRESS.md`. Newest:
 
 - **D-033** *(Phase 25 hotfix)* Procedural UI builders MUST use the two-layer pattern.
 - **D-034** *(Phase 25 hotfix)* UI overlay scripts MUST self-heal in `Show()`.
@@ -278,7 +292,15 @@ D-001 → D-040 are catalogued in `Docs/PROGRESS.md`. Newest:
 - **D-038** *(Phase 26 Player Controller + Animation)* Animator parameter names are configurable strings on PlayerController.
 - **D-039** *(Phase 26 Player Controller + Animation)* SmoothFollowCamera is the M1+M2 default; Cinemachine prefab from Phase 17 coexists.
 - **D-040** *(Phase 26 Player Controller + Animation)* Animations live in Assets/_Project/Animations/ (Mixamo subfolder optional).
+- **D-041** *(Phase 27.1 / Phase 28)* Mesh-bottom from world-space `Renderer.bounds`, never padded `SkinnedMeshRenderer.localBounds`. Runtime `PlayerGroundClamp` is the truth.
+- **D-042** *(Phase 29a)* Every TMP label created by a builder MUST go through `UIAutoFitText`.
+- **D-043** *(Phase 30)* Onboarding is per-save, not per-play.
+- **D-044** *(Phase 30)* Context-aware HUD chips live in the Mission asmdef.
+- **D-045 → D-048** *(Phase 31)* Dialogue VLG + LayoutElement + lineText-hide + number-key shortcut contracts.
+- **D-049** *(Phase 31.1)* Blocking dialogue UI must expose a visible advance affordance.
+- **D-050** *(Phase 31.1)* Cutscene overlays hidden-by-default; full-screen non-active raycasters zero `raycastTarget`.
+- **D-051** *(Phase 32 UX track — Menu collapse)* **Every editor action MUST register under `Hearthbound/⚙️ Advanced/…` unless explicitly promoted to top level. The top-level menu is reserved for the three blessed user entry points: `🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu. Promotion to top level requires Critic & Review Board sign-off.**
 
 ---
 
-*Document version 1.3 — final Phase 26 renumber (D-036..D-040 after Phase 26.1 claimed D-035).*
+*Document version 1.4 — Phase 32 menu collapse + D-051 + extended phase table through Phase 33.*
