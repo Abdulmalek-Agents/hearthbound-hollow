@@ -17,7 +17,11 @@
 //   7. Improves the cobble path with rocky borders and wider coverage.
 //   8. Adds a `_Phase32Env_Lane` parent so re-runs are idempotent.
 //
-// USE: Menu → Hearthbound → 🏘️ Phase 32.2 — Polish Lane Environment V2
+// USE: Menu → Hearthbound → ⚙️ Advanced → 🏘️ Phase 32.2 — Polish Lane Environment V2
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 32.2 via the Phase 32 Mission 1 Polish capstone.
 //
 // IMPORTANT: This builder ADDS to Phase 27.2's output (doesn't delete it).
 // Phase 27.2 builds the bare lane skeleton; Phase 32.2 layers the v2 props
@@ -46,7 +50,7 @@ namespace HearthboundHollow.EditorTools
 
         private const string EnvParentName   = "_Phase32Env_Lane";
 
-        [MenuItem("Hearthbound/🏘️ Phase 32.2 — Polish Lane Environment V2", priority = 32)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🏘️ Phase 32.2 — Polish Lane Environment V2", priority = 32)]
         public static void Build()
         {
             if (!System.IO.File.Exists(SceneLane))
@@ -106,7 +110,7 @@ namespace HearthboundHollow.EditorTools
                 $"🏘️ Lane v2 environment built. {placed} additions placed under " +
                 $"'_Phase32Env_Lane'.\n\n" +
                 "Re-run any time. Phase 27.2's '_Phase27Env_Lane' is preserved.\n\n" +
-                "Next: Hearthbound → 🏠 Phase 32.3 — Polish Hollow Interior V2",
+                "Next: Hearthbound → 🚀 Build Everything (chains the rest)",
                 "OK");
         }
 
