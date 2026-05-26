@@ -20,6 +20,9 @@
 //
 // Phase 43 — exposes `CurrentId` so SaveService can snapshot what's
 // playing, and DreamAudioBinder can capture the pre-dream cue.
+//
+// Phase 45 — self-heals library reference via Resources.Load on Awake
+// if the Inspector ref is null (fresh-clone / no-build-everything path).
 
 using System.Collections;
 using UnityEngine;
@@ -29,6 +32,13 @@ namespace HearthboundHollow.Audio
 {
     public class MusicPlayer : MonoBehaviour
     {
+        // Phase 45 — Resources-folder filename (no extension, no folder
+        // prefix). Phase 37 writes the library to
+        // Assets/_Project/Audio/Resources/MusicLibrary.asset so this
+        // Resources.Load call resolves at runtime even when no scene-side
+        // wiring is present.
+        public const string ResourcesLibraryName = "MusicLibrary";
+
         [Header("Library")]
         public MusicLibrarySO library;
 
@@ -72,6 +82,25 @@ namespace HearthboundHollow.Audio
             }
             // Phase 38 — subscribe to scene-driven music swaps.
             EventBus.Subscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
+
+            // Phase 45 — self-heal: if the Inspector reference is null
+            // (e.g. Phase 38 wiring not yet run), try to load the canonical
+            // library from Resources/.
+            if (library == null)
+            {
+                library = Resources.Load<MusicLibrarySO>(ResourcesLibraryName);
+                if (library != null)
+                    Hh.Log(LogCategory.Audio,
+                        $"MusicPlayer: self-healed library reference from " +
+                        $"Resources/{ResourcesLibraryName}.asset.");
+            }
+            if (library == null)
+            {
+                Hh.Warn(LogCategory.Audio,
+                    $"MusicPlayer: NO LIBRARY WIRED. Music will be silent. " +
+                    $"Run `Hearthbound → 🚀 Build Everything` to generate " +
+                    $"Resources/{ResourcesLibraryName}.asset.");
+            }
         }
 
         private void OnDestroy()
