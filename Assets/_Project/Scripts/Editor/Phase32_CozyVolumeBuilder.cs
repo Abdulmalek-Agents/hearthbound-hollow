@@ -24,7 +24,11 @@
 // URP version on the user's machine determines the exact serialised format.
 // This avoids URP-version YAML drift.
 //
-// USE: Menu → Hearthbound → 🌅 Phase 32.4 — Apply Cozy URP Volume
+// USE: Menu → Hearthbound → ⚙️ Advanced → 🌅 Phase 32.4 — Apply Cozy URP Volume
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 32.4 via the Phase 32 Mission 1 Polish capstone.
 //
 // Architecture notes:
 //   - Per D-007: scene edited + saved.
@@ -54,7 +58,7 @@ namespace HearthboundHollow.EditorTools
         private const string LaneVolumeName   = "_HearthboundLane_GlobalVolume";
         private const string HollowVolumeName = "_HearthboundHollow_GlobalVolume";
 
-        [MenuItem("Hearthbound/🌅 Phase 32.4 — Apply Cozy URP Volume", priority = 34)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🌅 Phase 32.4 — Apply Cozy URP Volume", priority = 34)]
         public static void Build()
         {
             EnsureFolder(ProfileDir);
@@ -86,7 +90,7 @@ namespace HearthboundHollow.EditorTools
                 "  • Vignette (subtle frame-edge darkening)\n" +
                 "  • Film Grain (very subtle film feel)\n" +
                 "  • Channel Mixer (Lane only — autumn foliage boost)\n\n" +
-                "Next: Hearthbound → 🍂 Phase 32 — Polish Mission 1 (v2)",
+                "Next: Hearthbound → 🚀 Build Everything (chains Phase 32 polish capstone)",
                 "OK");
         }
 
