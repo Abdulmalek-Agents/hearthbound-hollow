@@ -14,6 +14,11 @@
 // as `Hearthbound/🔍 Diagnose Build` (priority -90). One click runs all
 // three diagnostics in sequence and reports a combined verdict.
 //
+// Phase 35 update (2026-05-26): added a 4th step that runs the Continuation
+// Audit (Phase35_FlatEntryAudit) so `🔍 Diagnose Build` now ALSO reports on
+// cutscene timelines, audio folders, SfxLibrary entries, Yarn files, seed
+// assets, and the D-051 top-level menu reservation policy.
+//
 // READ-ONLY. Never modifies any asset. Safe to run any number of times.
 //
 // USE: Menu → Hearthbound → 🔍 Diagnose Build
@@ -41,7 +46,7 @@ namespace HearthboundHollow.EditorTools
             try
             {
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 1/3 — Phase 23 diagnostic …", 0.10f);
+                    "Step 1/4 — Phase 23 diagnostic …", 0.05f);
                 if (TryRun("Phase 23 — Scene/Wiring Diagnostic",
                           "HearthboundHollow.EditorTools.Phase23_DiagnosticReport", "Run") ||
                     TryRun("Phase 23 — Scene/Wiring Diagnostic",
@@ -51,7 +56,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 2/3 — Phase 26 diagnostic (Animator + Player + cameras) …", 0.40f);
+                    "Step 2/4 — Phase 26 diagnostic (Animator + Player + cameras) …", 0.30f);
                 if (TryRun("Phase 26 — Player + Animator Diagnostic",
                           "HearthboundHollow.EditorTools.Phase26_DiagnosticReport", "Run") ||
                     TryRun("Phase 26 — Player + Animator Diagnostic",
@@ -61,11 +66,24 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 3/3 — Phase 32 diagnostic (Mission 1 polish v2) …", 0.70f);
+                    "Step 3/4 — Phase 32 diagnostic (Mission 1 polish v2) …", 0.55f);
                 if (TryRun("Phase 32 — Mission 1 Polish Diagnostic",
                           "HearthboundHollow.EditorTools.Phase32_Diagnostic", "Diagnose") ||
                     TryRun("Phase 32 — Mission 1 Polish Diagnostic",
                           "HearthboundHollow.EditorTools.Phase32_Diagnostic", "Run"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Phase 35 — Continuation Audit (cutscene timelines, audio
+                // folders, SfxLibrary, Yarn, seed-assets, top-level menu
+                // entry policy per D-051). Chained here so the aggregate
+                // diagnostic ALSO reports on the Phase 36 / 37 deliverables
+                // before the audio + cutscene work has fully landed.
+                EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
+                    "Step 4/4 — Phase 35 continuation audit (cutscenes + audio + menus) …", 0.80f);
+                if (TryRun("Phase 35 — Flat Entry Audit",
+                          "HearthboundHollow.EditorTools.Phase35_FlatEntryAudit", "Run"))
                     ran++;
                 else
                     skipped++;
