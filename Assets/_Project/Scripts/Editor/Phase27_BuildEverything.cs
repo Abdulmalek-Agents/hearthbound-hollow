@@ -12,8 +12,9 @@
 // Phase 31 surgically repairs the dialogue choice cards. Phase 32 layers the
 // Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes).
 // Phase 36 builds the Dream 2 + Listen Timeline library. Phase 37 generates the
-// procedural audio (music, ambience, missing SFX, mumble VO). Phase 38 wires
-// every audio asset to the scenes + dialogue UI + cutscene timelines.
+// procedural audio (music, ambience, missing SFX, mumble VO). Phase 45 migrates
+// the audio libraries to Resources/ for runtime Resources.Load fallback. Phase 38
+// wires every audio asset to the scenes + dialogue UI + cutscene timelines.
 // Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
 // Phase 27 chains them all — single click, ~95 s, fully wired.
 //
@@ -59,7 +60,7 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 42 chain (~95 s).\n" +
+                "This runs the full Phase 13 → 45 chain (~95 s).\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -153,9 +154,23 @@ namespace HearthboundHollow.EditorTools
                 // MumbleVoiceLibrarySO, refreshes SfxLibrary so the
                 // previously-empty entries (polish_hum_*, ambient_autumn_loop)
                 // are now mapped. Idempotent.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 37 (Procedural Audio Studio) …", 0.93f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 37 (Procedural Audio Studio) …", 0.92f);
                 if (TryRun("Phase 37 — Procedural Audio Studio",
                           "HearthboundHollow.EditorTools.Phase37_ProceduralAudioStudio", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 10b: Phase 45 — Library Migrator. Moves the libraries
+                // from Assets/_Project/Audio/Foo.asset → Assets/_Project/Audio/
+                // Resources/Foo.asset (preserves GUIDs so scene refs survive).
+                // This is what enables the runtime Resources.Load fallback in
+                // MumbleVoicePlayer / MusicPlayer for the dialogue-sound
+                // self-healing path. Idempotent — runs after Phase 37 so any
+                // freshly-created legacy assets are immediately migrated.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 45 (Library Migration) …", 0.94f);
+                if (TryRun("Phase 45 — Library Migrator",
+                          "HearthboundHollow.EditorTools.Phase45_LibraryMigrator", "RunSilent"))
                     ran++;
                 else
                     skipped++;
@@ -164,7 +179,7 @@ namespace HearthboundHollow.EditorTools
                 // Phase 37 audio assets to the Phase 36 Timeline AudioTracks,
                 // attaches AmbientAudio + MusicPlayer to every scene, and
                 // wires MumbleVoicePlayer onto the DialogueUI prefab.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 38 (Audio + Cutscene Wiring) …", 0.95f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 38 (Audio + Cutscene Wiring) …", 0.96f);
                 if (TryRun("Phase 38 — Audio + Cutscene Wiring",
                           "HearthboundHollow.EditorTools.Phase38_AudioAndCutsceneWiring", "Build"))
                     ran++;
@@ -278,6 +293,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 36 — MemoryDreamRig.prefab wired with Dream 1 + 5× Dream 2 variants + Listen scene Timelines");
             sb.AppendLine("  • Phase 37 — MusicLibrarySO, AmbienceLibrarySO, MumbleVoiceLibrarySO built");
             sb.AppendLine("                + 30+ procedural WAV cues in Assets/_Project/Audio/Generated/");
+            sb.AppendLine("  • Phase 45 — Libraries migrated to Resources/ for runtime Resources.Load fallback");
             sb.AppendLine("  • Phase 38 — Per-scene MusicPlayer + AmbientAudio attached, DialogueUI MumbleVoicePlayer wired");
             sb.AppendLine("  • Phase 42 — ListenSceneCameraDirector on Cottage scene with 4-waypoint cinematic path");
             sb.AppendLine();
