@@ -14,7 +14,8 @@
 // Phase 36 builds the Dream 2 + Listen Timeline library. Phase 37 generates the
 // procedural audio (music, ambience, missing SFX, mumble VO). Phase 38 wires
 // every audio asset to the scenes + dialogue UI + cutscene timelines.
-// Phase 27 chains them all — single click, ~90 s, fully wired.
+// Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
+// Phase 27 chains them all — single click, ~95 s, fully wired.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
@@ -58,7 +59,7 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 38 chain (~90 s).\n" +
+                "This runs the full Phase 13 → 42 chain (~95 s).\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -163,9 +164,20 @@ namespace HearthboundHollow.EditorTools
                 // Phase 37 audio assets to the Phase 36 Timeline AudioTracks,
                 // attaches AmbientAudio + MusicPlayer to every scene, and
                 // wires MumbleVoicePlayer onto the DialogueUI prefab.
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 38 (Audio + Cutscene Wiring) …", 0.97f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 38 (Audio + Cutscene Wiring) …", 0.95f);
                 if (TryRun("Phase 38 — Audio + Cutscene Wiring",
                           "HearthboundHollow.EditorTools.Phase38_AudioAndCutsceneWiring", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 12: Phase 42 — Listen Scene Camera Authoring. Drops
+                // ListenSceneCameraDirector on the Cottage scene, wires it to
+                // the ListenSceneSequencer, and configures the 4-waypoint
+                // camera path (30s wide → 60s chair → 60s hands → 30s pull-back).
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 42 (Listen Scene Camera) …", 0.98f);
+                if (TryRun("Phase 42 — Listen Scene Camera",
+                          "HearthboundHollow.EditorTools.Phase42_ListenSceneCameraBuilder", "Build"))
                     ran++;
                 else
                     skipped++;
@@ -267,6 +279,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 37 — MusicLibrarySO, AmbienceLibrarySO, MumbleVoiceLibrarySO built");
             sb.AppendLine("                + 30+ procedural WAV cues in Assets/_Project/Audio/Generated/");
             sb.AppendLine("  • Phase 38 — Per-scene MusicPlayer + AmbientAudio attached, DialogueUI MumbleVoicePlayer wired");
+            sb.AppendLine("  • Phase 42 — ListenSceneCameraDirector on Cottage scene with 4-waypoint cinematic path");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
