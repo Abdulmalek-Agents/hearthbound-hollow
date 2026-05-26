@@ -84,14 +84,16 @@ Before you press **Play**, the following should be true:
 | Unity 6 LTS (6000.4.4f1) is installed | Unity Hub → check version |
 | Branch `feat/mission-1-2-architecture` is checked out | Git: `git status` should show this branch |
 | The project compiled cleanly (no errors in Console) | Unity Console → confirm no red errors |
-| The Phase 27 capstone ran | Menu: `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)` |
-| (Optional) Phase 26 diagnostic shows green | Menu: `Hearthbound → 🔍 Diagnose Phase 26 Build` |
+| The Phase 27 capstone ran | Menu: `Hearthbound → 🚀 Build Everything` |
+| (Optional) Phase 26 diagnostic shows green | Menu: `Hearthbound → 🔍 Diagnose Build` |
 | Build Settings opens with `00_Bootstrap.unity` as scene 0 | File → Build Profiles → Scenes In Build |
 | Yarn Spinner installed *(optional, but you want it)* | Package Manager → Yarn Spinner present |
 | URP-Mobile pipeline is active | Project Settings → Graphics → URP-Mobile asset |
 | Audio plays in the Editor | Edit → Preferences → Audio → check enabled |
 
 You are ready when the Bootstrap scene opens and the Console is clean.
+
+> 💡 **Phase 32 update:** the row above for "Phase 27 capstone" now points at the single top-level entry `Hearthbound → 🚀 Build Everything` (a safety dialog confirms before the chain runs, ~60 s, idempotent). The diagnostic row points at the new top-level aggregate `🔍 Diagnose Build`. All per-phase items live under `Hearthbound → ⚙️ Advanced ►` for power users. See [`PROGRESS.md → Phase 32 — Menu collapse`](./PROGRESS.md).
 
 ---
 
@@ -1022,6 +1024,6 @@ You will arrive at Mission 2 with a single orb on the shelf, a faint understandi
 
 ---
 
-*Document version 1.0 — authored for the `feat/mission-1-2-architecture` branch, Phase 27.1 build.*
+*Document version 1.0 — authored for the `feat/mission-1-2-architecture` branch, Phase 27.1 build. Phase 32 (menu collapse) update — § 3 Pre-Flight Checklist now references the single top-level entry `Hearthbound → 🚀 Build Everything` and the aggregate `🔍 Diagnose Build` per D-051.*
 *Companion files: [`GAMEPLAY_GUIDE_OVERVIEW.md`](./GAMEPLAY_GUIDE_OVERVIEW.md), [`GAMEPLAY_GUIDE_MISSION_2.md`](./GAMEPLAY_GUIDE_MISSION_2.md).*
 *Part of the Abdulmalek Agents game-concept portfolio · 2026.*
