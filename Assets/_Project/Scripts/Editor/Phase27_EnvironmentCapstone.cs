@@ -25,7 +25,7 @@ namespace HearthboundHollow.EditorTools
         private const string SceneLane = "Assets/_Project/Scenes/02_Mission01_Lane.unity";
         private const string SceneHollow = "Assets/_Project/Scenes/03_Mission01_Hollow.unity";
 
-        [MenuItem("Hearthbound/🌳 Phase 27 — Polish Mission 1 Environment", priority = 4)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🌳 Phase 27 — Polish Mission 1 Environment", priority = 4)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 27", "Running Phase 27.2 (Lane)…", 0.10f);
@@ -69,10 +69,6 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ───────────────────────────────────────────────────────────────
-        // Lane lantern wiring
-        // ───────────────────────────────────────────────────────────────
-
         private static void WireLanternsInLane()
         {
             var scene = EditorSceneManager.OpenScene(SceneLane, OpenSceneMode.Single);
@@ -84,10 +80,6 @@ namespace HearthboundHollow.EditorTools
             EditorSceneManager.SaveScene(scene);
             Debug.Log($"[Hearthbound/Phase 27.4] Lane: wired {wired} lantern interactable(s).");
         }
-
-        // ───────────────────────────────────────────────────────────────
-        // Hollow lantern + hearth wiring
-        // ───────────────────────────────────────────────────────────────
 
         private static void WireInteractablesInHollow()
         {
@@ -113,7 +105,6 @@ namespace HearthboundHollow.EditorTools
                 return 0;
             }
 
-            // 1) Ensure the lantern has a BoxCollider for the interaction raycast.
             if (lantern.GetComponentInChildren<Collider>(true) == null)
             {
                 var bc = lantern.AddComponent<BoxCollider>();
@@ -121,12 +112,10 @@ namespace HearthboundHollow.EditorTools
                 bc.center = new Vector3(0f, 0.5f, 0f);
             }
 
-            // 2) Add LanternInteractable if missing.
             var li = lantern.GetComponent<LanternInteractable>();
             if (li == null) li = lantern.AddComponent<LanternInteractable>();
             li.lanternId = lanternId;
 
-            // 3) Auto-find the Light component (child) so the script can drive it.
             li.bulb = lantern.GetComponentInChildren<Light>(true);
 
             return 1;
@@ -149,7 +138,6 @@ namespace HearthboundHollow.EditorTools
                 return 0;
             }
 
-            // AudioSource for the hearth crackle (on the hearth itself, not the trigger).
             var audio = hearth.GetComponentInChildren<AudioSource>(true);
             if (audio == null)
             {
@@ -159,17 +147,15 @@ namespace HearthboundHollow.EditorTools
                 audio = audioGO.AddComponent<AudioSource>();
                 audio.loop = true;
                 audio.playOnAwake = true;
-                audio.spatialBlend = 1f; // 3D — falls off naturally
+                audio.spatialBlend = 1f;
                 audio.minDistance = 1.5f;
                 audio.maxDistance = 12f;
                 audio.volume = 0.2f;
 
-                // Try to find a hearth/fire/crackle clip from the existing SFX library.
                 var clip = FindHearthClip();
                 if (clip != null) audio.clip = clip;
             }
 
-            // HearthAmbianceTrigger on the trigger GameObject.
             var hat = triggerGO.GetComponent<HearthAmbianceTrigger>();
             if (hat == null) hat = triggerGO.AddComponent<HearthAmbianceTrigger>();
             hat.hearthSource = audio;
@@ -180,7 +166,6 @@ namespace HearthboundHollow.EditorTools
 
         private static AudioClip FindHearthClip()
         {
-            // Search any imported clip whose name contains "fire", "hearth", or "crackle".
             string[] guids = AssetDatabase.FindAssets("t:AudioClip");
             foreach (var g in guids)
             {
@@ -193,10 +178,6 @@ namespace HearthboundHollow.EditorTools
             }
             return null;
         }
-
-        // ───────────────────────────────────────────────────────────────
-        // Resilient runner
-        // ───────────────────────────────────────────────────────────────
 
         private static void SafeRun(string label, System.Action action)
         {

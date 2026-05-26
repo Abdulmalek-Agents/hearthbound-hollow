@@ -29,7 +29,7 @@ namespace HearthboundHollow.EditorTools
 {
     public static class Phase32_MissionOnePolishCapstone
     {
-        [MenuItem("Hearthbound/🍂 Phase 32 — Polish Mission 1 (v2 — all phases)", priority = 5)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🍂 Phase 32 — Polish Mission 1 (v2 — all phases)", priority = 5)]
         public static void Build()
         {
             int ran = 0, skipped = 0;
@@ -88,10 +88,6 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ───────────────────────────────────────────────────────────────
-        // Reflection runner (same pattern as Phase 27 capstone)
-        // ───────────────────────────────────────────────────────────────
-
         private static bool TryRun(string label, string typeFullName, string methodName)
         {
             Type t = FindType(typeFullName);
@@ -134,10 +130,6 @@ namespace HearthboundHollow.EditorTools
             }
             return null;
         }
-
-        // ───────────────────────────────────────────────────────────────
-        // Summary
-        // ───────────────────────────────────────────────────────────────
 
         private static string BuildSummary(int ran, int skipped)
         {
