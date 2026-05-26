@@ -1,0 +1,351 @@
+title: Codex_Workbench
+tags: examine codex hollow workbench
+---
+// ─────────────────────────────────────────────────────────────────────────
+// The Codex — every examinable prop's tooltip.
+// Author: Tobias Marrow (Worldbuilding & Lore Master)
+// Spec:   Docs/Depth_Bible/Mission_1_2_Focus/03_SCENES_LANE_HOLLOW_GARDEN_COTTAGE.md
+//         Docs/Depth_Bible/03_WORLDBUILDING_AND_LORE.md
+// Guide:  Docs/GAMEPLAY_GUIDE_MISSION_1.md § 11, § 19
+//         Docs/GAMEPLAY_GUIDE_MISSION_2.md § 13, § 25
+//
+// Discipline (Marrow Principle § 4):
+//   • Every prop tooltip must do one of three things — tell the player
+//     something about Marin (the predecessor), seed a long-arc story, or
+//     warm the room. Never just describe geometry.
+//   • One short paragraph per tooltip. Cozy register. No medical
+//     vocabulary, no explicit grief, no fail states.
+//   • The cozy player who examines all props in M1-2 receives the
+//     hidden completion (Predecessor Trail Warmth +3 per prop).
+// ─────────────────────────────────────────────────────────────────────────
+
+Codex: A worn workbench. Wood polished from a thousand hands before yours.
+Codex: There is a circular indentation in the surface — orb-sized.
+
+===
+
+title: Codex_Kettle
+tags: examine codex hollow kettle
+---
+Codex: A copper kettle, blackened at the bottom.
+Codex: Marin's, by the dent.
+
+===
+
+title: Codex_Teapot
+tags: examine codex hollow teapot
+---
+// Mission 1 Guide § 19.6 — "the village's small miracles."
+Codex: This teapot has not been cold in twenty-two years.
+Codex: The Keeper before you trained the wood stove to do that.
+Codex: It is one of the village's small miracles.
+
+===
+
+title: Codex_HerbBasket
+tags: examine codex hollow herbs
+---
+Codex: A small wicker basket.
+Codex: There are leaves of lavender and a root of valerian inside.
+
+===
+
+title: Codex_Shelf_Empty
+tags: examine codex hollow shelf
+---
+Codex: An empty shelf, dust-free. Waiting.
+
+===
+
+title: Codex_Shelf_WithDorisOrb
+tags: examine codex hollow shelf doris
+---
+Codex: Doris's "First Loaves" rests on the shelf.
+Codex: The amber glow is warm against your hand.
+
+===
+
+title: Codex_Apron
+tags: examine codex hollow apron predecessor_seed
+---
+// Mission 1 Guide § 11.1 — predecessor seed #1.
+Codex: A long brown apron. Pockets stuffed with old receipts.
+Codex: The collar is frayed.
+Codex: Whoever wore this stood at this bench every day for years.
+
+<<adjust_predecessor_trail 3>>
+
+===
+
+title: Codex_Orb_Bee
+tags: examine codex hollow welcome_orb bee
+---
+// Mission 1 Guide § 11.1, § 11.2 — welcome gift orb #1.
+// Wedding Honey arc seed (Mission 3+).
+Codex: A single bee suspended mid-flight inside a glass orb.
+Codex: The bee is calm. It has been calm for at least three years.
+Codex: The orb hums very faintly when you stand close to it.
+
+<<adjust_predecessor_trail 3>>
+
+===
+
+title: Codex_Orb_Kettle
+tags: examine codex hollow welcome_orb kettle_orb
+---
+// Mission 1 Guide § 11.2 — welcome gift orb #2.
+// Marin's signature (Mission 4+).
+Codex: An orb that contains the sound — only the sound — of a kettle just before it boils.
+Codex: Holding the orb makes the room feel warmer by half a degree.
+
+<<adjust_predecessor_trail 3>>
+
+===
+
+title: Codex_Orb_EmptyChair
+tags: examine codex hollow welcome_orb empty_chair
+---
+// Mission 1 Guide § 11.2 — welcome gift orb #3.
+// The predecessor's loss (Mission 6+).
+Codex: An orb that appears, when you look at it closely, to contain a single wooden chair.
+Codex: No one is in the chair. The chair is in late afternoon light.
+Codex: You set it down quickly.
+
+<<adjust_predecessor_trail 3>>
+
+===
+
+title: Codex_ReadingChairBook
+tags: examine codex hollow book lampman
+---
+// Mission 1 Guide § 11.1, § 19.3 — the lampman folklore.
+// The lampman will appear in Mission 7+ in a Memory Dream.
+Codex: A book of regional folklore, open to the chapter on "the lampman."
+Codex: The bookmark is a pressed yellow leaf.
+Codex: The leaf is dry but the page is still slightly damp where a thumb rested.
+
+<<adjust_predecessor_trail 3>>
+
+===
+
+title: Codex_Ledger_Closed
+tags: examine codex hollow ledger
+---
+// Mission 1 Guide § 12.2.
+Codex: A leather-bound book. The previous pages have been torn out.
+Codex: The Keeper before you left you a clean book.
+
+===
+
+title: Codex_ToolRoll
+tags: examine codex hollow tools
+---
+// Mission 1 Guide § 12.2 — Marin's polishing tools.
+Codex: A leather roll of polishing tools.
+Codex: They are clean. They have been used so many thousands of times
+Codex: the wood is dark where Marin's thumb sat.
+
+<<adjust_predecessor_trail 2>>
+
+===
+
+title: Codex_UpstairsBarrier
+tags: examine codex hollow upstairs locked
+---
+// Mission 1 Guide § 11.3 — locked in M1-2, opens Mission 5+.
+Codex: A wooden barrier marked "in repair."
+Codex: The staircase behind it leads up.
+Codex: You will need to wait.
+
+===
+
+title: Codex_GardenDoor_LockedM1
+tags: examine codex hollow garden_door m1_locked
+---
+// Mission 1 — back door locked. Opens for Mission 2.
+Codex: A small door. The garden is on the other side.
+Codex: The hinge is stiff. It will open tomorrow morning.
+
+===
+
+title: Codex_ForgePathSign
+tags: examine codex lane sign forge
+---
+// Mission 1 Guide § 19.7 — at the far end of the lane.
+Codex: A small sign on a stone wall.
+Codex: "Forge Path closed today."
+Codex: There is no date.
+
+===
+
+title: Codex_BeehiveDormant
+tags: examine codex lane beehive doris_back_garden easter_egg
+---
+// Mission 1 Guide § 19.1 — the side-path Easter egg at the 65m mark.
+// Wedding Honey arc seed (Mission 3+).
+Codex: A dormant beehive.
+Codex: The wood is old. The varnish has not been refreshed in two summers.
+Codex: Someone loved this once.
+
+<<adjust_predecessor_trail 2>>
+
+===
+
+title: Codex_SilentVillagerLetter
+tags: examine codex lane silent_villager letter
+---
+// Mission 1 Guide § 19.2 — looking at the silent villager's letter.
+// Mission 4+ payoff.
+Codex: An older man on the bench, reading a letter.
+Codex: The letter is folded in his hand.
+Codex: You cannot read it from here.
+
+===
+
+title: Codex_FramedPhotograph
+tags: examine codex cottage mantel wedding_photo gerrold echo_web_source
+---
+// Mission 2 Guide § 13.1, § 25.1 — the wedding photograph.
+// Doris in the background, holding bread (the Echo Web's source material).
+Codex: A small framed photograph. Two figures. A bench. The image is faded.
+Codex: One of them is younger Gerrold. The other — Margery, perhaps.
+Codex: In the background, a woman with bread.
+
+<<adjust_predecessor_trail 1>>
+
+===
+
+title: Codex_BedroomDoor_Cottage
+tags: examine codex cottage bedroom_door m1_2_locked
+---
+// Mission 2 Guide § 13.1, § 25.3 — the closed bedroom door.
+// Vow 7 silent bonus for the player who knows not to open it.
+Codex: A closed bedroom door. The handle is brass.
+Codex: It has been polished recently. The light underneath is steady.
+Codex: You feel — clearly, suddenly — that you should not open this door today.
+Codex: You believe Gerrold, also, has not opened it in some time.
+
+<<adjust_vow "vow7" 1>>
+
+===
+
+title: Codex_Toolbox_Cottage
+tags: examine codex cottage toolbox carpentry
+---
+// Mission 2 Guide § 13.1, § 25.4 — Gerrold's carpenter's tools.
+// Mission 6+ seed: Gerrold will offer to make the player a wooden box.
+Codex: A leather toolbox under Gerrold's chair.
+Codex: Carpenter's chisels, a hammer, a block plane.
+Codex: The blade of the plane is dull. He has not used these in some weeks.
+
+===
+
+title: Codex_ColdTeaCup
+tags: examine codex cottage cold_tea margery_seat
+---
+// Mission 2 Guide § 13.1, § 25.8 — Margery's daily cold tea.
+// Mission 5+ seed: player can offer to brew the daily tea for Gerrold.
+Codex: A cup of tea. Cold.
+Codex: It has been here all morning.
+Codex: He brews one every day. He has never drunk it himself.
+
+===
+
+title: Codex_EmptyPlaceSetting
+tags: examine codex cottage empty_setting margery
+---
+// Mission 2 Guide § 25.7 — the unused place setting.
+// Mission 3+ seed: the player can sit here on a Sunday visit.
+Codex: A clean plate, a clean fork, a folded napkin.
+Codex: The napkin has not been refolded since some Sunday.
+
+===
+
+title: Codex_MargerysBook
+tags: examine codex cottage book pressed_leaf cross_reference
+---
+// Mission 2 Guide § 13.1 — open book on Margery's chair arm.
+// Cross-reference: same dried-leaf bookmark style as the predecessor's book.
+Codex: A book open on the chair's arm.
+Codex: It is open to a page she did not finish.
+Codex: The bookmark is a pressed leaf, exactly like the one in your shop's reading chair.
+
+<<adjust_predecessor_trail 1>>
+
+===
+
+title: Codex_BrokenStep_Cottage
+tags: examine codex cottage broken_step carpentry
+---
+// Mission 2 Guide § 12.2, § 25.2 — the broken step.
+// Mission 5+ seed: player can plane the step true.
+Codex: A wooden step. The wood gave somewhere along its length last winter.
+Codex: It has not been planed true since.
+
+===
+
+title: Codex_BirdFeeder_EmptyCottage
+tags: examine codex cottage exterior empty_feeder margery
+---
+// Mission 2 Focus 03 § 5.3 — exterior detail.
+Codex: A bird feeder on a hook beside the cottage door.
+Codex: It is empty.
+Codex: A small bag of seed is on the windowsill above, unopened.
+
+===
+
+title: Codex_DriedLavenderBasket_Cottage
+tags: examine codex cottage exterior dead_lavender
+---
+// Mission 2 Focus 03 § 5.3 — exterior detail.
+Codex: A hanging basket of lavender beside the door.
+Codex: The flowers are dry. The colour is grey, now, not purple.
+
+===
+
+title: Codex_Handkerchief_Gerrold
+tags: examine codex inventory handkerchief margery monogram
+---
+// Mission 2 Guide § 20.2 — examining the handkerchief in inventory.
+// Margery's monogram, age 22, the year of her wedding.
+Codex: A white linen handkerchief, folded into a square.
+Codex: The corner is embroidered with a small "M" in dark green silk.
+Codex: The needlework is slightly uneven — the work of a young hand.
+Codex: The cloth smells faintly of cedar.
+
+===
+
+title: Codex_Garden_LavenderBed
+tags: examine codex garden lavender_bed
+---
+// Mission 2 Garden — Focus 03 § 4.2.
+Codex: A raised bed of lavender.
+Codex: Three plants, well-tended, full of bees in summer.
+Codex: The bees are not here today.
+
+===
+
+title: Codex_Garden_ValerianBed
+tags: examine codex garden valerian_bed
+---
+Codex: A raised bed of valerian.
+Codex: Three plants. The root smells faintly of damp wood.
+
+===
+
+title: Codex_Garden_EmptyBed
+tags: examine codex garden empty_bed m3_planting
+---
+// Mission 2 Garden — beds 3 and 4 are empty. Planting M3+.
+Codex: An empty raised bed. The soil is fresh.
+Codex: There is room here for something the Keeper before you did not plant.
+
+===
+
+title: Codex_Garden_WateringCan
+tags: examine codex garden watering_can
+---
+Codex: A tin watering can on a wooden stool.
+Codex: It is half full. The water is rainwater.
+
+===

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1caf40fd7851436ea7e720d6737e3d7, type: 3}
+  m_Name: MemoryMap_Doris
+  m_EditorClassIdentifier: HearthboundHollow.Memory::HearthboundHollow.Memory.VillagerMemoryMapSO
+  villager: {fileID: 11400000, guid: a800ad485f003423d94790d33f8bf49e, type: 2}
+  nodes:
+  - memory: {fileID: 11400000, guid: 4a84d7566b72d4e128ee3cd9b36f7d98, type: 2}
+    graphPosition: {x: 0, y: 0}
+    revealedAtStart: 1
+    revealConditionId: 
+  - memory: {fileID: 0}
+    graphPosition: {x: 120, y: 60}
+    revealedAtStart: 0
+    revealConditionId: doris_trust_60
+  - memory: {fileID: 0}
+    graphPosition: {x: -120, y: 60}
+    revealedAtStart: 0
+    revealConditionId: doris_mother_revealed
+  - memory: {fileID: 0}
+    graphPosition: {x: 0, y: 120}
+    revealedAtStart: 0
+    revealConditionId: doris_apprentice

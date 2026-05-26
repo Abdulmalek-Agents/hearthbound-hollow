@@ -1,0 +1,231 @@
+title: Dream1_FirstLoaves
+tags: dream mission1 doris first_loaves canonical
+---
+// ─────────────────────────────────────────────────────────────────────────
+// Memory Dreams — the illustrated short-films at the end of each in-game day.
+// Author: Sven Aleko (Memory Dream Director)
+// Spec:   Docs/Depth_Bible/Mission_1_2_Focus/05_DREAM1_AND_DREAM2.md
+// Guide:  Docs/GAMEPLAY_GUIDE_MISSION_1.md § 17
+//         Docs/GAMEPLAY_GUIDE_MISSION_2.md § 22
+//
+// In Mission 1-2 we ship 2 dreams + 5 variants of Dream 2:
+//   Dream 1 — The First Loaves (Doris, 1972 kitchen at first light, 60s)
+//   Dream 2 — The Last Week (Margery's bedroom in winter, 5 variants):
+//     • Variant A — Cleanse Perfect / Erase Perfect-or-Acceptable (canonical, 85s)
+//     • Variant B — Cleanse Acceptable / Sloppy (80s)
+//     • Variant C — Erase Crossed-Core / Cleanse Crossed-Core (90s)
+//     • Variant D — Listen path (75s — UNIQUE; Gerrold is the cast figure,
+//                                 not Margery; ends on the player being thanked)
+//     • Variant E — Defer (30s — the most restrained dream)
+//
+// These Yarn nodes carry the narrative TITLE OVERLAY + SUBTITLE that
+// appears on the Bamao parchment frame during each dream. The actual
+// scene animation + composer cues are driven by MemoryDreamSequencer.cs
+// (Mission asmdef) consuming the same node names.
+// ─────────────────────────────────────────────────────────────────────────
+
+DreamTitle: The First Loaves
+DreamSubtitle: — 1972
+
+// ── 60-second beat sheet (titles only — full animation in Sequencer) ──
+//  0:00–0:03  Fade in from black. Title card lower-third.
+//  0:03–0:10  Wide kitchen establishing shot. Empty. No music yet.
+//  0:10–0:15  Young Doris (24) fades in at the oven. Back to camera.
+//  0:15–0:25  Pulls loaves out. Camera medium-close on her hands.
+//              Composer's Doris motif begins — solo cello.
+//  0:25–0:35  Bread crust crackle foley. VoluSmokeFX steam wisps rise.
+//              Flour dust visible in the sun shaft.
+//  0:35–0:50  Doris wipes hands on apron. She does not yet smile.
+//              Looks at the door. Door does not open.
+//  0:50–0:55  Stands still. Watches the door. Alone.
+//  0:55–0:60  A subtle slow smile begins. Camera pulls back to wide.
+//              Subtitle "— 1972" appears lower-third.
+//              Composer's motif resolves on a held, unresolved-but-warm sustain.
+//  0:60       Fade to amber.
+
+===
+
+title: Dream2_VariantA_CleansePerfect
+tags: dream mission2 gerrold margery variant_a canonical
+---
+DreamTitle: The Last Week
+DreamSubtitle: — Saltlight, last winter
+
+// ── 85-second beat sheet ─────────────────────────────────────────
+//  0:00–0:05  Fade in. Margery's bedroom in winter. Folded handkerchief
+//              on bedside table. Soft amber lamp light.
+//  0:05–0:10  Margery fades in, sitting up in bed. Soft-focused.
+//              Her face is CLEARLY visible.
+//  0:10–0:25  She picks up the handkerchief.
+//  0:25–0:40  Looks at the embroidered "M" in the corner.
+//              Camera extreme-close on the embroidery.
+//  0:40–0:55  A small slow smile begins.
+//  0:50–0:55  GERROLD appears briefly in the doorway — silhouette only.
+//              He nods. He exits. (He was there for her. The dream
+//              remembers it.)
+//  0:55–0:70  She holds the handkerchief. Eyes closing softly.
+//  0:70–0:80  At peace. The handkerchief is in her hand.
+//  0:80–0:85  Camera pulls slowly back. Fade.
+//
+// Composer cue: M-MD02-A — Margery motif, solo violin → piano → cello,
+//   full warm resolution. Major chord ending.
+
+===
+
+title: Dream2_VariantB_CleanseAcceptable
+tags: dream mission2 gerrold margery variant_b
+---
+DreamTitle: The Last Week
+DreamSubtitle: — Saltlight, last winter
+
+// ── 80-second beat sheet ─────────────────────────────────────────
+// Same set-piece + blocking as Variant A. Differences:
+//   • Lens: GRIEF + GRACE + a faint trace of SHAME
+//   • Margery's face SOFTENED by lens-blur (visible but slightly less clear)
+//   • Her smile is visible
+//   • Composer cue: M-MD02-B — Margery motif, slightly hesitant.
+//     Resolves but on a softer chord.
+
+===
+
+title: Dream2_VariantC_Damaged
+tags: dream mission2 gerrold margery variant_c crossed_core
+---
+DreamTitle: The Last Week
+DreamSubtitle: — Saltlight, last winter
+
+// ── 90-second beat sheet ─────────────────────────────────────────
+// The dream the cozy player will REMEMBER if they Crossed-Core'd.
+// Used for: Erase path (any outcome) OR Cleanse Crossed-Core.
+//
+// Differences from Variant A:
+//   • Lens: GRIEF (heavy) + GRACE (sparse)
+//   • Margery's face is FOG-BLURRED — player sees her shape, the
+//     handkerchief, the smile, but NOT the features clearly.
+//   • Camera at the 40–55s extreme close is on the HANDKERCHIEF, not
+//     on her face. The camera is choosing to protect the player from
+//     her absence.
+//   • Gerrold's doorway silhouette LINGERS longer, looking in. He
+//     does NOT nod.
+//   • Composer cue: M-MD02-C — same melody, but ending on an
+//     unresolved minor seventh.
+
+===
+
+title: Dream2_VariantD_Listen
+tags: dream mission2 gerrold listen variant_d unique
+---
+DreamTitle: The Last Week, Told
+DreamSubtitle: — Sunday evening, this year
+
+// ── 75-second beat sheet — THE UNIQUE DREAM ──────────────────────
+// The most narratively different variant. Gerrold is the cast figure,
+// not Margery. The cozy game's first moment of the player being
+// directly THANKED. Per Mission 2 Guide § 22.4.
+//
+//  0:00–0:10  The cottage chair. Gerrold's chair, alone, in the empty
+//              bedroom. The bed is mostly off-frame. Margery is NEVER
+//              visible.
+//  0:10–0:30  Gerrold appears, sitting in his chair. Hands in lap.
+//  0:30–0:50  Tight on his hands. Then his face. He is recounting —
+//              to no one — what he just told you.
+//  0:50–0:65  He looks DIRECTLY at the camera — at the player, who is
+//              dreaming him. His eyes close softly, briefly. Open again.
+//  0:65–0:71  One small smile.
+//  0:71–0:75  Held for 4 seconds. Cut to black.
+//
+// Lens: GRIEF (gentle) + GRACE (full) + WONDER (a soft golden trace —
+//        unique to this variant; the wonder of being heard).
+// Composer cue: M-MD02-D — solo cello, no other instruments. The most
+//   spare cue in the entire vertical slice.
+
+===
+
+title: Dream2_VariantE_Defer
+tags: dream mission2 defer variant_e restrained
+---
+DreamTitle: An Empty Chair
+DreamSubtitle:
+
+// ── 30-second beat sheet — THE LIGHTEST DREAM ────────────────────
+// The dream of "not knowing yet." Per Mission 2 Guide § 22.5.
+//
+//  0:00–0:06  The cottage. Margery's chair, empty. The book on its arm.
+//              The cold cup of tea. The bed is empty. NOTHING ELSE.
+//  0:06–0:30  Held shot. Silence after the first 6 seconds (only the
+//              wind outside).
+//
+// Lens: GRACE only.
+// Composer cue: A single sustained note for the first 6 seconds, then
+//   silence. The most restrained moment in M1-2.
+
+===
+
+title: SleepTransition_M1_M2_Shared
+tags: dream transition sleep shared
+---
+// ── 2.5-second Sleep Transition ──────────────────────────────────
+// Plays at the end of every in-game day, just before each Memory Dream.
+// Per Mission 1 Guide § 12.2 + § 17 + Mission 2 Guide § 22.
+//
+//  0.0s   Ledger book gently closes audibly (cloth-on-paper).
+//  0.2s   Shop's audio softens to ~30%.
+//  0.5s   Camera tilts upward toward the Hollow's ceiling, finding a
+//          single beam of moonlight.
+//  0.9s   Pickle stretches and curls (visible).
+//  1.2s   Screen begins fading to warm amber.
+//  1.8s   Audio fully silent.
+//  2.5s   Amber fade completes; dream's first frame appears.
+
+===
+
+title: WakeTransition_M1_M2_Shared
+tags: dream transition wake shared
+---
+// ── 3-second Wake Transition ─────────────────────────────────────
+// Plays at the end of every Memory Dream. Per Mission 1 Guide § 17.4
+// + Mission 2 Guide § 22.6.
+//
+//  0.0s   Dream's final frame holds.
+//  0.5s   Screen fades to bright morning gold.
+//  1.4s   A single bird outside the Hollow's window.
+//  1.8s   Pickle's stretch + tail-flick.
+//  2.2s   The day's morning cue enters softly. Varies by Dream 2 variant:
+//           • Variant A: Doris's motif at low volume — normal cozy morning
+//           • Variant B: Doris's motif slightly muted
+//           • Variant C: Doris's motif at very low volume; a long held note
+//           • Variant D: A piano motif — the Sunday-tea theme (M3+ teaser)
+//           • Variant E: Silence; only the bird outside
+//  3.0s   The Hollow interior renders fully. Player has control.
+
+===
+
+title: Mission02_Outro_Cinematic
+tags: dream cinematic mission2_outro shared
+---
+DreamTitle: Day 2 ended.
+DreamSubtitle: Tomorrow, the village will know.
+
+// ── 30-second outro Cinematic ────────────────────────────────────
+// Plays after Memory Dream 2 wakes. Per Mission 2 Guide § 23.
+// Identical length across paths. Visual content differs.
+//
+//  0:00–0:08  Slow pan through the Hollow. Chairs sit empty. Pickle
+//              sleeps on the windowsill. Fire in the stove is low.
+//  0:08–0:18  Camera finds the workbench.
+//              IF handkerchief returned: workbench is empty.
+//              IF handkerchief still held: it is folded on the bench
+//                                            beside the orb cradle.
+//  0:18–0:25  Camera finds the shelves. DOR-001 softly glows.
+//              Path A (Erase):   GER-007 clouded, partial.
+//              Path B (Cleanse): GER-007 cleansed, full clarity.
+//              Path C (Listen):  GER-007 NOT on the shelf — it is in
+//                                Gerrold's cottage. The shelf has an
+//                                empty space.
+//              Path D (Defer):   GER-007 in its cloth on the counter,
+//                                untouched.
+//  0:25–0:30  Camera pulls back. Title overlay. Fade to black.
+//
+// Composer cue: Hearthbound main theme, final 20 seconds (full statement).
+
+===

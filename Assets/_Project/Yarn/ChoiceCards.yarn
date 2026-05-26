@@ -1,0 +1,163 @@
+title: ChoiceCard_M2_OptionA_Erase
+tags: choice_card mission2 option_a erase
+---
+// ─────────────────────────────────────────────────────────────────────────
+// Mission 2 — Moral Choice Card option previews.
+// Author: Esme Cordray (Choice & Consequence Architect)
+// Spec:   Docs/Depth_Bible/Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md § 5
+// Guide:  Docs/GAMEPLAY_GUIDE_MISSION_2.md § 14
+//
+// The Cordray Principle § 9: "The player infers the consequence; they are
+// never given numbers." All four option previews are written in fiction-
+// voice. No stat bars. No moral-alignment indicator. Just four sentences
+// and the orb in the player's hand.
+//
+// ChoiceCardUI consumes these node titles for the four option previews.
+// ─────────────────────────────────────────────────────────────────────────
+
+ChoiceLabel: A — Erase the long bit.
+ChoicePreview: He will remember he loved her.
+ChoicePreview: He will not remember the dying.
+
+===
+
+title: ChoiceCard_M2_OptionB_Cleanse
+tags: choice_card mission2 option_b cleanse canonical
+---
+ChoiceLabel: B — Cleanse with care.
+ChoicePreview: He will keep the memory, gentler.
+ChoicePreview: You will need a careful hand.
+
+===
+
+title: ChoiceCard_M2_OptionC_Listen
+tags: choice_card mission2 option_c listen vow7
+---
+ChoiceLabel: C — Don't take the memory. Sit with him.
+ChoicePreview: He will carry it.
+ChoicePreview: You will have only been here.
+ChoicePreview: Sometimes that is enough.
+
+===
+
+title: ChoiceCard_M2_OptionD_Defer
+tags: choice_card mission2 option_d defer
+---
+ChoiceLabel: D — Ask him to come back tomorrow.
+ChoicePreview: He will.
+ChoicePreview: You can think about this for a day.
+
+===
+
+title: ChoiceCard_M2_Setup
+tags: choice_card mission2 setup framing
+---
+// The framing text at the top of the choice card UI.
+// Per Mission 2 Guide § 14.1.
+
+ChoiceFraming: Gerrold has placed the orb on the table.
+ChoiceFraming: He is waiting.
+
+===
+
+title: ChoiceCard_M2_EraseConfirm
+tags: choice_card mission2 option_a confirm
+---
+// Second-confirmation prompt that appears when player chooses Option A
+// (Erase) per Mission 2 Guide § 14.4. The HEAVIEST option requires a
+// second yes. Cancel returns to the main 4-option choice card.
+
+ChoiceConfirm: Yes, all of it. Erase the long bit.
+ChoiceCancel: Wait — let me think a moment more.
+
+===
+
+title: ChoiceCard_M2_ListenSubChoice
+tags: choice_card mission2 option_c sub_choice
+---
+// The Listen path's TWO sub-options per Focus 02 § 5.1 + Gerrold_M2_ChoiceListen.
+// Both end at Mission2_ListenScene_FullMonologue, but the gestural option
+// grants Vow 7 +7 (vs +5 for verbal) and Cinder +3 (vs +2).
+
+ChoiceLabel_Verbal: I want to listen. Tell me about it. Hold it the whole time. I won't take it.
+ChoiceLabel_Gestural: (Reach out and gently place his hands around the orb.)
+
+===
+
+title: ChoiceCard_M2_ChairSelection
+tags: choice_card mission2 cottage chair
+---
+// The cottage chair-selection sub-choice. Per Gerrold_M2_CottageInterior.
+// "Sit in Margery's chair" enables Pickle's M2_MargerysChair line if
+// pickle_approval >= 50.
+
+ChoiceLabel_LeftChair: (Sit in the left chair — Gerrold's chair.)
+ChoiceLabel_RightChair: (Sit in the right chair — Margery's chair.)
+ChoiceLabel_Fireplace: (Stand by the fireplace.)
+
+===
+
+title: ChoiceCard_M1_PriceNegotiation
+tags: choice_card mission1 doris price
+---
+// Mission 1 — Doris price-negotiation card. Per Doris_M1_PriceNegotiation.
+// Three options. No second-confirm needed (the heaviest is overpay, which
+// Doris herself softens to settle at 5 cu instead of accepting 6).
+
+ChoiceFraming_M1: Doris has set her price.
+ChoiceFraming_M1: Four coppers, plain. She will not let you ruin yourself.
+
+ChoiceLabel_Honor: Four coppers is fair.
+ChoicePreview_Honor: (Honor the price.)
+
+ChoiceLabel_Overpay: I'll pay six.
+ChoicePreview_Overpay: (She will not let you overpay. She'll settle at five.)
+
+ChoiceLabel_Underpay: Two coppers. That's all I have.
+ChoicePreview_Underpay: (You will owe her. She will not mention it again. You will.)
+
+===
+
+title: HeavyThemeCard_M2_Cottage
+tags: heavy_theme_card mission2 cottage warning
+---
+// Heavy Theme Warning Card — fires before the Mission 2 cottage scene
+// IF the player has the warning toggle ON (default ON).
+// Per Mission 2 Guide § 13.2 + Codex 06 (Tone Compass).
+
+HeavyTheme_Header: This scene contains references to:
+HeavyTheme_Body:
+HeavyTheme_Body: — Loss of spouse
+HeavyTheme_Body: — Terminal illness (referenced)
+HeavyTheme_Body: — A man's grief
+HeavyTheme_Body:
+HeavyTheme_Body: Take a breath if you need to.
+HeavyTheme_Body: The cat is still on the windowsill back at the shop.
+HeavyTheme_Dismiss: [ Dismiss ]
+
+===
+
+title: TeaBrewing_LavenderResolveChord
+tags: tea_brewing mission2 lavender audio_cue
+---
+// Tea-brewing pour-cue narrative metadata. Per Focus 06 § 3.2 +
+// Mission 2 Guide § 11.3.
+// A 3-second composer-mixed micro-cue: kettle pour sound + a single
+// sustained note that resolves into a soft C major chord.
+// Audio system (SfxLibrarySO) plays the actual stems — this Yarn node
+// documents the narrative intent for the composer.
+
+TeaResolveChord: Lavender resolves into C major.
+TeaResolveChord: The cozy player will register this as warmth without
+TeaResolveChord: consciously identifying why.
+
+===
+
+title: TeaBrewing_ValerianResolveChord
+tags: tea_brewing mission2 valerian audio_cue
+---
+TeaResolveChord: Valerian resolves into D minor.
+TeaResolveChord: The cozy player will register this as unease without
+TeaResolveChord: consciously identifying why. Pickle does not approve.
+
+===

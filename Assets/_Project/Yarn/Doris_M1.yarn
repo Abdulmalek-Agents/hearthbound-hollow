@@ -1,0 +1,263 @@
+title: Doris_M1_Start
+tags: mission1 doris greeting
+---
+// ─────────────────────────────────────────────────────────────────────────
+// Doris the Baker — Mission 1 dialogue.
+// Author: Inara Vellis (Lead Memory Writer)
+// Spec:   Docs/Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md § 7
+// Guide:  Docs/GAMEPLAY_GUIDE_MISSION_1.md § 8–10, § 15
+//
+// Voice signature (Vellis Rules § 2.1):
+//   • Bread metaphors for everything.
+//   • Does NOT mention Elric by name in M1.
+//   • Short sentences (~12 words avg).
+//   • Eye contact made, then gently broken.
+//   • Offers tea unprompted.
+//   • Does not say "goodbye" at end of M1.
+//
+// Variables wired through YarnVillageStateBridge.cs:
+//   $trust_doris (int 0-100)
+//   $coin (int)
+//   $polish_quality ("Perfect" | "Acceptable" | "Mild")
+//   $asked_about_predecessor (bool)
+//   $refused_doris_orb (bool)
+//   $doris_owes_player (int — negative = you owe Doris)
+//   $vow_5_honest_coin (int 0-100)
+//   $vow_1_consent (int 0-100)
+// ─────────────────────────────────────────────────────────────────────────
+
+<<eyes_look_at "player">>
+Doris: You're the new one.
+Doris: I thought you'd be taller.
+Doris: Don't mind me — I thought that about the old one, too.
+<<wait 1.5>>
+Doris: Come in. The kettle's only just stopped.
+
+-> "Hello. Are you Doris?"
+    Doris: Aye. The very same.
+    Doris: They've put my name on the sign and everything. Look — there.
+    <<jump Doris_M1_BakeryEnter>>
+-> (Nod silently and follow her in)
+    Doris: A quiet one, then. Good.
+    Doris: The bread likes quiet.
+    <<adjust_trust "doris" 1>>
+    <<jump Doris_M1_BakeryEnter>>
+-> "Who was the old one?"
+    Doris: ... Mm.
+    Doris: That's a conversation for a longer day.
+    Doris: Come in. Tea first.
+    <<set $asked_about_predecessor = true>>
+    <<adjust_trust "doris" 2>>
+    <<jump Doris_M1_BakeryEnter>>
+
+===
+
+title: Doris_M1_BakeryEnter
+tags: mission1 doris bakery_interior
+---
+<<set $met_doris = true>>
+<<play_animation "Doris" "wipes_hands_on_apron">>
+
+Doris: Mind the flour.
+Doris: I haven't swept since Tuesday. I keep meaning to.
+Doris: ... The shop next door is yours. The Hollow.
+Doris: I've been keeping the key safe for you.
+
+-> "Thank you."
+    Doris: Of course.
+-> "Is the shop ready?"
+    Doris: It's clean. It's been waited-in. You'll find your way around.
+
+Doris: ... I have something for you. Before you go in.
+Doris: I'd like to be your first customer, if that's all right.
+
+-> "I'd like that."
+    Doris: Aye. That's why I want to be the first.
+    <<jump Doris_M1_OfferOrb>>
+-> "I haven't started yet."
+    Doris: Aye. That's why I want to be the first.
+    Doris: Otherwise you might come in expecting strangers.
+    <<jump Doris_M1_OfferOrb>>
+
+===
+
+title: Doris_M1_OfferOrb
+tags: mission1 doris offer_orb
+---
+<<show_orb "DOR-001">>
+<<eyes_look_at "orb">>
+
+Doris: This is the memory.
+Doris: Hold it like you'd hold a hot bun. Not by the side. Underneath.
+<<wait 0.8>>
+Doris: It's a small thing.
+Doris: First time I made bread that didn't shame me.
+Doris: Most days I think of it.
+Doris: I want to put it down, now, for a while.
+Doris: Will you take it?
+
+-> "I will. What do you want for it?"
+    <<jump Doris_M1_PriceNegotiation>>
+-> "Tell me more about it first."
+    <<jump Doris_M1_AboutTheLoaves>>
+-> "I'd rather not, today."
+    Doris: Aye. Some days are not the day.
+    Doris: I'll be here when one is.
+    <<set $refused_doris_orb = true>>
+    <<adjust_vow "vow1" 2>>
+    <<jump Doris_M1_RefusedPath>>
+
+===
+
+title: Doris_M1_AboutTheLoaves
+tags: mission1 doris loaves_aside
+---
+// The 5-line aside — Mission 1's quiet writing peak.
+
+Doris: I was twenty-four.
+Doris: The oven was new. The bricks were new. I was new.
+Doris: I'd been baking other people's bread for nine years.
+Doris: That morning was the first morning that was just mine.
+Doris: I want to take a rest from carrying it. That's all.
+
+<<jump Doris_M1_PriceNegotiation>>
+
+===
+
+title: Doris_M1_PriceNegotiation
+tags: mission1 doris price
+---
+Doris: Four coppers, if you're asking.
+Doris: It's a small memory. I'll not have you overpay your first day.
+
+-> "Four coppers is fair." (Honor the price)
+    Doris: Aye. Thank you.
+    <<adjust_coin -4>>
+    <<adjust_vow "vow5" 2>>
+    <<jump Doris_M1_HandOff>>
+-> "I'll pay six." (Counter-offer high)
+    Doris: That's too much. I'll not have you ruin yourself.
+    Doris: Take it back. — Well. Take *some* back.
+    Doris: Five, then. Final.
+    <<adjust_coin -5>>
+    <<adjust_vow "vow5" 3>>
+    <<adjust_trust "doris" 1>>
+    <<jump Doris_M1_HandOff>>
+-> "Two coppers. That's all I have." (Underpay)
+    Doris: ...
+    Doris: Aye, that'll do. Bring the rest when you find some.
+    <<adjust_coin -2>>
+    <<set $doris_owes_player = -2>>
+    <<adjust_vow "vow5" -1>>
+    <<jump Doris_M1_HandOff>>
+
+===
+
+title: Doris_M1_HandOff
+tags: mission1 doris hand_off
+---
+<<play_animation "Doris" "ACS_Offer_Box">>
+
+Doris: There.
+Doris: The old keeper showed me how to make it. Took me four tries.
+Doris: I cracked the first three. The cat watched me. Judged me, I think.
+<<wait 1.0>>
+Doris: I'll be in the bakery if you want me. Knock twice.
+Doris: There's a kettle on the workbench. Mind the wood stove — it bites.
+
+<<give_player_orb "DOR-001">>
+<<unlock_hollow_door>>
+<<dialogue_end>>
+
+===
+
+title: Doris_M1_RefusedPath
+tags: mission1 doris refused
+---
+// Player declined her orb. Mission 1 takes the quiet alternate route.
+// Per Mission 1 Guide § 9.4 — the cozy contract honours refusal.
+
+Doris: The shop's still yours.
+Doris: Go in. Sit a while. The kettle is on.
+Doris: I'll be here when you're ready.
+
+<<unlock_hollow_door>>
+<<dialogue_end>>
+
+===
+
+title: Doris_M1_AfterPolish_Return
+tags: mission1 doris after_polish
+---
+// Player returns to the bakery after polishing DOR-001.
+// Branches on $polish_quality.
+
+<<eyes_look_at "player">>
+Doris: Aye.
+Doris: There it is. That's the morning.
+
+<<if $polish_quality == "Perfect">>
+    Doris: You did it cleaner than I remembered it.
+    Doris: I think you'll do.
+    <<adjust_trust "doris" 3>>
+<<elseif $polish_quality == "Acceptable">>
+    Doris: You did it kindly. That's what matters.
+    <<adjust_trust "doris" 2>>
+<<else>>
+    Doris: ... It's the morning still. A little dimmer. But mine.
+    Doris: First days are like that. I won't hold it.
+    <<adjust_trust "doris" 1>>
+<<endif>>
+
+Doris: Sleep tonight. Dreams come.
+Doris: I'll see you again, eventually.
+
+<<play_animation "Doris" "return_to_kneading">>
+<<dialogue_end>>
+
+===
+
+title: Doris_M2_MorningGreeting
+tags: mission2 doris morning_brief
+---
+// Day 2 morning — optional brief stop at Doris's bakery before Gerrold arrives.
+// Per Mission 2 Guide § 7.2.
+
+<<eyes_look_at "player">>
+Doris: You slept. Good.
+Doris: Tea's on the bench in your shop — drink it while it's warm.
+
+<<if $asked_about_predecessor == true>>
+    Doris: ... And the old keeper — Marin — she was a tall one, like I said you weren't.
+    Doris: Worked the bench you've been at. Left without a word.
+    Doris: We were friends, I think.
+    <<adjust_trust "doris" 1>>
+
+    -> "How was she?"
+        Doris: Quiet. Took her tea black.
+        Doris: Knew every villager's first-name by their first month here.
+        Doris: ... I miss her.
+        <<jump Doris_M2_MorningGreetingExit>>
+    -> "Did she leave a note?"
+        Doris: Aye, she left them everywhere.
+        Doris: Read the one above your bench.
+        <<jump Doris_M2_MorningGreetingExit>>
+    -> "Goodbye."
+        <<jump Doris_M2_MorningGreetingExit>>
+<<else>>
+    Doris: Pickle's been on the windowsill since you opened the door yesterday, has she?
+    Doris: She does that. She did that with the old keeper, too.
+    <<jump Doris_M2_MorningGreetingExit>>
+<<endif>>
+
+===
+
+title: Doris_M2_MorningGreetingExit
+tags: mission2 doris morning_brief_exit
+---
+Doris: Off with you. The day's started.
+
+<<play_animation "Doris" "return_to_kneading">>
+<<dialogue_end>>
+
+===
