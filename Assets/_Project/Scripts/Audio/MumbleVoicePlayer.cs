@@ -4,14 +4,13 @@
 // Runtime per-character "mumble VO" — Animal-Crossing-style syllabic
 // playback synced to dialogue typewriter reveals.
 //
-// Usage:
+// Phase 38 — subscribes to DialogueLineStartedEvent + DialogueLineEndedEvent
+// from the EventBus, so any caller of `DialogueUI.PresentLine` triggers the
+// matching character's syllable bank without UI taking a direct Audio dep.
+//
+// Usage (manual call, if needed):
 //   var mumble = ServiceLocator.Get<MumbleVoicePlayer>();
 //   mumble?.SpeakLine("doris", "You're the new one.", typewriterDuration);
-//   // Stops the previous line, plays N random phonemes from the doris bank
-//   // at the configured syllable rate.
-//
-// Attached to the DialogueUI prefab by Phase 38. DialogueUI calls SpeakLine
-// each time PresentLine() is invoked.
 
 using System.Collections;
 using UnityEngine;
@@ -50,12 +49,30 @@ namespace HearthboundHollow.Audio
                 _settings.OnSettingsChanged += OnSettingsChanged;
                 _settingsVoiceEffective = _settings.EffectiveVolume(AudioChannel.Voice);
             }
+
+            // Phase 38 — subscribe to DialogueLineStartedEvent so we play
+            // mumble syllables whenever DialogueUI presents a line. No
+            // direct UI-asmdef reference required.
+            EventBus.Subscribe<DialogueLineStartedEvent>(OnDialogueLineStarted);
+            EventBus.Subscribe<DialogueLineEndedEvent>(OnDialogueLineEnded);
         }
 
         private void OnDestroy()
         {
             ServiceLocator.Unregister<MumbleVoicePlayer>();
             if (_settings != null) _settings.OnSettingsChanged -= OnSettingsChanged;
+            EventBus.Unsubscribe<DialogueLineStartedEvent>(OnDialogueLineStarted);
+            EventBus.Unsubscribe<DialogueLineEndedEvent>(OnDialogueLineEnded);
+        }
+
+        private void OnDialogueLineStarted(DialogueLineStartedEvent ev)
+        {
+            SpeakLine(ev.Speaker, ev.LineText, ev.EstimatedDurationSec);
+        }
+
+        private void OnDialogueLineEnded(DialogueLineEndedEvent _)
+        {
+            Stop();
         }
 
         /// <summary>
