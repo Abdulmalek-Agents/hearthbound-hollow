@@ -30,6 +30,12 @@
 // FIX: PresentLine now detects speakerName == "Pickle" and routes through
 // the italic-mode visual. All other speakers (Doris, Gerrold, etc.)
 // render in the default Bamao parchment style — UNCHANGED.
+//
+// ── Phase 38 (2026-05-26) ───────────────────────────────────────
+// PresentLine now publishes a DialogueLineStartedEvent to the EventBus
+// so MumbleVoicePlayer (Audio asmdef, no UI dep) can sync per-character
+// syllable playback to the typewriter reveal. Speaker is lower-cased to
+// match the canonical character id in MumbleVoiceLibrarySO.banks.
 
 using System;
 using System.Collections;
@@ -96,6 +102,10 @@ namespace HearthboundHollow.UI
         private FontStyles _defaultLineFontStyle = FontStyles.Normal;
         private FontStyles _defaultSpeakerFontStyle = FontStyles.Normal;
         private bool _defaultColorsCached;
+
+        // Phase 38 — last-spoken character id, so DialogueLineEndedEvent can
+        // carry the right speaker when the typewriter coroutine finishes.
+        private string _lastSpeakerId;
 
         public bool IsBusy { get; private set; }
 
@@ -202,6 +212,17 @@ namespace HearthboundHollow.UI
 
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
 
+            // Phase 38 — publish DialogueLineStartedEvent so MumbleVoicePlayer
+            // (Audio asmdef, no direct UI reference) can sync syllable
+            // playback to this line. Speaker is lower-cased to match the
+            // canonical character id used by MumbleVoiceLibrarySO.banks.
+            float estimatedDur = ComputeTypewriterDuration(_fullLineText);
+            _lastSpeakerId = (speaker ?? string.Empty).Trim().ToLowerInvariant();
+            EventBus.Publish(new DialogueLineStartedEvent(
+                _lastSpeakerId,
+                _fullLineText,
+                estimatedDur));
+
             if (gameObject.activeInHierarchy && isActiveAndEnabled)
             {
                 _typeCoroutine = StartCoroutine(TypeCoroutine(text));
@@ -214,6 +235,19 @@ namespace HearthboundHollow.UI
                     "DialogueUI.PresentLine called while inactive-in-hierarchy. " +
                     "Rendered full line without typewriter.");
             }
+        }
+
+        /// <summary>
+        /// Estimated typewriter duration in seconds for `text`, matching the
+        /// per-character interval used by `TypeCoroutine`. Exposed so the
+        /// `DialogueLineStartedEvent` payload can carry an accurate duration
+        /// for the mumble VO to pace its syllable count against.
+        /// </summary>
+        private float ComputeTypewriterDuration(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return 0.3f;
+            int cps = Mathf.Max(1, charsPerSecond);
+            return text.Length / (float)cps + postLineLinger;
         }
 
         /// <summary>
@@ -245,6 +279,8 @@ namespace HearthboundHollow.UI
             if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
             if (lineText != null) lineText.text = _fullLineText;
             IsBusy = false;
+            // Phase 38 — tell MumbleVoicePlayer the line is done early.
+            EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
         }
 
         public void PresentChoices(IReadOnlyList<string> choices, Action<int> onChoiceSelected)
@@ -297,6 +333,8 @@ namespace HearthboundHollow.UI
                 lineText.gameObject.SetActive(true);
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
             _fullLineText = null;
+            // Phase 38 — stop mumble playback when the dialogue UI hides.
+            EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
             if (root != null && root != gameObject) root.SetActive(false);
             IsBusy = false;
         }
@@ -332,6 +370,10 @@ namespace HearthboundHollow.UI
             }
             yield return new WaitForSeconds(postLineLinger);
             IsBusy = false;
+            // Phase 38 — mumble VO cuts off at the natural end of the line
+            // (the mumble player already self-times to estimatedDur but this
+            // belt-and-braces ensures a runaway syllable bank can't bleed).
+            EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
         }
 
         private void Update()
