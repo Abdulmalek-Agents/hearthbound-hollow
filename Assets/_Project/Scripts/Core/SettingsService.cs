@@ -9,6 +9,9 @@
 //
 // Scope: Mission 1-2. New keys may be added in Mission 3+ without breaking the
 // existing schema (PlayerPrefs is forward-compatible).
+//
+// Phase 37 update (2026-05-26): added `VoiceVolume` + `AudioChannel.Voice`
+// for the new MumbleVoicePlayer + future commercial-VO replacement.
 
 using System;
 using UnityEngine;
@@ -23,6 +26,7 @@ namespace HearthboundHollow.Core
         private const string K_MusicVolume    = "hh.audio.music";
         private const string K_SfxVolume      = "hh.audio.sfx";
         private const string K_AmbientVolume  = "hh.audio.ambient";
+        private const string K_VoiceVolume    = "hh.audio.voice";
         private const string K_TextCps        = "hh.text.cps";
         private const string K_GentleMode     = "hh.comfort.gentle";
         private const string K_AutoPolish     = "hh.comfort.autoPolish";
@@ -38,6 +42,7 @@ namespace HearthboundHollow.Core
         public const float  DefaultMusicVolume   = 0.70f;
         public const float  DefaultSfxVolume     = 0.85f;
         public const float  DefaultAmbientVolume = 0.55f;
+        public const float  DefaultVoiceVolume   = 0.65f;
         public const int    DefaultTextCps       = 45;     // matches DialogueUI default
         public const bool   DefaultGentleMode    = false;
         public const bool   DefaultAutoPolish    = false;
@@ -78,6 +83,12 @@ namespace HearthboundHollow.Core
             set { PlayerPrefs.SetFloat(K_AmbientVolume, Mathf.Clamp01(value)); Persist(); }
         }
 
+        public float VoiceVolume
+        {
+            get => PlayerPrefs.GetFloat(K_VoiceVolume, DefaultVoiceVolume);
+            set { PlayerPrefs.SetFloat(K_VoiceVolume, Mathf.Clamp01(value)); Persist(); }
+        }
+
         /// <summary>
         /// Effective volume = master * channel. Use this when applying to AudioSources.
         /// </summary>
@@ -86,6 +97,7 @@ namespace HearthboundHollow.Core
             AudioChannel.Music   => MasterVolume * MusicVolume,
             AudioChannel.Sfx     => MasterVolume * SfxVolume,
             AudioChannel.Ambient => MasterVolume * AmbientVolume,
+            AudioChannel.Voice   => MasterVolume * VoiceVolume,
             _ => MasterVolume,
         };
 
@@ -147,6 +159,7 @@ namespace HearthboundHollow.Core
             PlayerPrefs.DeleteKey(K_MusicVolume);
             PlayerPrefs.DeleteKey(K_SfxVolume);
             PlayerPrefs.DeleteKey(K_AmbientVolume);
+            PlayerPrefs.DeleteKey(K_VoiceVolume);
             PlayerPrefs.DeleteKey(K_TextCps);
             PlayerPrefs.DeleteKey(K_GentleMode);
             PlayerPrefs.DeleteKey(K_AutoPolish);
@@ -171,5 +184,6 @@ namespace HearthboundHollow.Core
         Music,
         Sfx,
         Ambient,
+        Voice,
     }
 }
