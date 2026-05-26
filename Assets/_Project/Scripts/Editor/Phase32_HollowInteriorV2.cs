@@ -20,7 +20,11 @@
 // All additions are parented under `_Phase32Env_Hollow` — Phase 27.3's
 // `_Phase27Env_Hollow` is preserved.
 //
-// USE: Menu → Hearthbound → 🏠 Phase 32.3 — Polish Hollow Interior V2
+// USE: Menu → Hearthbound → ⚙️ Advanced → 🏠 Phase 32.3 — Polish Hollow Interior V2
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 32.3 via the Phase 32 Mission 1 Polish capstone.
 //
 // Architecture notes:
 //   - Per D-007: scene edited + saved.
@@ -42,7 +46,7 @@ namespace HearthboundHollow.EditorTools
 
         private const string EnvParentName   = "_Phase32Env_Hollow";
 
-        [MenuItem("Hearthbound/🏠 Phase 32.3 — Polish Hollow Interior V2", priority = 33)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🏠 Phase 32.3 — Polish Hollow Interior V2", priority = 33)]
         public static void Build()
         {
             if (!System.IO.File.Exists(SceneHollow))
@@ -85,7 +89,7 @@ namespace HearthboundHollow.EditorTools
                 $"🏠 Hollow v2 interior built. {placed} additions placed under " +
                 $"'_Phase32Env_Hollow'.\n\n" +
                 "Re-run any time. Phase 27.3's '_Phase27Env_Hollow' is preserved.\n\n" +
-                "Next: Hearthbound → 🌅 Phase 32.4 — Apply Cozy URP Volume",
+                "Next: Hearthbound → 🚀 Build Everything (chains the rest)",
                 "OK");
         }
 
