@@ -42,17 +42,17 @@ namespace HearthboundHollow.EditorTools
 
         private const string CottagePrefabDir  = "Assets/_Project/Prefabs/Environment";
 
-        [MenuItem("Hearthbound/🔍 Phase 32 — Diagnose Mission 1 Polish", priority = 36)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🔍 Phase 32 — Diagnose Mission 1 Polish", priority = 36)]
         public static void Diagnose()
         {
             var report = new StringBuilder();
             int passed = 0, failed = 0, warned = 0;
 
             report.AppendLine("🍂 Phase 32 — Mission 1 Polish v2 — Diagnostic Report");
-            report.AppendLine("─────────────────────────────────────────────────────");
+            report.AppendLine("───────────────────────────────────────────────────");
             report.AppendLine();
 
-            // ─── A. Authored assets ────────────────────────────────
+            // ─── A. Authored assets ──────────────────────────────────
             report.AppendLine("A. Authored assets");
             foreach (var v in Phase32_MedievalCottageBuilder.CottageVariants)
             {
@@ -99,7 +99,7 @@ namespace HearthboundHollow.EditorTools
                 if (filled == total) passed++; else { warned++; report.AppendLine($"    ⚠ {total - filled} field(s) unfilled — manual binding may be needed."); }
             }
 
-            // ─── B. Volume profiles ────────────────────────────────
+            // ─── B. Volume profiles ────────────────────────────────────
             report.AppendLine();
             report.AppendLine("B. URP Volume profiles");
             var laneProfile   = AssetDatabase.LoadAssetAtPath<VolumeProfile>(LaneProfilePath);
@@ -109,7 +109,7 @@ namespace HearthboundHollow.EditorTools
             if (hollowProfile != null) { report.AppendLine($"  ✓ HearthboundHollow_Volume.asset present ({hollowProfile.components.Count} effects)"); passed++; }
             else                       { report.AppendLine($"  ✗ HearthboundHollow_Volume.asset MISSING — run Phase 32.4"); failed++; }
 
-            // ─── C. Lane scene checks ────────────────────────────
+            // ─── C. Lane scene checks ──────────────────────────────────
             report.AppendLine();
             report.AppendLine("C. Lane scene (02_Mission01_Lane.unity)");
             if (System.IO.File.Exists(SceneLane))
@@ -152,7 +152,7 @@ namespace HearthboundHollow.EditorTools
                 failed++;
             }
 
-            // ─── D. Hollow scene checks ──────────────────────────
+            // ─── D. Hollow scene checks ─────────────────────────────────
             report.AppendLine();
             report.AppendLine("D. Hollow scene (03_Mission01_Hollow.unity)");
             if (System.IO.File.Exists(SceneHollow))
@@ -211,9 +211,9 @@ namespace HearthboundHollow.EditorTools
                 failed++;
             }
 
-            // ─── Summary ───────────────────────────────────────
+            // ─── Summary ───────────────────────────────────
             report.AppendLine();
-            report.AppendLine("─────────────────────────────────────────────────────");
+            report.AppendLine("───────────────────────────────────────────────────");
             report.AppendLine($"Total: ✓ {passed} passed   ⚠ {warned} warning(s)   ✗ {failed} failed");
             report.AppendLine();
             if (failed == 0)
