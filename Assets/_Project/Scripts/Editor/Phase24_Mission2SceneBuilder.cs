@@ -14,7 +14,11 @@
 //   * Wires Mission02Director with every reference it needs (no manual setup).
 //   * Adds both scenes to Build Settings (index 4 and 5).
 //
-// USE: Menu → Hearthbound → Phase 24 — Build Mission 2 Scenes
+// USE: Menu → Hearthbound → ⚙️ Advanced → Phase 24 — Build Mission 2 Scenes
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is now `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 24 internally via Phase 23.
 
 using System.Collections.Generic;
 using System.IO;
@@ -55,7 +59,7 @@ namespace HearthboundHollow.EditorTools
 
         // ─── Master menu ──────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Phase 24 — Build Mission 2 Scenes", priority = 24)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 24 — Build Mission 2 Scenes", priority = 24)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 24", "Verifying prereqs…", 0.05f);
