@@ -14,6 +14,9 @@
 //
 // Volume gating: `SettingsService.EffectiveVolume(Music)` is honoured every
 // frame. Mute/restore via `SetMute(bool)`.
+//
+// Phase 38 — subscribes to `SceneAudioRequestedEvent` so each scene's
+// `SceneAudioBeacon` triggers a crossfade automatically on Start.
 
 using System.Collections;
 using UnityEngine;
@@ -56,12 +59,20 @@ namespace HearthboundHollow.Audio
                 _settings.OnSettingsChanged += OnSettingsChanged;
                 _settingsMusicEffective = _settings.EffectiveVolume(AudioChannel.Music);
             }
+            // Phase 38 — subscribe to scene-driven music swaps.
+            EventBus.Subscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
         }
 
         private void OnDestroy()
         {
             ServiceLocator.Unregister<MusicPlayer>();
             if (_settings != null) _settings.OnSettingsChanged -= OnSettingsChanged;
+            EventBus.Unsubscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
+        }
+
+        private void OnSceneAudioRequested(SceneAudioRequestedEvent ev)
+        {
+            if (!string.IsNullOrEmpty(ev.MusicId)) Play(ev.MusicId);
         }
 
         private AudioSource MakeSource(string name)
