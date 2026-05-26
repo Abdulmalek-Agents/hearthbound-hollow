@@ -56,9 +56,9 @@ namespace HearthboundHollow.EditorTools
             "Assets/_Project/Scenes/05_Mission02_Cottage.unity",
         };
 
-        // ─── Menu ─────────────────────────────────────────────────
+        // ─── Menu ────────────────────────────────────────────────
 
-        [MenuItem("Hearthbound/🧰 Phase 31 — Repair Dialogue Choice Cards", priority = 3)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🧰 Phase 31 — Repair Dialogue Choice Cards", priority = 3)]
         public static void Build()
         {
             int prefabsTouched = 0;
@@ -109,7 +109,7 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ─── DialogueBox prefab ───────────────────────────────────
+        // ─── DialogueBox prefab ────────────────────────────────────
 
         private static bool RepairDialogueBoxPrefab(List<string> notes)
         {
@@ -167,7 +167,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── ChoiceTile prefab ────────────────────────────────────
+        // ─── ChoiceTile prefab ─────────────────────────────────────
 
         private static bool RepairChoiceTilePrefab(List<string> notes)
         {
@@ -199,7 +199,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── Scene repair ─────────────────────────────────────────
+        // ─── Scene repair ──────────────────────────────────────────
 
         private static bool RepairScene(string scenePath, List<string> notes)
         {
@@ -260,7 +260,7 @@ namespace HearthboundHollow.EditorTools
             return changed;
         }
 
-        // ─── Shared repair primitives ─────────────────────────────
+        // ─── Shared repair primitives ──────────────────────────────
 
         private static bool RepairChoicesContainer(Transform container)
         {
@@ -366,7 +366,7 @@ namespace HearthboundHollow.EditorTools
             return changed;
         }
 
-        // ─── AdvancePrompt repair (Phase 31.1) ────────────────────
+        // ─── AdvancePrompt repair (Phase 31.1) ───────────────────────
 
         private static bool EnsureAdvancePromptOnPrefab(GameObject root)
         {
@@ -402,7 +402,7 @@ namespace HearthboundHollow.EditorTools
             return true;
         }
 
-        // ─── Transform helper ─────────────────────────────────────
+        // ─── Transform helper ───────────────────────────────────────
 
         private static Transform FindChildRecursive(Transform parent, string childName)
         {
