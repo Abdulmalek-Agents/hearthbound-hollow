@@ -19,6 +19,11 @@
 // cutscene timelines, audio folders, SfxLibrary entries, Yarn files, seed
 // assets, and the D-051 top-level menu reservation policy.
 //
+// Phase 40 update (2026-05-26): added a 5th step that runs the audio-only
+// diagnostic (Phase40_AudioDiagnostic) — verifies MusicLibrarySO,
+// AmbienceLibrarySO, MumbleVoiceLibrarySO, DreamAudioBinder cueMap, and
+// per-scene SceneAudioBeacon wiring.
+//
 // READ-ONLY. Never modifies any asset. Safe to run any number of times.
 //
 // USE: Menu → Hearthbound → 🔍 Diagnose Build
@@ -46,7 +51,7 @@ namespace HearthboundHollow.EditorTools
             try
             {
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 1/4 — Phase 23 diagnostic …", 0.05f);
+                    "Step 1/5 — Phase 23 diagnostic …", 0.05f);
                 if (TryRun("Phase 23 — Scene/Wiring Diagnostic",
                           "HearthboundHollow.EditorTools.Phase23_DiagnosticReport", "Run") ||
                     TryRun("Phase 23 — Scene/Wiring Diagnostic",
@@ -56,7 +61,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 2/4 — Phase 26 diagnostic (Animator + Player + cameras) …", 0.30f);
+                    "Step 2/5 — Phase 26 diagnostic (Animator + Player + cameras) …", 0.25f);
                 if (TryRun("Phase 26 — Player + Animator Diagnostic",
                           "HearthboundHollow.EditorTools.Phase26_DiagnosticReport", "Run") ||
                     TryRun("Phase 26 — Player + Animator Diagnostic",
@@ -66,7 +71,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 3/4 — Phase 32 diagnostic (Mission 1 polish v2) …", 0.55f);
+                    "Step 3/5 — Phase 32 diagnostic (Mission 1 polish v2) …", 0.45f);
                 if (TryRun("Phase 32 — Mission 1 Polish Diagnostic",
                           "HearthboundHollow.EditorTools.Phase32_Diagnostic", "Diagnose") ||
                     TryRun("Phase 32 — Mission 1 Polish Diagnostic",
@@ -81,9 +86,21 @@ namespace HearthboundHollow.EditorTools
                 // diagnostic ALSO reports on the Phase 36 / 37 deliverables
                 // before the audio + cutscene work has fully landed.
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 4/4 — Phase 35 continuation audit (cutscenes + audio + menus) …", 0.80f);
+                    "Step 4/5 — Phase 35 continuation audit (cutscenes + audio + menus) …", 0.65f);
                 if (TryRun("Phase 35 — Flat Entry Audit",
                           "HearthboundHollow.EditorTools.Phase35_FlatEntryAudit", "Run"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Phase 40 — Audio-specific diagnostic (per-library health
+                // check + DreamAudioBinder cueMap verification + scene-beacon
+                // text-grep). Catches audio regressions even when the Phase
+                // 35 audit is satisfied.
+                EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
+                    "Step 5/5 — Phase 40 audio-wiring diagnostic …", 0.85f);
+                if (TryRun("Phase 40 — Audio Wiring Diagnostic",
+                          "HearthboundHollow.EditorTools.Phase40_AudioDiagnostic", "Run"))
                     ran++;
                 else
                     skipped++;
