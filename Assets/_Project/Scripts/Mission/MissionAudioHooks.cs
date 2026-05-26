@@ -33,6 +33,8 @@
 //   MoralChoiceMadeEvent           | SFX choice_select + music duck
 //   DayEndedEvent                  | SFX ui_close + slow music duck
 //   MissionCompletedEvent          | SFX polish_success_jingle (soft)
+//   SceneAudioRequestedEvent       | (Phase 43) persists ids into VillageState
+//   VillageStateLoadedEvent        | (Phase 43) restores music from saved state
 //
 // Music swaps for dream cuts are handled by DreamAudioBinder (Phase 38).
 // MissionAudioHooks does not duplicate that work.
@@ -82,6 +84,10 @@ namespace HearthboundHollow.Mission
             EventBus.Subscribe<DayEndedEvent>(OnDayEnded);
             EventBus.Subscribe<MissionStartedEvent>(OnMissionStarted);
             EventBus.Subscribe<MissionCompletedEvent>(OnMissionCompleted);
+
+            // Phase 43 — save persistence events
+            EventBus.Subscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
+            EventBus.Subscribe<VillageStateLoadedEvent>(OnVillageStateLoaded);
         }
 
         private void OnDestroy()
@@ -94,6 +100,10 @@ namespace HearthboundHollow.Mission
             EventBus.Unsubscribe<DayEndedEvent>(OnDayEnded);
             EventBus.Unsubscribe<MissionStartedEvent>(OnMissionStarted);
             EventBus.Unsubscribe<MissionCompletedEvent>(OnMissionCompleted);
+
+            // Phase 43
+            EventBus.Unsubscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
+            EventBus.Unsubscribe<VillageStateLoadedEvent>(OnVillageStateLoaded);
         }
 
         // ─── Handlers ───────────────────────────────────────────────
@@ -228,6 +238,39 @@ namespace HearthboundHollow.Mission
             if (music == null) return;
             music.globalScale = _preDuckScale;
             _ducked = false;
+        }
+
+        // ─── Phase 43 — save persistence ────────────────────────────
+
+        /// <summary>
+        /// Every time a scene asks for new background audio, snapshot the
+        /// ids into the live VillageState so the next save captures them.
+        /// </summary>
+        private void OnSceneAudioRequested(SceneAudioRequestedEvent ev)
+        {
+            var vs = ServiceLocator.Get<VillageState>();
+            if (vs == null) return;
+            if (!string.IsNullOrEmpty(ev.MusicId)) vs.lastMusicId = ev.MusicId;
+            if (!string.IsNullOrEmpty(ev.AmbienceId)) vs.lastAmbienceId = ev.AmbienceId;
+        }
+
+        /// <summary>
+        /// On save load, replay the music + ambience the player last had on.
+        /// SceneAudioBeacon's per-scene Start() may override this within
+        /// 0.20 s — but for the rare case where the save resumed on a scene
+        /// without a beacon, the audio still continues.
+        /// </summary>
+        private void OnVillageStateLoaded(VillageStateLoadedEvent ev)
+        {
+            var vs = ev.VillageState as VillageState;
+            if (vs == null) return;
+            if (string.IsNullOrEmpty(vs.lastMusicId)) return;
+
+            var music = ServiceLocator.Get<MusicPlayer>();
+            if (music == null) return;
+            music.Play(vs.lastMusicId);
+            Hh.Log(LogCategory.Audio,
+                $"MissionAudioHooks: restored music '{vs.lastMusicId}' from saved state.");
         }
     }
 }
