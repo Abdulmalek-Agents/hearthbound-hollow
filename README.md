@@ -10,20 +10,24 @@ A **single-player cozy narrative simulation** set in a small autumnal village wh
 
 ## 🎮 Run the polished playable Mission 1 + 2 (Unity)
 
-The `feat/mission-1-2-architecture` branch ships a fully playable, polished vertical slice of Missions 1 and 2 — six scenes, two villager arcs, four moral choices, two memory dreams, a complete cozy-comfort/accessibility layer, **a robust WASD + sprint + jump controller, a smooth third-person follow camera, a Mixamo-ready Humanoid Animator, Doris/Gerrold animated dialogue beats, a 6-step first-play OnboardingOverlay, a persistent context-aware ControlHintsHUD, AND (new in 0.6.0) Phase 32 v2 polish — 8 residential cottages, Hollow shop facade, hearth dressing, and cozy URP cinematic volumes.**
+The `feat/mission-1-2-architecture` branch ships a fully playable, polished vertical slice of Missions 1 and 2 — six scenes, two villager arcs, four moral choices, two memory dreams, a complete cozy-comfort/accessibility layer, **a robust WASD + sprint + jump controller, a smooth third-person follow camera, a Mixamo-ready Humanoid Animator, Doris/Gerrold animated dialogue beats, a 6-step first-play OnboardingOverlay, a persistent context-aware ControlHintsHUD, Phase 32 v2 polish (8 residential cottages, Hollow shop facade, hearth dressing, cozy URP cinematic volumes), AND (new in 0.6.0-menu-collapse) a single top-level `🚀 Build Everything` editor entry point with a safety confirmation dialog — chain runs Phase 13 → 32 in ~60 s, idempotent, after every pull.**
 
 ### One-click build
 
 1. Clone the repo and check out `feat/mission-1-2-architecture`.
 2. Open the project in **Unity 6 LTS (6000.4.4f1)**. Packages auto-install (~30–90 s).
-3. Menu → **`Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`** — sit back ~60–90 s.
+3. Menu → **`Hearthbound → 🚀 Build Everything`** → click **`Build`** in the confirmation dialog → sit back ~60 s.
 4. Press **Play**.
 
-That single menu item now runs **eight sub-capstones** — polished scenes, player AnimatorController, NPC AnimatorController, narrative hooks, Player Rig Doctor (foot-bone anchor), the OnboardingOverlay + ControlHintsHUD, dialogue choice repair, AND **Phase 32 Mission 1 Polish v2** (cottages + facade + URP cozy volumes) — sets up Build Settings, and opens the Bootstrap scene. Reflection-driven so missing phases skip gracefully.
+> 🔁 **After every `git pull`**, repeat step 3 — click **🚀 Build Everything**. The chain is idempotent (every Phase 13/14/15/.../32 sub-builder uses load-or-create + heal-then-save), so re-running it produces the same result as running it once. That is the *entire* recommended workflow. No other clicks required.
 
-> 💡 Want richer animation? Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) § 3 and re-run Phase 27. The game ships polished without them.
+The `🚀 Build Everything` menu item runs **eight sub-capstones** — polished scenes, player AnimatorController, NPC AnimatorController, narrative hooks, Player Rig Doctor (foot-bone anchor), the OnboardingOverlay + ControlHintsHUD, dialogue choice repair, AND **Phase 32 Mission 1 Polish v2** (cottages + facade + URP cozy volumes) — sets up Build Settings, and opens the Bootstrap scene. Reflection-driven so missing phases skip gracefully.
 
-> 🔍 Verify wiring any time with **`Hearthbound → 🔍 Diagnose Phase 26 Build`** + **`Hearthbound → 🔍 Phase 32 — Diagnose Mission 1 Polish`** — read-only audits.
+> 💡 Want richer animation? Drop 6 Mixamo FBXs into `Assets/_Project/Animations/Mixamo/` per [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) § 3 and re-run **`Hearthbound → 🚀 Build Everything`**. The game ships polished without them.
+
+> 🔍 Verify wiring any time with **`Hearthbound → 🔍 Diagnose Build`** — read-only Phase 33 aggregate audit that chains the Phase 23 / 26 / 32 sub-diagnostics under one click.
+
+> ⚙️ **Power users:** Every legacy per-phase entry (Phase 13 / 14 / 15 / 22 / 23 / 24 / 26 / 27 / 29 / 30 / 31 / 32.1 / 32.2 / 32.3 / 32.4 …) is still accessible under **`Hearthbound → ⚙️ Advanced ►`** with its original priority intact. The Phase 32 UX track only moved them out of the top level — no behaviour changes. See **D-051** in [`Docs/PROGRESS.md → Phase 32 — Menu collapse + idempotency audit`](./Docs/PROGRESS.md) for the full migration table.
 
 ### Player-facing flow
 
@@ -76,15 +80,15 @@ Evening Ledger → Main Menu
 | [`Docs/ARCHITECTURE.md`](./Docs/ARCHITECTURE.md) | Technical architecture — asmdef graph, service locator, save schema, mobile constraints, risk register |
 | [`Docs/PROGRESS.md`](./Docs/PROGRESS.md) | Live progress log — current phase, decisions, known issues, next steps |
 | [`Docs/ANIMATION_REQUIREMENTS.md`](./Docs/ANIMATION_REQUIREMENTS.md) | Player Animator graph, clip roster, Mixamo download + Humanoid retargeting guide |
-| [`Docs/SCENE_ASSEMBLY_GUIDE.md`](./Docs/SCENE_ASSEMBLY_GUIDE.md) | Per-scene build steps + the ⚡ Fast path (Phase 27 one click) |
+| [`Docs/SCENE_ASSEMBLY_GUIDE.md`](./Docs/SCENE_ASSEMBLY_GUIDE.md) | Per-scene build steps + the ⚡ Fast path (`🚀 Build Everything` one click) |
 | [`Docs/Depth_Bible/`](./Docs/Depth_Bible/) | 16-codex deep design bible + 8-doc Mission 1-2 focus folder |
 | [`Docs/Asset_Analysis_Mission1-2.md`](./Docs/Asset_Analysis_Mission1-2.md) | Detailed asset selection + integration plan for the 17 imported asset packs |
 | [`Docs/Phase27_Environment_Polish_Plan.md`](./Docs/Phase27_Environment_Polish_Plan.md) | Phase 27 environment polish source-of-truth doc |
-| [`Docs/Phase32_Mission1_Polish.md`](./Docs/Phase32_Mission1_Polish.md) | **NEW** — Phase 32 Mission 1 Polish v2 source-of-truth doc |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Versioned release history (currently **0.6.0** — Phase 32 Mission 1 Polish v2) |
+| [`Docs/Phase32_Mission1_Polish.md`](./Docs/Phase32_Mission1_Polish.md) | Phase 32 Mission 1 Polish v2 source-of-truth doc |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Versioned release history (currently **0.6.0-menu-collapse** — top-level Hearthbound menu reduced to 3 entries, idempotency audit, D-051) |
 | [`Assets/_Project/Scripts/`](./Assets/_Project/Scripts/) | ~12k LOC across 10 asmdef-isolated subsystems (Core, Memory, Player, MiniGames, UI, Dialogue, Cutscene, Save, Mission, Audio) |
 | [`Assets/_Project/Scenes/`](./Assets/_Project/Scenes/) | 6 Unity scenes built procedurally by the Phase 23 capstone |
-| [`Assets/_Project/Prefabs/Environment/`](./Assets/_Project/Prefabs/Environment/) | **NEW** — 4 cottage prefab variants (A_Bakery / B_Plain / C_Gabled / D_Corner) |
+| [`Assets/_Project/Prefabs/Environment/`](./Assets/_Project/Prefabs/Environment/) | 4 cottage prefab variants (A_Bakery / B_Plain / C_Gabled / D_Corner) |
 | [`Assets/_Project/Settings/`](./Assets/_Project/Settings/) | URP cozy volume profiles + Input Actions |
 | [`Assets/_Project/Yarn/`](./Assets/_Project/Yarn/) | 5 Yarn Spinner dialogue files (Doris M1, Gerrold M2, Marin notes, Pickle, Codex) |
 | [`prototype.html`](./prototype.html) | The original HTML5 prototype that proved the design before Unity work began |
@@ -126,7 +130,7 @@ See [`GAME_DESIGN.md`](./GAME_DESIGN.md) §2 for full demand-signal analysis.
 
 ## 🏗️ Implementation Status
 
-**Current version**: `0.6.0-mission1-polish-v2` (PR #7 open, accumulating)
+**Current version**: `0.6.0-menu-collapse` (PR #7 open, accumulating)
 
 | Stage | Status |
 |---|---|
@@ -138,20 +142,21 @@ See [`GAME_DESIGN.md`](./GAME_DESIGN.md) §2 for full demand-signal analysis.
 | Player Controller + Animation pipeline (Phase 26) | ✅ Complete |
 | Narrative Hooks (Marin's Note, Phase 26 parallel thread) | ✅ Complete |
 | Build EVERYTHING master capstone + NPC Animator + diagnostic + footstep hooks (Phase 27) | ✅ Complete |
-| **"Half body in floor" definitive fix — live world bounds + continuous correction window (Phase 28)** | ✅ **Complete** |
-| **UI Polish — UIAutoFitText on every TMP label + ChoicesContainer relocated inside dialogue box (Phase 29a)** | ✅ **Complete** |
-| **Player Rig Doctor — foot-bone anchor auto-discovery + Animator sanity pass (Phase 29b)** | ✅ **Complete** |
-| **OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (always-visible context-aware key chips) (Phase 30)** | ✅ **Complete** |
-| **Dialogue Choice Card Repair — full-width tiles + 1/2/3/4 keyboard shortcuts (Phase 31)** | ✅ **Complete** |
-| **Mission 1 Polish v2 — 8-cottage village + Hollow facade + hearth dressing + cozy URP volumes (Phase 32)** | ✅ **Complete — this branch** |
+| "Half body in floor" definitive fix — live world bounds + continuous correction window (Phase 28) | ✅ Complete |
+| UI Polish — UIAutoFitText on every TMP label + ChoicesContainer relocated inside dialogue box (Phase 29a) | ✅ Complete |
+| Player Rig Doctor — foot-bone anchor auto-discovery + Animator sanity pass (Phase 29b) | ✅ Complete |
+| OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (always-visible context-aware key chips) (Phase 30) | ✅ Complete |
+| Dialogue Choice Card Repair — full-width tiles + 1/2/3/4 keyboard shortcuts (Phase 31) | ✅ Complete |
+| Mission 1 Polish v2 — 8-cottage village + Hollow facade + hearth dressing + cozy URP volumes (Phase 32) | ✅ Complete |
+| **Menu collapse — top-level Hearthbound = 🚀 Build Everything + 🔍 Diagnose Build + ⚙️ Advanced (Phase 32 UX track, D-051)** | ✅ **Complete — this branch** |
 | 20-person greenlight playtest | ⬜ Next |
 | Mission 3-10 + procedural villagers | ⬜ Post-greenlight |
 
 See [`Docs/PROGRESS.md`](./Docs/PROGRESS.md) for the live ledger.
 
-### What the **`Hearthbound → ✨ Build EVERYTHING`** capstone does in one click
+### What the **`Hearthbound → 🚀 Build Everything`** capstone does in one click
 
-Eight sub-capstones, ~60–90 s end-to-end, idempotent and reflection-driven:
+Eight sub-capstones, ~60 s end-to-end, idempotent and reflection-driven (with a one-line confirmation dialog before the chain runs):
 
 1. **Phase 23** — POLISHED Mission 1 + 2 scene assembly (chains 13-24).
 2. **Phase 26 (PC + Anim)** — Player AnimatorController + SmoothFollowCamera + cameraReference + PlayerGroundClamp + Mixamo-ready 1D blend tree.
@@ -162,19 +167,21 @@ Eight sub-capstones, ~60–90 s end-to-end, idempotent and reflection-driven:
 7. **Phase 31 (Dialogue Repair)** — Full-width dialogue choice tiles with 1/2/3/4 keyboard shortcuts.
 8. **Phase 32 (Mission 1 Polish v2)** — 8 cottages assembled from MV modular pieces, Hollow shop facade with "The Hollow" sign, hearth dressing (kettle, bread, herbs, cupboard, candelabra), and cozy URP volumes (bloom, tonemap, warm color grading, vignette, film grain).
 
-### Phase 32 menu items (Mission 1 Polish v2)
+### Power-user submenu — `Hearthbound → ⚙️ Advanced ►`
 
-Seven new menu items for the polish v2 series:
+Every legacy per-phase entry lives under the Advanced submenu (~40+ items). The Phase 32 polish-v2 items, for example:
 
-| Menu | What it does |
+| Menu (under ⚙️ Advanced) | What it does |
 |---|---|
-| `Hearthbound → 🍂 Phase 32 — Polish Mission 1 (v2 — all phases)` | The master capstone — chains 32.1 → 32.2 → 32.3 → 32.4 + re-runs 27.4 + 31 |
-| `Hearthbound → 🧰 Phase 32.1 — Catalog Extended Village Bindings` | Builds `MedievalVillageBindingsV2.asset` with 23 prefab roles |
-| `Hearthbound → 🏘️ Phase 32.1 — Assemble Cottage Prefabs` | Authors 4 cottage prefab variants from MV modular pieces |
-| `Hearthbound → 🏘️ Phase 32.2 — Polish Lane Environment V2` | 8 cottages, Hollow facade, beehive, atmospheric extras |
-| `Hearthbound → 🏠 Phase 32.3 — Polish Hollow Interior V2` | Kettle, bread, herbs, cupboard, stool, candelabra, bucket, sconces |
-| `Hearthbound → 🌅 Phase 32.4 — Apply Cozy URP Volume` | Authors Lane + Hollow volume profiles, drops Global Volumes |
-| `Hearthbound → 🔍 Phase 32 — Diagnose Mission 1 Polish` | Read-only audit — reports what's wired vs missing |
+| `🍂 Phase 32 — Polish Mission 1 (v2 — all phases)` | The master capstone — chains 32.1 → 32.2 → 32.3 → 32.4 + re-runs 27.4 + 31 |
+| `🧰 Phase 32.1 — Catalog Extended Village Bindings` | Builds `MedievalVillageBindingsV2.asset` with 23 prefab roles |
+| `🏘️ Phase 32.1 — Assemble Cottage Prefabs` | Authors 4 cottage prefab variants from MV modular pieces |
+| `🏘️ Phase 32.2 — Polish Lane Environment V2` | 8 cottages, Hollow facade, beehive, atmospheric extras |
+| `🏠 Phase 32.3 — Polish Hollow Interior V2` | Kettle, bread, herbs, cupboard, stool, candelabra, bucket, sconces |
+| `🌅 Phase 32.4 — Apply Cozy URP Volume` | Authors Lane + Hollow volume profiles, drops Global Volumes |
+| `🔍 Phase 32 — Diagnose Mission 1 Polish` | Read-only sub-audit — chained by top-level `🔍 Diagnose Build` |
+
+The Phase 26, 27.2, 27.3, 29, 30, and 31 menu items follow the same `⚙️ Advanced/…` prefix pattern. See [`Docs/PROGRESS.md → Phase 32 — Menu collapse`](./Docs/PROGRESS.md) for the full top-level → Advanced migration table.
 
 ---
 
