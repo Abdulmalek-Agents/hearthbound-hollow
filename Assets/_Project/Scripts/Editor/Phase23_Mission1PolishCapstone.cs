@@ -21,7 +21,11 @@
 //   4. Sets EveryScene → Build Settings with stable indices.
 //   5. Opens 00_Bootstrap so the user can press Play immediately.
 //
-// USE: Menu → Hearthbound → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)
+// USE: Menu → Hearthbound → ⚙️ Advanced → 🎮 Build POLISHED Mission 1 + 2 (Phase 23)
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is now `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 23 internally. See D-051 in Docs/PROGRESS.md.
 
 using System.Collections.Generic;
 using UnityEditor;
@@ -51,7 +55,7 @@ namespace HearthboundHollow.EditorTools
 
         // ─── Master menu ──────────────────────────────────────────
 
-        [MenuItem("Hearthbound/\ud83c\udfae Build POLISHED Mission 1 + 2 (Phase 23)", priority = -1)]
+        [MenuItem("Hearthbound/⚙️ Advanced/\ud83c\udfae Build POLISHED Mission 1 + 2 (Phase 23)", priority = -1)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 23", "Running Phase 22 (base + polish)…", 0.10f);
