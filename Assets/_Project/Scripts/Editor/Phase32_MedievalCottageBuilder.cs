@@ -61,7 +61,7 @@ namespace HearthboundHollow.EditorTools
             "Cottage_D_Corner",
         };
 
-        [MenuItem("Hearthbound/🏘️ Phase 32.1 — Assemble Cottage Prefabs", priority = 31)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🏘️ Phase 32.1 — Assemble Cottage Prefabs", priority = 31)]
         public static void Build()
         {
             if (!AssetDatabase.IsValidFolder(MVRoot))
