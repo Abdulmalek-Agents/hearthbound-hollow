@@ -24,6 +24,13 @@
 //   - teaBrewed (Lavender/Valerian/None modifier)
 //
 // Added all 14 fields below + cleared in ResetToDefault().
+//
+// ── Phase 43 (2026-05-26) ───────────────────────────────────────
+// Added 3 audio-resume fields so saves restore the music + ambient cue
+// the player was hearing when they last saved:
+//   - lastMusicId (MusicLibrarySO id)
+//   - lastAmbienceId (AmbienceLibrarySO id)
+//   - playedDreamVariants (List<string> of Dream Timeline names already seen)
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -149,6 +156,23 @@ namespace HearthboundHollow.Core
         [Tooltip("Seeded by Erase Crossed-Core or Cleanse Crossed-Core. M6+ recovery arc unlock.")]
         public bool mission6RecoveryArcSeeded = false;
 
+        // ───── Audio state (Phase 43) ───────────────────────────────────
+        // Persisted so saves resume the exact music + ambient cue that was
+        // playing when the player last saved. Per D-055 (Phase 43): audio
+        // continuity is a save-restore obligation, not a scene-bootstrap
+        // assumption.
+
+        [Header("Audio state (Phase 43)")]
+        [Tooltip("MusicLibrarySO id of the cue that was playing when last saved. " +
+                 "Empty = let the next scene's SceneAudioBeacon decide.")]
+        public string lastMusicId = "";
+        [Tooltip("AmbienceLibrarySO id of the ambient bed when last saved.")]
+        public string lastAmbienceId = "";
+        [Tooltip("Memory Dream variant ids the player has already witnessed. " +
+                 "Used to skip re-played dreams on load, and by the future " +
+                 "Dream Cinema (Codex 11) replay menu.")]
+        public List<string> playedDreamVariants = new();
+
         // ───── Operations ────────────────────────────────────────────────
 
         /// <summary>Reset every field to a fresh-play default.</summary>
@@ -198,6 +222,12 @@ namespace HearthboundHollow.Core
             firstMoralChoiceMade = false;
             gerroldReturnsDay3 = false;
             mission6RecoveryArcSeeded = false;
+
+            // Phase 43 — audio resume fields
+            lastMusicId = string.Empty;
+            lastAmbienceId = string.Empty;
+            playedDreamVariants ??= new List<string>();
+            playedDreamVariants.Clear();
         }
 
         /// <summary>Clamp a trust/integrity delta safely.</summary>
@@ -210,6 +240,8 @@ namespace HearthboundHollow.Core
             heldMemoryIds ??= new List<string>();
             harvestedHerbIds ??= new List<string>();
             readMarinNoteIds ??= new List<string>();
+            // Phase 43 — guard against null lists for legacy saves.
+            playedDreamVariants ??= new List<string>();
         }
     }
 }
