@@ -13,7 +13,11 @@ namespace HearthboundHollow.Save
     [Serializable]
     public class VillageStateSnapshot
     {
-        public int schemaVersion = 1;
+        // Phase 43 bumps schema to 2 — audio resume fields added. Old saves
+        // (schemaVersion 1) are forward-compatible: the audio fields default
+        // to empty/empty/empty-list and the next scene's SceneAudioBeacon
+        // restores cues normally.
+        public int schemaVersion = 2;
         public string savedAtIso;
         public string lastSceneName;
 
@@ -52,11 +56,16 @@ namespace HearthboundHollow.Save
         public List<string> harvestedHerbIds = new();
         public List<string> readMarinNoteIds = new();
 
+        // ───── Audio state (Phase 43, schema v2) ─────────────────────
+        public string lastMusicId = "";
+        public string lastAmbienceId = "";
+        public List<string> playedDreamVariants = new();
+
         public static VillageStateSnapshot FromState(VillageState s)
         {
             return new VillageStateSnapshot
             {
-                schemaVersion = 1,
+                schemaVersion = 2,
                 savedAtIso = DateTime.UtcNow.ToString("o"),
                 lastSceneName = s.lastSceneName,
                 trustDoris = s.trustDoris,
@@ -89,6 +98,13 @@ namespace HearthboundHollow.Save
                 heldMemoryIds = new List<string>(s.heldMemoryIds),
                 harvestedHerbIds = new List<string>(s.harvestedHerbIds),
                 readMarinNoteIds = new List<string>(s.readMarinNoteIds),
+
+                // Phase 43 — audio resume
+                lastMusicId = s.lastMusicId ?? string.Empty,
+                lastAmbienceId = s.lastAmbienceId ?? string.Empty,
+                playedDreamVariants = s.playedDreamVariants != null
+                    ? new List<string>(s.playedDreamVariants)
+                    : new List<string>(),
             };
         }
 
@@ -125,6 +141,15 @@ namespace HearthboundHollow.Save
             s.heldMemoryIds = new List<string>(heldMemoryIds);
             s.harvestedHerbIds = new List<string>(harvestedHerbIds);
             s.readMarinNoteIds = new List<string>(readMarinNoteIds);
+
+            // Phase 43 — audio resume (forward-compatible: schema v1 saves
+            // have these fields default-initialized so ApplyTo just clears
+            // them, and the next scene's SceneAudioBeacon overrides).
+            s.lastMusicId = lastMusicId ?? string.Empty;
+            s.lastAmbienceId = lastAmbienceId ?? string.Empty;
+            s.playedDreamVariants = playedDreamVariants != null
+                ? new List<string>(playedDreamVariants)
+                : new List<string>();
         }
     }
 }
