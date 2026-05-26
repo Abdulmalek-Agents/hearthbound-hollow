@@ -8,3 +8,13 @@ UserSettings/
 MemoryCaptures/
 Recordings/
 .DS_Store
+
+# Phase 37 — procedural audio: regenerated on Editor at every Build Everything
+# run (deterministic seed). Per D-053 in Docs/Phase35_Continuation_Audit.md,
+# the .wav files live under Assets/_Project/Audio/Generated/ and are not
+# committed; the C# generator (Phase37_ProceduralAudioStudio.cs) + the Python
+# preview script (Tools/audio_generation/generate_audio.py) are the source of
+# truth. A future human-authored composer drop into Assets/_Project/Audio/Music/
+# (or /Voice/) is committed normally and overrides the procedural baseline.
+Assets/_Project/Audio/Generated/
+Assets/_Project/Audio/Generated.meta
