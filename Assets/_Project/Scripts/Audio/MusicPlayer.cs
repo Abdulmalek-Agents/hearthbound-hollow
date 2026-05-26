@@ -17,6 +17,9 @@
 //
 // Phase 38 — subscribes to `SceneAudioRequestedEvent` so each scene's
 // `SceneAudioBeacon` triggers a crossfade automatically on Start.
+//
+// Phase 43 — exposes `CurrentId` so SaveService can snapshot what's
+// playing, and DreamAudioBinder can capture the pre-dream cue.
 
 using System.Collections;
 using UnityEngine;
@@ -46,6 +49,14 @@ namespace HearthboundHollow.Audio
         private SettingsService _settings;
         private float _settingsMusicEffective = 1f;
         private bool _muted;
+
+        /// <summary>
+        /// The id of the cue currently playing (or fading in). Empty when
+        /// nothing has been requested yet. Phase 43 — surfaced for save
+        /// persistence; the SaveService snapshots this string and Phase 43's
+        /// resume hook calls Play(CurrentId) after a load.
+        /// </summary>
+        public string CurrentId => _currentId ?? string.Empty;
 
         private void Awake()
         {
