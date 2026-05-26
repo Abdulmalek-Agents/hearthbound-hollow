@@ -98,4 +98,49 @@ namespace HearthboundHollow.Core
         public readonly bool IsAutosave;
         public VillageStateSavedEvent(int slot, bool autosave) { SlotIndex = slot; IsAutosave = autosave; }
     }
+
+    /// <summary>
+    /// Published every time `DialogueUI.PresentLine` renders a new line —
+    /// gives `MumbleVoicePlayer` (Audio asmdef) a chance to play the
+    /// matching character's syllable bank without UI taking a dep on Audio.
+    /// `Speaker` is the canonical character id ("doris", "gerrold", "pickle",
+    /// "marin", …); UI normalises the speaker name to lowercase before publish.
+    /// `EstimatedDurationSec` is the typewriter duration the UI is about to
+    /// run — the mumble player uses it to scale syllable count.
+    /// </summary>
+    public readonly struct DialogueLineStartedEvent
+    {
+        public readonly string Speaker;
+        public readonly string LineText;
+        public readonly float EstimatedDurationSec;
+        public DialogueLineStartedEvent(string speaker, string text, float dur)
+        {
+            Speaker = speaker;
+            LineText = text;
+            EstimatedDurationSec = dur;
+        }
+    }
+
+    /// <summary>
+    /// Published when a dialogue line finishes its typewriter reveal. Mumble
+    /// VO uses this to cut off any leftover syllables.
+    /// </summary>
+    public readonly struct DialogueLineEndedEvent
+    {
+        public readonly string Speaker;
+        public DialogueLineEndedEvent(string speaker) { Speaker = speaker; }
+    }
+
+    /// <summary>
+    /// Published when a scene wants its background music + ambient bed to
+    /// switch. `MusicPlayer` + `AmbientAudio` subscribe and crossfade. Phase
+    /// 38's scene-builder injection raises this on `Start()` of each gameplay
+    /// scene.
+    /// </summary>
+    public readonly struct SceneAudioRequestedEvent
+    {
+        public readonly string MusicId;
+        public readonly string AmbienceId;
+        public SceneAudioRequestedEvent(string music, string ambience) { MusicId = music; AmbienceId = ambience; }
+    }
 }
