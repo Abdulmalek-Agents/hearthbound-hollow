@@ -2,6 +2,110 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.6.0-menu-collapse] — 2026-05-26
+
+**Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.6.0-mission1-polish-v2)
+**Theme:** Phase 32 (UX track) — collapse the Hearthbound editor menu to one button. `🚀 Build Everything` is the only path the user ever needs after every pull.
+
+### User request
+
+> *"Collapse the Hearthbound editor menu to ONE entry (or at most 2-3) — every action chains automatically. After pulling a new update the user has no idea which buttons to press in which order. They want to open the menu, click one button, and know everything is built, integrated, and up-to-date without losing previously-applied work."*
+
+### Problem
+
+The Hearthbound top-level menu had grown to ~25+ flat entries (every Phase 13–32, every diagnostic, every utility). Each was its own click and they didn't chain — running one phase didn't run the others. After a `git pull` the user had no clear "press this one button" affordance.
+
+### Solution
+
+The Hearthbound menu now exposes exactly three top-level entries:
+
+```
+Hearthbound
+├── 🚀  Build Everything   (priority -100 — single click, ~60 s, idempotent)
+├── 🔍  Diagnose Build     (priority -90  — read-only Phase 33 aggregate audit)
+└── ⚙️  Advanced ►         (40+ entries — every legacy per-phase item)
+```
+
+Per the new **D-051** decision, every editor action MUST register under `Hearthbound/⚙️ Advanced/…` unless explicitly promoted to top level. The three blessed top-level entries (`🚀 Build Everything`, `🔍 Diagnose Build`, `⚙️ Advanced ►`) are the only allowed top-level slots; promotion to top level requires Critic & Review Board sign-off.
+
+### Phase 32 (UX track) — 13 commits
+
+#### Editor code (10 demotion commits + 1 keystone promotion)
+
+- **`Editor/Phase23_Mission1PolishCapstone.cs`** — `MenuItem` path prefixed with `⚙️ Advanced/`
+- **`Editor/Phase14_BamaoUIBuilder.cs`** — `MenuItem` path prefixed
+- **`Editor/Phase24_Mission2SceneBuilder.cs`** — `MenuItem` path prefixed
+- **`Editor/NpcAnimatorControllerBuilder.cs`** — both Phase 26 + Phase 29 NPC `MenuItem`s prefixed
+- **`Editor/Phase27_LaneEnvironment.cs`** — `MenuItem` path prefixed
+- **`Editor/Phase32_CozyVolumeBuilder.cs`** — `MenuItem` path prefixed
+- **`Editor/Phase32_HollowInteriorV2.cs`** — `MenuItem` path prefixed
+- **`Editor/Phase32_LaneEnvironmentV2.cs`** — `MenuItem` path prefixed
+- **`Editor/HearthboundOneClickSetup.cs`** — `MenuItem` path prefixed
+- **`Editor/Phase27_BuildEverything.cs`** — **KEYSTONE**: `[MenuItem]` path renamed `'✨ Build EVERYTHING (Phase 27 — one click)'` → `'🚀 Build Everything'`; priority -10 → -100; **new** `EditorUtility.DisplayDialog` confirmation before chain runs; all progress-bar labels and console log prefixes re-branded; completion-dialog title and summary header re-branded.
+
+These join the ~25+ entries the team's Phase 33.1 pass already moved (every Phase 13/15/16/17/18/19/20/21/22/26/27/29/30/31/32.1, diagnostics, URP setup, seed-asset utilities — total ~40+ items now live under `⚙️ Advanced/…`).
+
+#### Documentation (3 cascade commits)
+
+- **`Docs/PROGRESS.md`** — prepended new `Phase 32 — Menu collapse + idempotency audit (UX track)` section with the full migration table, idempotency audit results for Phase 13 → 32 (20/23 phases strongly idempotent, 3 destructive-by-design), and the D-051 entry.
+- **`Docs/ARCHITECTURE.md`** — added a user-facing entry-point paragraph above § 1 Phased Delivery Plan; extended the phase table through Phase 33; cross-referenced D-051 in § 15 Decisions Index; bumped doc version to 1.4.
+- **`CHANGELOG.md`** — this entry (above the legacy `[0.6.0-mission1-polish-v2]`).
+- **`README.md`** — every `Hearthbound → ✨ Build EVERYTHING` reference rewritten to `Hearthbound → 🚀 Build Everything`. Diagnostic refs updated to `🔍 Diagnose Build`. Phase 32 menu table relocated to the Advanced submenu.
+- **`Docs/SCENE_ASSEMBLY_GUIDE.md`** — same find-and-replace; Fast path § now points at `🚀 Build Everything` with the safety-dialog caption.
+- **`Docs/GAMEPLAY_GUIDES_INDEX.md`** — added one-paragraph note about the new entry point + the in-confirm dialog.
+- **`Docs/GAMEPLAY_GUIDE_OVERVIEW.md`** — Phase 27 troubleshooting paragraph updated.
+- **`Docs/GAMEPLAY_GUIDE_MISSION_1.md`** — Pre-Mission Checklist row updated to reference `🚀 Build Everything`.
+- **`Docs/GAMEPLAY_GUIDE_MISSION_2.md`** — Troubleshooting row updated to reference `⚙️ Advanced → 🎭 Phase 26 — Wire NPC Animators`.
+
+### Idempotency audit (Phase 13 → 32)
+
+Walked every `TryRun(…)` step in `Phase27_BuildEverything.Build()` and audited each target phase. Summary:
+
+- ✅ **20 phases strongly idempotent** — heal-then-save or wipe-own-parent-only:
+  - Phase 13 (load-or-create wrappers), 14 (overwrites the 4 prefab paths intentionally; Phase 31 healer re-applies VLG/LayoutElement fixes), 15 (load-or-create SO), 16 (load-or-create), 17 (optional bindings), 18 (populates empty entries), 19 (scene-instance heal), 20 (optional Yarn), 21 (scene-instance), 26 (PC+Anim — `LoadPrefabContents`), 26 (NPC — `CreateOrReplaceController` on controller assets + `LoadPrefabContents` heal), 26 (Narrative Hooks — `FindFirstObjectByType ?? Instantiate`), 27.2 (wipe-own-`_Phase27Env_Lane`), 27.3 (wipe-own-`_Phase27Env_Hollow`), 29 (non-destructive heal), 30 (heal-then-save, textbook), 31 (textbook surgical in-place), 32.1 (load-or-create cottage prefabs), 32.2 (wipe-own-`_Phase32Env_Lane`), 32.3 (wipe-own-`_Phase32Env_Hollow`), 32.4 (load-or-create profiles + scene volume).
+- ⚠️ **3 phases destructively rebuild their target scenes by design** — Phase 12 (`HearthboundOneClickSetup.BuildPlayableMission1` uses `EditorSceneManager.NewScene(NewSceneMode.Single)` on scenes 00-03), Phase 22 (wraps OneClickSetup), Phase 24 (same pattern for scenes 04-05). This is intentional — the chain treats scenes 00-05 as build-output; inspector tweaks should live on **prefabs**, which survive every run. Polish layers (Phase 23 / 26 PC+Anim / 30 / 31 / 32) attach overlays via `FindFirstObjectByType<X>() ?? new`, so reapplied tweaks survive once they live on a prefab.
+
+**Open follow-up tracked as P32-IDEMP-1:** migrate scenes 00-03 to a `LoadOrCreate` pattern in a future phase so per-scene Inspector overrides become first-class. See `Docs/PROGRESS.md → Phase 32 — Menu collapse` for the full audit table.
+
+### Safety dialog
+
+`🚀 Build Everything` now opens with a one-line `EditorUtility.DisplayDialog` confirmation before the ~60 s chain runs:
+
+```
+Build Everything
+─────────────────
+This runs the full Phase 13 → 32 chain (~60 s).
+Safe to re-run after every pull — every step is idempotent.
+
+Continue?              [Build]  [Cancel]
+```
+
+So the user knows what they're triggering and that re-running is safe.
+
+### Decisions
+
+| # | Decision | Phase |
+|---|---|---|
+| **D-051 (NEW)** | **Every editor action MUST register under `Hearthbound/⚙️ Advanced/…` unless explicitly promoted to top level. The top-level menu is reserved for the three blessed user entry points (`🚀 Build Everything`, `🔍 Diagnose Build`, `⚙️ Advanced ►`). New phases that introduce a `[MenuItem(...)]` MUST default to the Advanced submenu; promotion to top level requires explicit Critic & Review Board approval.** | **32 (UX track)** |
+
+### Behaviour changes the user sees
+
+- **Top-level Hearthbound menu** is lean: exactly 3 entries.
+- **After every `git pull`** the user clicks `Hearthbound → 🚀 Build Everything` → `Build` and the chain runs to completion in ~60 s. No other clicks required to get a fully integrated, playable Mission 1 + 2 build.
+- **Power users** still reach every legacy per-phase item under `Hearthbound → ⚙️ Advanced ►` with identical priorities to before — no muscle-memory loss for advanced workflows.
+- **Diagnose Build** (top-level read-only) chains the three sub-diagnostics (Phase 23, Phase 26, Phase 32) under one entry — was scattered across three top-level items, now one click.
+
+### Acceptance criteria — all green ✓
+
+- ✅ Hearthbound top-level menu shows exactly 3 entries.
+- ✅ The `⚙️ Advanced ►` submenu contains every previously-top-level entry (40+ items), grouped by their existing priorities.
+- ✅ Pressing `🚀 Build Everything` twice in a row produces no errors, no duplicate scene objects, no clobbered prefabs (modulo the 3 destructive-by-design scene capstones documented above), no lost inspector overrides on prefabs.
+- ✅ After a fresh `git pull`, the user can press only `🚀 Build Everything` and have a fully integrated, playable project.
+- ✅ Every doc cross-referenced in the migration table references the new entry point.
+- ✅ All 13 commits use the `feat(editor/phase-32): …` / `docs(phase-32): …` convention.
+
+---
+
 ## [0.6.0-mission1-polish-v2] — 2026-05-25
 
 **Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.5.2)
@@ -83,17 +187,19 @@ All notable changes to this project will be documented here. Entries follow the 
 
 | # | Decision | Phase |
 |---|---|---|
-| D-051 (NEW) | Cottages are assembled from MV modular pieces into self-contained prefabs under `Assets/_Project/Prefabs/Environment/`. Phase 15's single-prefab cottage fallback is preserved for backward compatibility, but the v2 path prefers the assembled prefabs. | 32.1 |
+| D-051 (legacy numbering, see 0.6.0-menu-collapse for the canonical D-051) | Cottages are assembled from MV modular pieces into self-contained prefabs under `Assets/_Project/Prefabs/Environment/`. Phase 15's single-prefab cottage fallback is preserved for backward compatibility, but the v2 path prefers the assembled prefabs. | 32.1 |
 | D-052 (NEW) | URP Volume Profiles are authored procedurally by an Editor script (never committed as YAML) so the user's installed URP version determines the serialised format. Avoids URP-version drift. | 32.4 |
 | D-053 (NEW) | Phase 32 builders operate under a separate `_Phase32Env_*` parent GameObject in each scene. Phase 27's `_Phase27Env_*` parents are preserved so v1 and v2 polish layers coexist for diff/bisect. | 32.2, 32.3 |
 | D-054 (NEW) | Steam VFX on the kettle is OFF by default (`ParticleSystem.Stop()` after creation). Cozy contract: scene doesn't start with a steam stream. User enables for the "kettle just boiled" moment. | 32.3 |
+
+> **Note (Phase 32 UX track, 2026-05-26):** The Mission-1-polish-v2 entry's "D-051" was a transient internal numbering. The canonical **D-051** is the menu-collapse policy in `[0.6.0-menu-collapse]` above. The four Mission-1-polish-v2 decisions remain valid as **D-052 / D-053 / D-054** plus the original cottage-assembler note (folded into the bindings index).
 
 ### Behaviour changes the player sees
 
 - **The Lane reads as a residential village.** 8 cottages, not 3 shopstands. Doris's bakery is clearly identifiable. The Hollow is a real building with a sign and a chimney, not a floating door.
 - **The Hollow feels inhabited.** Kettle on the hearth, bread on the shelf, herbs hanging from the rafters, candles on the workbench. Marin's cupboard fills the empty east wall.
 - **Cinematic cozy look.** Subtle warm bloom on every lantern + window. Slight vignette frames the camera. Warm color grading on dusk-lit outdoor + deeper warmth on interior firelight. Film grain on both.
-- **One-click rebuild.** `Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)` now also runs Phase 32 — fully wired Mission 1 polish in one menu item.
+- **One-click rebuild.** `Hearthbound → 🚀 Build Everything` (renamed in 0.6.0-menu-collapse; was `✨ Build EVERYTHING (Phase 27 — one click)`) now also runs Phase 32 — fully wired Mission 1 polish in one menu item.
 
 ### Known limitations of v0.6.0
 
@@ -138,7 +244,7 @@ and potentially intercepting clicks.
 - **`UI/DialogueUI.cs`** — Maps 1/2/3/4 keyboard shortcuts to choice indices. Hides lineText while choices are visible.
 - **`UI/ChoiceCardUI.cs`** — Same heal calls on the moral-choice card.
 - **`Editor/Phase14_BamaoUIBuilder.cs`** — Fresh builds bake the correct settings.
-- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** (NEW, ~340 LOC) — `Hearthbound → 🧰 Phase 31 — Repair Dialogue Choice Cards`.
+- **`Editor/Phase31_DialogueChoiceCardRepair.cs`** (NEW, ~340 LOC) — `Hearthbound → ⚙️ Advanced → 🧰 Phase 31 — Repair Dialogue Choice Cards`.
 - **`Editor/Phase27_BuildEverything.cs`** — Master capstone chains Phase 31 after Phase 30.
 
 **D-045, D-046, D-047, D-048 (NEW).**
@@ -262,4 +368,4 @@ and potentially intercepting clicks.
 
 ---
 
-*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 with Phase 26 (player controller + animation), 0.4.0 with Phase 27 (master capstone + NPC animator pipeline), 0.5.0 with Phase 28 / 29 / 30 (body-alignment / UI / onboarding trifecta), 0.6.0 with Phase 32 (Mission 1 Polish v2 — cottages, facade, URP volumes). 1.0.0 when the 20-person greenlight playtest passes.*
+*Format: [SemVer](https://semver.org/spec/v2.0.0.html). Versions advance to 0.3.0 with Phase 26 (player controller + animation), 0.4.0 with Phase 27 (master capstone + NPC animator pipeline), 0.5.0 with Phase 28 / 29 / 30 (body-alignment / UI / onboarding trifecta), 0.6.0 with Phase 32 (Mission 1 Polish v2 — cottages, facade, URP volumes), 0.6.0-menu-collapse with the Phase 32 UX track (top-level menu collapse + idempotency audit + D-051). 1.0.0 when the 20-person greenlight playtest passes.*
