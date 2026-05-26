@@ -9,8 +9,14 @@
 
 If you've pulled the branch and just want a working build:
 
-1. **`Hearthbound → ✨ Build EVERYTHING (Phase 27 — one click)`** — runs all capstones (Phase 23 polished scenes + Phase 26 Player Controller + Animation + Phase 26 NPC Animators + Phase 26 Narrative Hooks) in sequence (~45 s). Opens `00_Bootstrap.unity` when done.
+1. **`Hearthbound → 🚀 Build Everything`** → click **`Build`** in the confirmation dialog. Runs the full Phase 13 → 32 chain (~60 s) — every asset-builder, every scene capstone, every polish layer. Opens `00_Bootstrap.unity` when done.
 2. Press **Play**.
+
+After every `git pull`, repeat step 1. The chain is **idempotent** — every step uses load-or-create + heal-then-save, so re-running it produces the same result as running it once. That is the entire recommended workflow.
+
+> 💡 Power users — every legacy per-phase entry is still accessible under **`Hearthbound → ⚙️ Advanced ►`** with its original priority intact. See [`Docs/PROGRESS.md → Phase 32 — Menu collapse + idempotency audit`](./PROGRESS.md) for the full migration table.
+
+> 🔍 To verify wiring at any time: **`Hearthbound → 🔍 Diagnose Build`** — read-only Phase 33 aggregate audit that chains the Phase 23 / 26 / 32 sub-diagnostics.
 
 The rest of this guide describes the **manual** assembly process — what each scene contains, in case you want to author by hand instead of letting the capstones do it.
 
@@ -132,7 +138,7 @@ Build steps:
 
 ## Phase 26 — Player Controller + Animation (post-build polish)
 
-After the 6 base scenes exist, run the Phase 26 capstone (or use the Phase 27 master menu). It will:
+After the 6 base scenes exist, run the Phase 26 capstone (or just press **🚀 Build Everything** which chains it). It will:
 
 | Step | Result |
 |---|---|
@@ -143,13 +149,13 @@ After the 6 base scenes exist, run the Phase 26 capstone (or use the Phase 27 ma
 | Upgrade SimpleFollowCamera → SmoothFollowCamera in every gameplay scene | Spring-damped follow, RMB-orbit, scroll-zoom, sphere-cast wall-clip |
 | Set `PlayerController.cameraReference` to the upgraded camera | WASD becomes camera-relative |
 
-To run individually:
-- `Hearthbound → 🏃 Phase 26 — Player Controller + Animation` — player side
-- `Hearthbound → 🎭 Phase 26 — Wire NPC Animators` — NPC side
-- `Hearthbound → 🔍 Diagnose Phase 26 Build` — audit the result
+To run individually (all under the `⚙️ Advanced` submenu post-Phase 32):
+- `Hearthbound → ⚙️ Advanced → 🏃 Phase 26 — Player Controller + Animation` — player side
+- `Hearthbound → ⚙️ Advanced → 🎭 Phase 26 — Wire NPC Animators` — NPC side
+- `Hearthbound → 🔍 Diagnose Build` — top-level aggregate audit (also chains the Phase 26 sub-diagnostic)
 
 Optional polish:
-- Drop 6 Mixamo FBXs (Idle / Walking / Running / Jumping In Place / Falling Idle / Landing) into `Assets/_Project/Animations/Mixamo/` and re-run Phase 26 — full locomotion + jump-fall-land animation will activate automatically. Details in `Docs/ANIMATION_REQUIREMENTS.md` § 3.
+- Drop 6 Mixamo FBXs (Idle / Walking / Running / Jumping In Place / Falling Idle / Landing) into `Assets/_Project/Animations/Mixamo/` and re-run `🚀 Build Everything` — full locomotion + jump-fall-land animation will activate automatically. Details in `Docs/ANIMATION_REQUIREMENTS.md` § 3.
 - Attach `PlayerFootstepBinder` to the Player root for surface-aware footstep SFX (see `Assets/_Project/Scripts/Mission/PlayerFootstepBinder.cs` header for the 30-second setup).
 
 ---
@@ -191,4 +197,4 @@ The `MemoryOrbInteractable` script's `SetClarity()` / `SetCrackIntensity()` alre
 
 ---
 
-*This guide is the contract between scripts-on-GitHub and scenes-in-Unity. Update it any time the C# changes require scene-level revisions. Last updated Phase 27 (master capstone + Phase 26 player & NPC animator pipelines).*
+*This guide is the contract between scripts-on-GitHub and scenes-in-Unity. Update it any time the C# changes require scene-level revisions. Last updated Phase 32 (menu collapse — Fast path now points at `🚀 Build Everything` with the safety dialog; all per-phase menu refs relocated under `⚙️ Advanced ►`).*
