@@ -19,6 +19,12 @@
 //     happen on dream1; looks up "dream_doris_motif" in MusicLibrary;
 //     asks the MusicPlayer service to crossfade to it.
 //   * Sequencer.PlayDream2(choice, outcome) → same flow, variant-aware.
+//
+// Phase 43 — captures the *pre-dream* music id via MusicPlayer.CurrentId
+// so OnDreamFinished can restore the pre-dream cue if the next scene's
+// SceneAudioBeacon doesn't fire (e.g. dream ends back on the same scene).
+// Also records each variant played in VillageState.playedDreamVariants
+// for save-resume + future Dream Cinema replay.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -88,9 +94,18 @@ namespace HearthboundHollow.Cutscene
             if (_music == null) _music = ServiceLocator.Get<MusicPlayer>();
             if (_music != null)
             {
-                _previousMusicBeforeDream = null;  // MusicPlayer doesn't yet expose CurrentId; we restore via scene beacon when dream finishes.
+                _previousMusicBeforeDream = _music.CurrentId;  // Phase 43 — remember so we can restore
                 _music.Play(music);
                 Hh.Log(LogCategory.Cutscene, $"DreamAudioBinder: dream '{variant}' → music '{music}'");
+            }
+
+            // Phase 43 — record this dream in the played-history. Future
+            // Dream Cinema (Codex 11) can replay only seen dreams; saves
+            // restore which variants the player has already witnessed.
+            var vs = ServiceLocator.Get<HearthboundHollow.Core.VillageState>();
+            if (vs != null && vs.playedDreamVariants != null && !vs.playedDreamVariants.Contains(variant))
+            {
+                vs.playedDreamVariants.Add(variant);
             }
         }
 
