@@ -24,7 +24,7 @@
 //     and DialogueUI falls back to its previous typewriter-only behaviour.
 //     Zero regression risk on installs without HearthboundVoiceLibrary.
 //
-// D-051: voice clips live under Assets/_Project/Audio/Voice/{character}/{lineId}.wav.
+// D-058: voice clips live under Assets/_Project/Audio/Voice/{character}/{lineId}.wav.
 // Any TTS that produces 22 kHz mono PCM16 .wav drops in without code changes.
 
 using UnityEngine;
