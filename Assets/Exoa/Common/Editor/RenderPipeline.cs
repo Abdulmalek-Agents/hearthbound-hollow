@@ -62,10 +62,10 @@ public class RenderPipeline
     {
 #if UNITY_2019_1_OR_NEWER
         //Debug.Log("GraphicsSettings.renderPipelineAsset:" + GraphicsSettings.renderPipelineAsset);
-        if (GraphicsSettings.renderPipelineAsset != null)
+        if (GraphicsSettings.defaultRenderPipeline != null)
         {
             // SRP
-            var srpType = GraphicsSettings.renderPipelineAsset.GetType().ToString();
+            var srpType = GraphicsSettings.defaultRenderPipeline.GetType().ToString();
             //Debug.Log(srpType);
             if (srpType.Contains("HDRenderPipelineAsset"))
             {
