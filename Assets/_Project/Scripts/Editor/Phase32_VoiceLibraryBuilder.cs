@@ -9,17 +9,20 @@
 //
 // Idempotency: re-running keeps existing inspector-tuned `volume` / `pitch`
 // values on entries whose lineId is unchanged. New .wav files get added with
-// defaults (volume = 1, pitch = 1). Entries whose .wav was deleted are
-// pruned. The Resources/ folder is created on demand.
+// per-character casting defaults (see GetCastingDefaults — Phase 32.10).
+// Entries whose .wav was deleted are pruned. The Resources/ folder is
+// created on demand.
 //
 // Menu path: Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library
 //
 // Workflow (matches Step 6 of the Phase 32 task):
-//   1. `bash Tools/generate_voices.sh` produces 48 .wav files under
-//      Assets/_Project/Audio/Voice/Doris/.
+//   1. `bash Tools/generate_voices.sh` produces 77 .wav files under
+//      Assets/_Project/Audio/Voice/{Doris,Gerrold,Marin,Narrator,Pickle}/.
+//      (Or run `Hearthbound → ⚙️ Advanced → 🎙️ Phase 46 — Generate Voices
+//      (cross-platform)` to use the in-Editor espeak-ng pipeline instead.)
 //   2. Click this menu item — the SO at Resources/HearthboundVoiceLibrary.asset
-//      is created (or updated in place) with 48 entries auto-bound to the
-//      AudioClips. The console prints a summary.
+//      is created (or updated in place) with up to 77 entries auto-bound to
+//      the AudioClips. The console prints a summary.
 //   3. Press Play. VoicePlayer.Awake calls Resources.Load and the dialogue
 //      starts speaking.
 //
@@ -33,8 +36,22 @@
 // audit. The diagnostic invokes `Diagnose()` — read-only, never modifies.
 //
 // D-058: the .wav files themselves are the source of truth. Any TTS that
-// produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper) —
-// rerun this menu item after a regeneration and the bindings refresh.
+// produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper /
+// espeak-ng / human VO) — rerun this menu item after a regeneration and the
+// bindings refresh.
+//
+// ── Phase 32.10 (2026-05-27) ─────────────────────────────────────
+// NEW entries pick up per-character runtime tuning defaults via the
+// new `GetCastingDefaults(character)` helper. Defaults sourced from
+// Docs/VOICE_CASTING.md § 2 (the canonical casting table):
+//   Doris    — 0.95 vol, 0.98 pitch
+//   Gerrold  — 0.90 vol, 0.92 pitch
+//   Marin    — 0.75 vol, 1.05 pitch
+//   Narrator — 0.95 vol, 1.00 pitch
+//   Pickle   — 0.80 vol, 1.10 pitch
+// EXISTING entries' inspector-tuned values are preserved across rebuilds
+// (unchanged from Phase 32 behaviour) — the defaults only land on first
+// import.
 
 using System.Collections.Generic;
 using System.IO;
@@ -199,6 +216,10 @@ namespace HearthboundHollow.EditorTools
                     }
 
                     string lineId = Path.GetFileNameWithoutExtension(assetPath);
+                    // Phase 32.10 — derive the character from the parent folder
+                    // name (Audio/Voice/<Character>/<lineId>.wav) so per-character
+                    // casting defaults can be applied to new entries.
+                    string character = Path.GetFileName(Path.GetDirectoryName(assetPath));
 
                     if (existing.TryGetValue(lineId, out var prev))
                     {
@@ -208,12 +229,13 @@ namespace HearthboundHollow.EditorTools
                     }
                     else
                     {
+                        var (defaultVol, defaultPitch) = GetCastingDefaults(character);
                         newEntries.Add(new VoiceLibrarySO.Entry
                         {
                             lineId = lineId,
                             clip   = clip,
-                            volume = 1f,
-                            pitch  = 1f,
+                            volume = defaultVol,
+                            pitch  = defaultPitch,
                         });
                         added++;
                     }
@@ -257,6 +279,34 @@ namespace HearthboundHollow.EditorTools
             }
 
             return lib;
+        }
+
+        /// <summary>
+        /// Phase 32.10 — per-character runtime tuning defaults applied to NEW
+        /// VoiceLibrarySO entries (existing entries' inspector-tuned values are
+        /// preserved across rebuilds). Values are sourced from
+        /// Docs/VOICE_CASTING.md § 2 (the canonical casting table). Unknown
+        /// characters fall back to neutral 1.0 / 1.0.
+        ///
+        /// The defaults shape the audio mix without touching the .wav files:
+        ///   Doris    (warm baker)        — 0.95 vol, 0.98 pitch (slightly weighted)
+        ///   Gerrold  (weathered widower) — 0.90 vol, 0.92 pitch (grandfatherly baritone push)
+        ///   Marin    (soft predecessor)  — 0.75 vol, 1.05 pitch (whisper, slight lift)
+        ///   Narrator (neutral British)   — 0.95 vol, 1.00 pitch (clean)
+        ///   Pickle   (bright cat aside)  — 0.80 vol, 1.10 pitch (sly, higher register)
+        /// </summary>
+        public static (float volume, float pitch) GetCastingDefaults(string character)
+        {
+            if (string.IsNullOrEmpty(character)) return (1f, 1f);
+            switch (character)
+            {
+                case "Doris":    return (0.95f, 0.98f);
+                case "Gerrold":  return (0.90f, 0.92f);
+                case "Marin":    return (0.75f, 1.05f);
+                case "Narrator": return (0.95f, 1.00f);
+                case "Pickle":   return (0.80f, 1.10f);
+                default:         return (1.00f, 1.00f);
+            }
         }
     }
 }
