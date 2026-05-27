@@ -10,13 +10,16 @@
 // drops Marin's Note on the workbench. Phase 29 runs the Player Rig Doctor
 // foot-bone anchor pass. Phase 30 wires the OnboardingOverlay + ControlHintsHUD.
 // Phase 31 surgically repairs the dialogue choice cards. Phase 32 layers the
-// Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes).
-// Phase 36 builds the Dream 2 + Listen Timeline library. Phase 37 generates the
-// procedural audio (music, ambience, missing SFX, mumble VO). Phase 45 migrates
-// the audio libraries to Resources/ for runtime Resources.Load fallback. Phase 38
-// wires every audio asset to the scenes + dialogue UI + cutscene timelines.
-// Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
-// Phase 27 chains them all — single click, ~95 s, fully wired.
+// Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes)
+// AND, in the Voice Acting MVP track, rebuilds the Resources/HearthboundVoice
+// Library.asset from any .wav files the user has dropped under
+// Assets/_Project/Audio/Voice/ (per D-058). Phase 36 builds the Dream 2 + Listen
+// Timeline library. Phase 37 generates the procedural audio (music, ambience,
+// missing SFX, mumble VO). Phase 45 migrates the audio libraries to Resources/
+// for runtime Resources.Load fallback. Phase 38 wires every audio asset to the
+// scenes + dialogue UI + cutscene timelines. Phase 42 wires the Listen Scene
+// Camera Director onto the Cottage scene. Phase 27 chains them all — single
+// click, ~95 s, fully wired.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
@@ -133,6 +136,22 @@ namespace HearthboundHollow.EditorTools
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Mission 1 Polish v2) …", 0.84f);
                 if (TryRun("Phase 32 — Mission 1 Polish v2",
                           "HearthboundHollow.EditorTools.Phase32_MissionOnePolishCapstone", "Build"))
+                    ran++;
+                else
+                    skipped++;
+
+                // Step 8.5: Phase 32 — Voice Acting MVP. Rebuilds
+                // Resources/HearthboundVoiceLibrary.asset by scanning
+                // Assets/_Project/Audio/Voice/**/*.wav. Idempotent — does
+                // nothing harmful if the user hasn't yet run
+                // `bash Tools/generate_voices.sh` on macOS (logs a warning,
+                // leaves the SO empty so VoicePlayer's Resources.Load still
+                // resolves and DialogueUI falls through to typewriter-only
+                // mode — D-058). Silent (verbose=false) so the chain isn't
+                // interrupted by a pop-up.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Voice Library) …", 0.86f);
+                if (TryRun("Phase 32 — Voice Library (D-058)",
+                          "HearthboundHollow.EditorTools.Phase32_VoiceLibraryBuilder", "Build"))
                     ran++;
                 else
                     skipped++;
@@ -290,6 +309,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Lane — OnboardingOverlay (6-step walkthrough on first play)");
             sb.AppendLine("  • Every gameplay scene — ControlHintsHUD (always-visible key chips)");
             sb.AppendLine("  • Phase 32 v2 — 8 cottages + Hollow facade + cozy URP volume (if shipped)");
+            sb.AppendLine("  • Phase 32 Voice MVP — Resources/HearthboundVoiceLibrary.asset built from Audio/Voice/**/*.wav (D-058)");
             sb.AppendLine("  • Phase 36 — MemoryDreamRig.prefab wired with Dream 1 + 5× Dream 2 variants + Listen scene Timelines");
             sb.AppendLine("  • Phase 37 — MusicLibrarySO, AmbienceLibrarySO, MumbleVoiceLibrarySO built");
             sb.AppendLine("                + 30+ procedural WAV cues in Assets/_Project/Audio/Generated/");
