@@ -9,7 +9,7 @@
 // which looks the clip up in this library and plays it through the dialogue
 // 2D AudioSource.
 //
-// D-051: voice clips live under Assets/_Project/Audio/Voice/{character}/{lineId}.wav.
+// D-058: voice clips live under Assets/_Project/Audio/Voice/{character}/{lineId}.wav.
 // The generation pipeline (Tools/generate_voices.sh on macOS using `say`) is
 // fully decoupled from the runtime. Any TTS that produces 22 kHz mono PCM16
 // .wav can drop in (ElevenLabs / XTTS / Piper) — just overwrite the .wav files
