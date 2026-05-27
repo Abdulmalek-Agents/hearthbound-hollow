@@ -16,6 +16,8 @@
 // the audio libraries to Resources/ for runtime Resources.Load fallback. Phase 38
 // wires every audio asset to the scenes + dialogue UI + cutscene timelines.
 // Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
+// Phase 46 layers the level boundaries, autumn skybox, interior polish,
+// collider hardening, and onboarding wayfinding on top of everything.
 // Phase 27 chains them all — single click, ~95 s, fully wired.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
@@ -60,7 +62,7 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 45 chain (~95 s).\n" +
+                "This runs the full Phase 13 → 46 chain (~110 s).\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -190,12 +192,34 @@ namespace HearthboundHollow.EditorTools
                 // ListenSceneCameraDirector on the Cottage scene, wires it to
                 // the ListenSceneSequencer, and configures the 4-waypoint
                 // camera path (30s wide → 60s chair → 60s hands → 30s pull-back).
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 42 (Listen Scene Camera) …", 0.98f);
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 42 (Listen Scene Camera) …", 0.96f);
                 if (TryRun("Phase 42 — Listen Scene Camera",
                           "HearthboundHollow.EditorTools.Phase42_ListenSceneCameraBuilder", "Build"))
                     ran++;
                 else
                     skipped++;
+
+                // Step 13: Phase 46 — Level Boundaries + Wider Environment +
+                // Skybox + Interior Polish + Collider Hardening + Wayfinding.
+                // Layered LAST so it sits on top of every earlier capstone's
+                // output, additively. The Phase 46 capstone is reflection-
+                // dispatched here without a confirmation dialog so the entire
+                // 🚀 Build Everything chain runs without prompting twice.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 46 (Level Boundaries + Polish) …", 0.98f);
+                if (TryRun("Phase 46.1 — Autumn Skybox + Lighting",
+                          "HearthboundHollow.EditorTools.Phase46_AutumnSkyboxAndLighting", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 46.2 — Lane Boundaries + Wide Env",
+                          "HearthboundHollow.EditorTools.Phase46_LaneBoundariesAndWideEnv", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 46.3 — Hollow Boundaries + Interior",
+                          "HearthboundHollow.EditorTools.Phase46_HollowBoundariesAndInterior", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 46.4 — Garden Boundaries + Path",
+                          "HearthboundHollow.EditorTools.Phase46_GardenBoundariesAndPath", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 46.5 — Cottage Interior Polish",
+                          "HearthboundHollow.EditorTools.Phase46_CottageInteriorPolish", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 46.6 — Collider Hardening",
+                          "HearthboundHollow.EditorTools.Phase46_ColliderHardening", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 46.7 — Guide Lights + Wayfinding",
+                          "HearthboundHollow.EditorTools.Phase46_GuideLightsAndWayfinding", "Build")) ran++; else skipped++;
 
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
@@ -296,6 +320,9 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 45 — Libraries migrated to Resources/ for runtime Resources.Load fallback");
             sb.AppendLine("  • Phase 38 — Per-scene MusicPlayer + AmbientAudio attached, DialogueUI MumbleVoicePlayer wired");
             sb.AppendLine("  • Phase 42 — ListenSceneCameraDirector on Cottage scene with 4-waypoint cinematic path");
+            sb.AppendLine("  • Phase 46 — Autumn skybox, 24×36m Lane with stone-wall perimeter + void blockers,");
+            sb.AppendLine("                Hollow + Cottage interior polish, cottage hearth flicker, guide lanterns,");
+            sb.AppendLine("                firefly wayfinding, every prop has a Collider (no clipping)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
