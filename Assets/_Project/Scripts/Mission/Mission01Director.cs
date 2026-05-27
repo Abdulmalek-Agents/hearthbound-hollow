@@ -27,7 +27,7 @@
 // the same Doris_M1 nodes — but the text shown to the player will be
 // identical either way.
 //
-// ── Phase 34 (2026-05-25) ───────────────────────────────────────
+// ── Phase 34 (2026-05-25) ───────────────────────────────────
 // User report: "the game is stuck after few dialog mainly after I play
 // it when it reach to the dialogue 'Doris stands back and watches'".
 // Root cause: the old stage-direction line "(stands back and watches)"
@@ -45,9 +45,18 @@
 // through to `VoicePlayer.Play(lineId)` for in-sync voice playback.
 // Every Doris line in this director carries its canonical id from the
 // Tools/generate_voices.sh table (e.g. doris_m1_greet_01). When the
-// VoiceLibrarySO has a clip for that id, the matching macOS-`say`
-// (or ElevenLabs / XTTS / Piper — D-058) .wav plays alongside the
+// VoiceLibrarySO has a clip for that id, the matching Piper TTS
+// (or ElevenLabs / XTTS / human VO — D-058) .wav plays alongside the
 // typewriter. Lines with no clip play silently — zero regression.
+//
+// ── Phase 32.9 — full Mission 1 voice coverage (2026-05-27) ─────
+// The 3 refused-path lines (EnterRefusedPath) and the 3 clarity-
+// branching afterPolishLine variants (Perfect / Acceptable / Mild)
+// now carry their own lineIds. Doris's coverage in Mission 1 grows
+// from 49 → 55 voiced lines. Per D-059, the canonical TTS pipeline
+// is open-source Piper TTS (Tools/generate_voices.sh) with espeak-ng
+// (Phase46_VoiceGenerator.cs) as the in-Editor cross-platform
+// fallback — both write to the same canonical .wav paths.
 //
 // Flow:
 //   1. Doris greets the player ("You're the new one. I thought you'd be taller.")
@@ -100,7 +109,7 @@ namespace HearthboundHollow.Mission
         [Tooltip("Scene to load when the player ends the day (MVP: return to MainMenu).")]
         public string sceneAfterEndOfDay = "01_MainMenu";
 
-        // ───── Lifecycle ────────────────────────────────────────────
+        // ───── Lifecycle ──────────────────────────────────────────
 
         private DorisGreetingTrigger _dorisProxy;
         private WorkbenchApproachTrigger _workbenchProxy;
@@ -142,7 +151,7 @@ namespace HearthboundHollow.Mission
             if (eveningLedger != null) eveningLedger.OnEndOfDayConfirmed -= OnEndOfDayConfirmed;
         }
 
-        // ───── Triggers from the world ──────────────────────────────
+        // ───── Triggers from the world ──────────────────────────────────
 
         internal void OnPlayerEnteredDoris()
         {
@@ -162,7 +171,7 @@ namespace HearthboundHollow.Mission
         private bool _polishStarted;
         private bool _refusedPath;
 
-        // ───── The dialogue flow ────────────────────────────────────
+        // ───── The dialogue flow ───────────────────────────────────────
         // All canonical text below is from Doris_M1.yarn nodes
         // (Doris_M1_Start, Doris_M1_BakeryEnter, Doris_M1_OfferOrb,
         // Doris_M1_AboutTheLoaves, Doris_M1_PriceNegotiation,
@@ -329,14 +338,17 @@ namespace HearthboundHollow.Mission
             Hh.Log(LogCategory.Mission, "Doris handed over the orb. Walk to the workbench to polish it.");
         }
 
-        // ───── Refused path (Mission 1 Guide § 9.4) ────────────────
+        // ───── Refused path (Mission 1 Guide § 9.4) ─────────────────────
 
         private IEnumerator EnterRefusedPath()
         {
             _refusedPath = true;
-            yield return Line(dorisVillager, "Doris", "The shop's still yours.");
-            yield return Line(dorisVillager, "Doris", "Go in. Sit a while. The kettle is on.");
-            yield return Line(dorisVillager, "Doris", "I'll be here when you're ready.");
+            // Phase 32.9 — the 3 refused-path lines now carry lineIds so the
+            // voice channel reads them too (previously typewriter-only — flagged
+            // as a coverage gap in the PROGRESS.md Phase 32 acceptance section).
+            yield return Line(dorisVillager, "Doris", "The shop's still yours.", "doris_m1_refused_01");
+            yield return Line(dorisVillager, "Doris", "Go in. Sit a while. The kettle is on.", "doris_m1_refused_02");
+            yield return Line(dorisVillager, "Doris", "I'll be here when you're ready.", "doris_m1_refused_03");
 
             if (dorisGreetingTrigger != null) dorisGreetingTrigger.enabled = false;
             if (dialogueUI != null) dialogueUI.Hide();
@@ -369,7 +381,7 @@ namespace HearthboundHollow.Mission
             eveningLedger.Show(summary, titles);
         }
 
-        // ───── The polish flow ──────────────────────────────────────
+        // ───── The polish flow ─────────────────────────────────────────────
 
         private IEnumerator PolishFlow()
         {
@@ -434,24 +446,28 @@ namespace HearthboundHollow.Mission
             float clarity = workbenchOrb != null ? workbenchOrb.runtimeClarity : 0.5f;
             string polishQuality;
             string afterPolishLine;
+            string afterPolishLineId;
             int trustDelta;
 
             if (clarity >= 0.95f)
             {
                 polishQuality = "Perfect";
                 afterPolishLine = "You did it cleaner than I remembered it. I think you'll do.";
+                afterPolishLineId = "doris_m1_polish_after_perfect";
                 trustDelta = 3;
             }
             else if (clarity >= 0.55f)
             {
                 polishQuality = "Acceptable";
                 afterPolishLine = "You did it kindly. That's what matters.";
+                afterPolishLineId = "doris_m1_polish_after_acceptable";
                 trustDelta = 2;
             }
             else
             {
                 polishQuality = "Mild";
                 afterPolishLine = "... It's the morning still. A little dimmer. But mine. First days are like that. I won't hold it.";
+                afterPolishLineId = "doris_m1_polish_after_mild";
                 trustDelta = 1;
             }
 
@@ -461,10 +477,11 @@ namespace HearthboundHollow.Mission
             // Doris_M1_AfterPolish_Return — the warm exit.
             yield return Line(dorisVillager, "Doris", "Aye.", "doris_m1_polish_done_01");
             yield return Line(dorisVillager, "Doris", "There it is. That's the morning.", "doris_m1_polish_done_02");
-            // afterPolishLine is dynamic (branches on clarity) so no static lineId.
-            // When a future Phase 32.1 adds per-clarity clips, swap this line for
-            // a (lineId, fallback-text) tuple. For now: voice silent, typewriter only.
-            yield return Line(dorisVillager, "Doris", afterPolishLine);
+            // Phase 32.9 — clarity-branching afterPolishLine now has a per-branch
+            // lineId so each of the 3 outcomes (Perfect / Acceptable / Mild) gets
+            // its own voice clip. Previously typewriter-only (the "future Phase 32.1"
+            // comment is now satisfied).
+            yield return Line(dorisVillager, "Doris", afterPolishLine, afterPolishLineId);
             AdjustTrust("doris", trustDelta);
 
             // Canonical M1 exit — no "goodbye." Vellis Rule § 2.1 #6.
@@ -503,7 +520,7 @@ namespace HearthboundHollow.Mission
             LockPlayer(false);
         }
 
-        // ───── End of day ───────────────────────────────────────────
+        // ───── End of day ────────────────────────────────────────────
 
         private void OnEndOfDayConfirmed()
         {
@@ -565,7 +582,7 @@ namespace HearthboundHollow.Mission
             else if (id == "gerrold") vs.trustGerrold = VillageState.Adjust(vs.trustGerrold, delta);
         }
 
-        // ───── Trigger proxy components ─────────────────────────────
+        // ───── Trigger proxy components ──────────────────────────────────
 
         internal class DorisGreetingTrigger : MonoBehaviour
         {
