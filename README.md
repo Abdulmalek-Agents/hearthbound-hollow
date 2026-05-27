@@ -33,7 +33,11 @@ The `🚀 Build Everything` menu item runs **twelve sub-capstones** — polished
 
 > 🔍 Verify wiring any time with **`Hearthbound → 🔍 Diagnose Build`** — read-only **5-step** aggregate audit (was 3 before Phase 35) that chains Phase 23 / 26 / 32 sub-diagnostics + the Phase 35 continuation audit (cutscene timelines, audio folders, SfxLibrary, Yarn, seed-assets) + the Phase 40 audio-wiring deep-dive (MusicLibrary / AmbienceLibrary / MumbleVoiceLibrary / DreamAudioBinder cueMap / per-scene SceneAudioBeacon) — under one click.
 
-> ⚙️ **Power users:** Every legacy per-phase entry (Phase 13 / 14 / 15 / 22 / 23 / 24 / 26 / 27 / 29 / 30 / 31 / 32.1 / 32.2 / 32.3 / 32.4 / **35 / 36 / 37 / 38 / 40 / 42** …) is still accessible under **`Hearthbound → ⚙️ Advanced ►`** with its original priority intact. The Phase 32 UX track only moved them out of the top level — no behaviour changes. See **D-051** in [`Docs/PROGRESS.md → Phase 32 — Menu collapse + idempotency audit`](./Docs/PROGRESS.md) for the full migration table. Decisions **D-052 / D-053 / D-054** in [`Docs/Phase39_Greenlight_Signoff.md`](./Docs/Phase39_Greenlight_Signoff.md) codify the audio + cutscene policy; **D-055 / D-056** in [`Docs/Phase44_Polish_Layer_Signoff.md`](./Docs/Phase44_Polish_Layer_Signoff.md) codify the save-resume + install-pattern policy.
+> ⚙️ **Power users:** Every legacy per-phase entry (Phase 13 / 14 / 15 / 22 / 23 / 24 / 26 / 27 / 29 / 30 / 31 / 32.1 / 32.2 / 32.3 / 32.4 / **35 / 36 / 37 / 38 / 40 / 42** …) is still accessible under **`Hearthbound → ⚙️ Advanced ►`** with its original priority intact. The Phase 32 UX track only moved them out of the top level — no behaviour changes. See **D-051** in [`Docs/PROGRESS.md → Phase 32 — Menu collapse + idempotency audit`](./Docs/PROGRESS.md) for the full migration table. Decisions **D-052 / D-053 / D-054** in [`Docs/Phase39_Greenlight_Signoff.md`](./Docs/Phase39_Greenlight_Signoff.md) codify the audio + cutscene policy; **D-055 / D-056** in [`Docs/Phase44_Polish_Layer_Signoff.md`](./Docs/Phase44_Polish_Layer_Signoff.md) codify the save-resume + install-pattern policy; **D-058** in [`Docs/PROGRESS.md → Phase 32 — Voice Acting MVP`](./Docs/PROGRESS.md) codifies the voice-clip file-swap policy.
+
+### Voice acting (Phase 32 — macOS `say` MVP)
+
+Run `bash Tools/generate_voices.sh` after `git pull` to (re)generate macOS `say` placeholder voices for Doris. The script produces 48 `.wav` files (~10–20 MB total, 22 kHz mono PCM16) under `Assets/_Project/Audio/Voice/Doris/`, then in Unity click `Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library` to auto-bind the clips into `Resources/HearthboundVoiceLibrary.asset`. Swap in your own clips by dropping `.wav` files (same lineId filenames — `doris_m1_greet_01.wav` etc.) into `Assets/_Project/Audio/Voice/Doris/` — any TTS (ElevenLabs / XTTS / Piper) or a booth-recorded actress works, no code change required (see **D-058**). Voice plays in sync with the typewriter; skipping a line via Space/click stops it instantly.
 
 ### Player-facing flow
 
@@ -71,7 +75,7 @@ Evening Ledger → Main Menu
 - **Auto-Complete Polish** — skip the mini-game, keep the narrative beat.
 - **Auto-Complete Cleanse** — same, for Mission 2.
 - **Subtitle Size** — 4 tiers (Small / Medium / Large / Huge).
-- **Master / Music / SFX / Ambient / Voice volumes** — persisted via PlayerPrefs across sessions. (Voice added in Phase 37 for the mumble VO channel.)
+- **Master / Music / SFX / Ambient / Voice volumes** — persisted via PlayerPrefs across sessions. (Voice added in Phase 37 for the mumble VO channel; Phase 32 Voice Acting MVP uses the same channel for Doris's real voice.)
 - **Tone Compass** — first-run choice between Gentle / Standard / Deep tones.
 - **OnboardingOverlay** — 6-step cozy walkthrough on first play (Welcome → WASD → E → LMB polish → Esc/H comfort → Ready). Skippable from frame 1; per-save flag so it never repeats.
 - **ControlHintsHUD** — always-visible parchment chip strip (Move · Interact · Help) at the bottom-left of every gameplay scene. The [E] chip lights up to full alpha + shows the interactable's prompt when one is in range.
@@ -95,7 +99,8 @@ Evening Ledger → Main Menu
 | [`Docs/Phase27_Environment_Polish_Plan.md`](./Docs/Phase27_Environment_Polish_Plan.md) | Phase 27 environment polish source-of-truth doc |
 | [`Docs/Phase32_Mission1_Polish.md`](./Docs/Phase32_Mission1_Polish.md) | Phase 32 Mission 1 Polish v2 source-of-truth doc |
 | [`Tools/audio_generation/README.md`](./Tools/audio_generation/README.md) | Procedural audio composer brief — what cues exist, how to extend, how to swap to human-authored audio |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Versioned release history (currently **0.7.1-polish-layer** — audio reactivity + cinematic camera + audio-save-resume) |
+| [`Tools/generate_voices.sh`](./Tools/generate_voices.sh) | **Phase 32 — Voice Acting MVP.** macOS `say` driver that generates 48 Doris voice clips into `Assets/_Project/Audio/Voice/Doris/`. Idempotent. |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Versioned release history (currently **0.7.0-voice-acting-mvp** — Doris's M1 dialogue voiced via macOS `say`, D-058) |
 | [`Assets/_Project/Scripts/`](./Assets/_Project/Scripts/) | ~25k LOC across 10 asmdef-isolated subsystems (Core, Memory, Player, MiniGames, UI, Dialogue, Cutscene, Save, Mission, Audio) |
 | [`Assets/_Project/Scenes/`](./Assets/_Project/Scenes/) | 6 Unity scenes built procedurally by the Phase 23 capstone |
 | [`Assets/_Project/Prefabs/Environment/`](./Assets/_Project/Prefabs/Environment/) | 4 cottage prefab variants (A_Bakery / B_Plain / C_Gabled / D_Corner) |
@@ -142,7 +147,7 @@ See [`GAME_DESIGN.md`](./GAME_DESIGN.md) §2 for full demand-signal analysis.
 
 ## 🏗️ Implementation Status
 
-**Current version**: `0.7.1-polish-layer` (PR #7 open, accumulating)
+**Current version**: `0.7.0-voice-acting-mvp` (PR #7 open, accumulating)
 
 | Stage | Status |
 |---|---|
@@ -166,11 +171,12 @@ See [`GAME_DESIGN.md`](./GAME_DESIGN.md) §2 for full demand-signal analysis.
 | Phase 37 — Procedural Audio Studio (75 procedural .wavs + MusicLibrarySO + AmbienceLibrarySO + MumbleVoiceLibrarySO + MusicPlayer + MumbleVoicePlayer) | ✅ Complete |
 | Phase 38 — Audio + Cutscene Wiring (Bootstrap rig + per-scene beacons + DreamAudioBinder + 3 EventBus events) | ✅ Complete |
 | Phase 39 — Greenlight Sign-Off v0.7.0 (Critic & Review Board, 30 QA + 4 audio criteria PASS) | ✅ Complete |
-| **Phase 40 — Audio Wiring Diagnostic + per-character mumble preview + 10 EditMode tests** | ✅ **Complete — this branch** |
-| **Phase 41 — Mission Director Audio Hooks (EventBus → audio router; 8 narrative beats → SFX/duck)** | ✅ **Complete — this branch** |
-| **Phase 42 — Listen Scene Camera (4-waypoint Cinemachine-agnostic 180s cinematic path)** | ✅ **Complete — this branch** |
-| **Phase 43 — Save System Audio Restoration (schema v2 + lastMusicId/lastAmbienceId/playedDreamVariants + EventBus persistence/restore)** | ✅ **Complete — this branch** |
-| **Phase 44 — Polish Layer Sign-Off v0.7.1 (Critic & Review Board, pre-playtest prerequisites PASS)** | ✅ **Complete — this branch** |
+| Phase 40 — Audio Wiring Diagnostic + per-character mumble preview + 10 EditMode tests | ✅ Complete |
+| Phase 41 — Mission Director Audio Hooks (EventBus → audio router; 8 narrative beats → SFX/duck) | ✅ Complete |
+| Phase 42 — Listen Scene Camera (4-waypoint Cinemachine-agnostic 180s cinematic path) | ✅ Complete |
+| Phase 43 — Save System Audio Restoration (schema v2 + lastMusicId/lastAmbienceId/playedDreamVariants + EventBus persistence/restore) | ✅ Complete |
+| Phase 44 — Polish Layer Sign-Off v0.7.1 (Critic & Review Board, pre-playtest prerequisites PASS) | ✅ Complete |
+| **Phase 32 — Voice Acting MVP (Doris's M1 dialogue voiced via macOS `say`; D-058 codifies file-swap path)** | ✅ **Complete — this branch** |
 | 20-person greenlight playtest | ⬜ Next |
 | Mission 3-10 + procedural villagers | ⬜ Post-greenlight |
 
@@ -197,6 +203,7 @@ Twelve sub-capstones, ~95 s end-to-end, idempotent and reflection-driven (with a
 
 **Runtime self-installers (no Editor builder needed):**
 - `MissionAudioHooks` *(NEW v0.7.1 — Phase 41)* — auto-spawns via `[RuntimeInitializeOnLoadMethod]`. Subscribes to MemoryPolishedEvent / MemoryCleansedEvent / MoralChoiceMadeEvent / HerbHarvestedEvent / TeaBrewedEvent / DayEndedEvent / MissionStartedEvent / MissionCompletedEvent + SceneAudioRequestedEvent + VillageStateLoadedEvent and routes each into matching SFX + music-duck reactions. **Save-resume:** persists `lastMusicId` into VillageState on every scene change; restores it on load before the SceneAudioBeacon fires — no silent-load gap.
+- `VoicePlayer` *(NEW v0.7.0-voice-acting-mvp — Phase 32 Voice Acting MVP)* — Singleton MonoBehaviour, auto-creates a 2D AudioSource on `Awake`, `Resources.Load`s `HearthboundVoiceLibrary` if no inspector reference. `GameManager.Awake` reflection-spawns one as fallback when no scene-baked rig is present.
 
 ### `Hearthbound → 🔍 Diagnose Build` — 5-step read-only audit
 
@@ -219,6 +226,7 @@ Every legacy per-phase entry lives under the Advanced submenu (~50 items). New a
 | `🔊 Phase 40 — Diagnose Audio Wiring` *(NEW v0.7.1)* | Audio-focused read-only audit (libraries + DreamAudioBinder cueMap + scene beacons) |
 | `🔊 Phase 40 — Preview Doris/Gerrold/Pickle/Marin Mumble` *(NEW v0.7.1)* | Plays a random phoneme via Editor preview API — no need to enter Play Mode |
 | `🎥 Phase 42 — Wire Listen Scene Camera` *(NEW v0.7.1)* | Drops ListenSceneCameraDirector on the Cottage scene with 4-waypoint path |
+| `🎙️ Phase 32 — Rebuild Voice Library` *(NEW v0.7.0-voice-acting-mvp)* | Scans `Assets/_Project/Audio/Voice/**/*.wav` and rebuilds `Resources/HearthboundVoiceLibrary.asset`. Preserves inspector-tuned volume/pitch per lineId. |
 
 The Phase 32 polish-v2 items, for example:
 
