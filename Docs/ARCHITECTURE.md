@@ -22,7 +22,7 @@ This is the **single source of truth** for the technical implementation of Missi
 | **Save** | JSON local + 3-rolling-slot + autosave | Mobile-safe; no cloud in M1-2 |
 | **OpenAI dialogue addon** | DO NOT USE | Tagged `Reference – Do Not Use In Build` |
 | **Editor entry point** (Phase 32) | **`Hearthbound → 🚀 Build Everything`** — single top-level click, chains every Phase 13 → 32 sub-builder, idempotent | **D-051** — top-level Hearthbound menu reserved for `🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu (every legacy per-phase entry). |
-| **Voice acting** (Phase 32 MVP) | **macOS `say -v Samantha -r 180` driving `Tools/generate_voices.sh` → 48 `doris_m1_*.wav` clips at 22 kHz mono PCM16** | **D-058** — pipeline decoupled from runtime; any 22 kHz mono PCM16 .wav drops in (ElevenLabs / XTTS / Piper / human VO) by overwriting files + rerunning `Phase32_VoiceLibraryBuilder`. |
+| **Voice acting** (Phase 32 MVP) | **Open-source [Piper TTS](https://github.com/rhasspy/piper) driving `Tools/generate_voices.sh` → 77 `<char>_<id>.wav` clips (Doris 55 / Gerrold 8 / Marin 4 / Narrator 4 / Pickle 6) at 22 kHz mono PCM16. Lighter-weight `espeak-ng` fallback also chained into `🚀 Build Everything` via `Phase46_VoiceGenerator.cs`.** | **D-058** — pipeline decoupled from runtime; any 22 kHz mono PCM16 .wav drops in (ElevenLabs / XTTS / human VO) by overwriting files + rerunning `Phase32_VoiceLibraryBuilder`. **D-059** — Piper is the canonical neural-quality pipeline; espeak-ng the cross-platform in-Editor fallback. Both write to the same paths so the runtime is identical. |
 
 ---
 
@@ -62,7 +62,8 @@ The build is sliced into micro-phases, each producing a buildable, mergeable, mi
 | **31.1** | "Press [Space] ▸" advance prompt + DreamCanvas auto-hide | ✅ |
 | **32 (Mission 1 polish v2)** | 8-cottage village + Hollow facade + hearth dressing + cozy URP volumes | ✅ |
 | **32 (Menu collapse UX track)** | **`🚀 Build Everything` is the only top-level entry; safety dialog + idempotency audit + D-051** | ✅ |
-| **32 (Voice Acting MVP)** | **VoiceLibrarySO + VoicePlayer + DialogueUI lineId hook + Mission01Director threads 48 ids + Tools/generate_voices.sh macOS pipeline + Phase32_VoiceLibraryBuilder editor utility + D-058** | ✅ **This PR** |
+| **32 (Voice Acting MVP)** | **VoiceLibrarySO + VoicePlayer + DialogueUI lineId hook + Mission01Director threads 49 ids + Tools/generate_voices.sh macOS pipeline + Phase32_VoiceLibraryBuilder editor utility + D-058** | ✅ |
+| **32.6 → 32.10 (Open-source pipeline + interactive polish)** | **Piper TTS cross-platform pipeline (Tools/generate_voices.sh rewrite) + espeak-ng in-Editor fallback (Phase46_VoiceGenerator extended to 5 characters / 77 lines) + Mission 1 coverage 49 → 55 lineIds + VoiceClip events + Music/Ambient ducking + Mumble suppression + per-character casting defaults + Docs/VOICE_CASTING.md + D-059** | ✅ **This PR** |
 | **33** | Aggregate `Diagnose Build` — chains Phase 23/26/32 sub-diagnostics under one top-level read-only audit | ✅ |
 | **QA** | secret-scan, unit tests, README, CHANGELOG, PR to main | 🟡 In progress |
 
@@ -74,7 +75,7 @@ The build is sliced into micro-phases, each producing a buildable, mergeable, mi
 /Assets/
 ├── _Project/                            <-- All studio-authored content
 │   ├── Art/{Characters, Environment, Memories, UI}
-│   ├── Audio/{Music, SFX, Ambience, Voice/Doris}      (Voice/ NEW — Phase 32 MVP)
+│   ├── Audio/{Music, SFX, Ambience, Voice/{Doris,Gerrold,Marin,Narrator,Pickle}}   (5 char folders — Phase 32.7)
 │   ├── Animations/                       (Hearthbound_Player.controller + Mixamo/* subfolder)
 │   ├── Prefabs/{Player, NPCs, Memories, Props, UI, VFX}
 │   ├── Resources/                        (NEW Phase 32 — HearthboundVoiceLibrary.asset lives here for Resources.Load)
@@ -126,6 +127,8 @@ Replaces traditional singletons. `ServiceLocator.Get<T>()` for service access. `
 - `HerbHarvestedEvent` / `TeaBrewedEvent`
 - `DayEndedEvent(int dayIndex)`
 - `EchoConnectionRevealedEvent(MemoryNodeSO, MemoryNodeSO)`
+- **`DialogueLineStartedEvent(speaker, line, dur, HasVoiceClip)`** *(Phase 32.10 — HasVoiceClip suppresses mumble bank when true)*
+- **`VoiceClipStartedEvent(lineId, clipLengthSec)` / `VoiceClipEndedEvent(lineId)`** *(Phase 32.10 — MusicPlayer + AmbientAudio duck while a voice clip plays)*
 
 ### 4.2 VillageState (the global game state)
 A single ScriptableObject with the **full 14-dimension struct** from Codex 08, even though only 4 dimensions are written in M1-2.
@@ -170,11 +173,11 @@ The Audio asmdef hosts every runtime audio component. None of them reference UI;
 
 | Component | File | Role |
 |---|---|---|
-| `MusicLibrarySO` / `MusicPlayer` | Audio/MusicPlayer.cs | Procedural music cues (Phase 37). Save-restored in Phase 43. |
-| `AmbientAudio` / `SfxLibrarySO` / `SfxPlayer` | Audio/AmbientAudio.cs etc. | Per-scene ambience + one-shot SFX. |
-| `MumbleVoiceLibrarySO` / `MumbleVoicePlayer` | Audio/MumbleVoice*.cs | Phase 38 syllable-pad VO synced to the typewriter via `DialogueLineStartedEvent` / `DialogueLineEndedEvent`. |
-| `RuntimeAudioBootstrap` | Audio/RuntimeAudioBootstrap.cs | Phase 45 auto-installer — spawns the audio rig if Phase 38's Editor builder hasn't been run yet. |
-| **`VoiceLibrarySO` / `VoicePlayer`** | **Audio/Voice*.cs** | **Phase 32 — Voice Acting MVP. Real per-line voice clips looked up by stable `lineId` (e.g. `doris_m1_greet_01`). 2D non-spatial AudioSource. `Resources.Load`s the canonical `HearthboundVoiceLibrary` asset on Awake if no inspector reference is wired. `Play(lineId)` returns the clip length so `DialogueUI` can lock the per-line `charsPerSecond` to it (lip-sync feel). `Hide()` / `SkipTypewriter()` / `PresentChoices()` call `Stop()`. See D-058 — clips live under `Audio/Voice/{character}/{lineId}.wav`; any 22 kHz mono PCM16 .wav drops in (ElevenLabs / XTTS / Piper / human VO) with no code change.** |
+| `MusicLibrarySO` / `MusicPlayer` | Audio/MusicPlayer.cs | Procedural music cues (Phase 37). Save-restored in Phase 43. **Phase 32.10 — ducks to 55% on `VoiceClipStartedEvent`, restores on `VoiceClipEndedEvent`.** |
+| `AmbientAudio` / `SfxLibrarySO` / `SfxPlayer` | Audio/AmbientAudio.cs etc. | Per-scene ambience + one-shot SFX. **Phase 32.10 — ducks to 75% on voice events (gentler than music).** |
+| `MumbleVoiceLibrarySO` / `MumbleVoicePlayer` | Audio/MumbleVoice*.cs | Phase 38 syllable-pad VO synced to the typewriter via `DialogueLineStartedEvent` / `DialogueLineEndedEvent`. **Phase 32.10 — suppresses the syllable bank for any line where `DialogueLineStartedEvent.HasVoiceClip == true` (avoids stacking on top of a real voice).** |
+| `RuntimeAudioBootstrap` | Audio/RuntimeAudioBootstrap.cs | Phase 45 auto-installer — spawns the audio rig if Phase 38's Editor builder hasn't been run yet. **Phase 32.10 — now also installs `VoicePlayer` (previously Music + Mumble + Ambient only).** |
+| **`VoiceLibrarySO` / `VoicePlayer`** | **Audio/Voice*.cs** | **Phase 32 — Voice Acting MVP. Real per-line voice clips looked up by stable `lineId` (e.g. `doris_m1_greet_01`). 2D non-spatial AudioSource. `Resources.Load`s the canonical `HearthboundVoiceLibrary` asset on Awake if no inspector reference is wired. `Play(lineId)` returns the clip length so `DialogueUI` can lock the per-line `charsPerSecond` to it (lip-sync feel). `Hide()` / `SkipTypewriter()` / `PresentChoices()` call `Stop()`. Phase 32.10 — Play / Stop / natural-end now publish `VoiceClipStartedEvent` / `VoiceClipEndedEvent`. See D-058 + D-059 — clips live under `Audio/Voice/{character}/{lineId}.wav`; any 22 kHz mono PCM16 .wav drops in (Piper / espeak-ng / ElevenLabs / XTTS / human VO) with no code change.** |
 
 **Asmdef graph (Phase 32 Voice update):** the UI asmdef now references the Audio asmdef so `DialogueUI` can call `VoicePlayer.Instance.Play(lineId)`. Audio still does not reference UI — that direction would create a cycle. Mission references both UI and Audio (unchanged).
 
@@ -210,7 +213,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 - `YarnVillageStateBridge` exposes `$trust_doris`, `$trust_gerrold`, `$memory_integrity_gerrold`, `$tea_brewed`, `$cleanse_quality`, `$choice_made` as Yarn variables wired to VillageState
 - `YarnCustomCommands` — 14 commands (Focus 07 § 2.3): `<<polish_orb>>`, `<<cleanse_orb>>`, `<<offer_choice>>`, `<<eyes_look_at>>`, `<<pickle_say>>`, `<<lights_warm>>`, `<<save_autopoint>>`, `<<echo_reveal>>`, `<<play_cutscene>>`, etc.
 - Yarn line view renders into `Bamao_ParchmentBox.prefab`
-- **Phase 32 Voice Acting MVP:** `DialogueUI.PresentLine(speaker, text, portrait, lineId)` accepts an optional stable `lineId`. When `VoicePlayer.Instance.Play(lineId)` resolves a clip, the typewriter's per-line `charsPerSecond` is locked to `text.Length / clipLen` (clamped 18–90) so the last visible character lands as the voice ends. `Mission01Director.Line(...)` forwards the lineId; the 48 Doris calls in M1 are tagged with canonical ids matching the Tools/generate_voices.sh table.
+- **Phase 32 Voice Acting MVP:** `DialogueUI.PresentLine(speaker, text, portrait, lineId)` accepts an optional stable `lineId`. When `VoicePlayer.Instance.Play(lineId)` resolves a clip, the typewriter's per-line `charsPerSecond` is locked to `text.Length / clipLen` (clamped 18–90) so the last visible character lands as the voice ends. `Mission01Director.Line(...)` forwards the lineId; **the 55 Doris calls in M1 are tagged with canonical ids matching the Tools/generate_voices.sh + Phase46_VoiceGenerator tables (Phase 32.9 grew this from 49 → 55 by tagging the 3 refused-path lines + 3 clarity-branching afterPolishLine variants).**
 
 ---
 
@@ -245,7 +248,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 - Texture compression: ASTC 6×6 mobile, ETC2 fallback
 - Profile gate: every Phase 4+ PR must pass ≤ 16 ms on mid-range Android proxy
 - **Animator**: Player Animator runs in `Normal` mode (1× LateUpdate); Apply Root Motion = false; NPCs use `CullCompletely` mode in the village lane to save ~0.4 ms when 6+ chibis are visible.
-- **Voice clips** (Phase 32 MVP): 22 kHz mono PCM16 .wav, ~10–20 MB total for Doris's 48 lines. Imported with default `Decompress on Load` (cheap on memory for ~5-second clips) — switch to `Streaming` if total voice library exceeds 50 MB on Mission 4+ rollout.
+- **Voice clips** (Phase 32 MVP): 22 kHz mono PCM16 .wav, **~30–40 MB total for the 77-line cast (Doris 55, Gerrold 8, Marin 4, Narrator 4, Pickle 6)**. Imported with default `Decompress on Load` (cheap on memory for ~5-second clips) — switch to `Streaming` if total voice library exceeds 50 MB on Mission 4+ rollout.
 
 ---
 
@@ -269,7 +272,8 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 | **Controller perception** | **Sprint + Jump available but off in Gentle Mode (D-036)** — playtester who reaches for Shift/Space doesn't bounce off a "broken" controller |
 | **Mixamo unavailable** | **Phase 26 falls back to BoZo's existing 2 anims (Idle/Walk) and the AnimatorController degrades gracefully** — game ships polished without any Mixamo downloads |
 | **Editor menu archaeology** (Phase 32) | **`🚀 Build Everything` is the only entry the user needs after every pull (D-051). Power users have full per-phase access under `⚙️ Advanced ►`. Safety confirmation dialog prevents accidental ~60 s rebuild.** |
-| **Voice provider lock-in** (Phase 32 MVP) | **D-058 — generation pipeline decoupled from runtime. macOS `say` MVP today; ElevenLabs / XTTS / Piper / human VO is a pure file-swap into `Audio/Voice/Doris/` + one menu click. No code change required when scaling to Mission 4+ with higher-fidelity voices.** |
+| **Voice provider lock-in** (Phase 32 MVP) | **D-058 — generation pipeline decoupled from runtime. Piper TTS today (D-059); ElevenLabs / XTTS / espeak-ng / human VO is a pure file-swap into `Audio/Voice/<Character>/` + one menu click. No code change required when scaling to Mission 4+ with higher-fidelity voices.** |
+| **Cross-platform TTS** (Phase 32.6) | **D-059 — Piper TTS bash pipeline (`Tools/generate_voices.sh`) runs on Linux/macOS/WSL/Git-Bash. Lighter-weight `espeak-ng` in-Editor generator (`Phase46_VoiceGenerator.cs`) chained into `🚀 Build Everything` for Windows + Linux users who don't want to install Piper. Both pipelines write to the same canonical paths.** |
 
 ---
 
@@ -303,7 +307,7 @@ Every PR to this branch updates `Docs/PROGRESS.md` with:
 
 ## 15. Decisions Index (cross-ref → PROGRESS.md)
 
-D-001 → D-058 are catalogued in `Docs/PROGRESS.md`. Newest:
+D-001 → D-059 are catalogued in `Docs/PROGRESS.md`. Newest:
 
 - **D-033** *(Phase 25 hotfix)* Procedural UI builders MUST use the two-layer pattern.
 - **D-034** *(Phase 25 hotfix)* UI overlay scripts MUST self-heal in `Show()`.
@@ -325,7 +329,8 @@ D-001 → D-058 are catalogued in `Docs/PROGRESS.md`. Newest:
 - **D-055 / D-056** *(Phase 44 — Save-resume + install-pattern policy)* See `Docs/Phase44_Polish_Layer_Signoff.md`.
 - **D-057** *(Phase 45 — Audio self-heal)* Every audio component that depends on a ScriptableObject library MUST have a `Resources.Load` self-heal fallback in `Awake()` AND log a clear error if the fallback also fails (with remediation step).
 - **D-058** *(Phase 32 — Voice Acting MVP)* **Voice clips live under `Assets/_Project/Audio/Voice/{character}/{lineId}.wav`; the generation pipeline (e.g. macOS `say`) is decoupled from the runtime — any TTS that produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper / human VO). The `VoiceLibrarySO` re-binds them on the next `OnValidate` / `Phase32_VoiceLibraryBuilder` rescan. The runtime `VoicePlayer` resolves clips by `lineId` via `Resources.Load<VoiceLibrarySO>("HearthboundVoiceLibrary")`. Missing clips degrade silently to the typewriter-only path — zero regression on installs without voice data.**
+- **D-059** *(Phase 32.6 → 32.10 — Open-source Piper TTS pipeline + interactive polish)* **The canonical TTS pipeline for Hearthbound Hollow is open-source [Piper TTS](https://github.com/rhasspy/piper) (`Tools/generate_voices.sh`), with the lighter-weight [espeak-ng](https://github.com/espeak-ng/espeak-ng) in-Editor generator (`Phase46_VoiceGenerator.cs`) as the cross-platform fallback chained into `🚀 Build Everything`. Per-character casting (Doris / Gerrold / Marin / Narrator / Pickle) is documented in `Docs/VOICE_CASTING.md` (the canonical table). Both pipelines write to the same `Audio/Voice/<Character>/<lineId>.wav` paths so the runtime is identical and D-058's file-swap policy is unchanged. Phase 32.10 also adds runtime ducking — `MusicPlayer` and `AmbientAudio` subscribe to `VoiceClipStartedEvent` / `VoiceClipEndedEvent` and dip 55% / 75% respectively while a real voice clip plays, then restore. `MumbleVoicePlayer` suppresses its syllable bank for the line when `DialogueLineStartedEvent.HasVoiceClip` is true so the procedural mumble never stacks on top of the real voice.**
 
 ---
 
-*Document version 1.5 — Phase 32 Voice Acting MVP + D-058 + Audio subsystem § 4.6 + asmdef graph note (UI → Audio).*
+*Document version 1.6 — Phase 32.6 → 32.10 Voice Acting MVP open-source pipeline + interactive polish + D-059.*
