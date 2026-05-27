@@ -40,6 +40,15 @@
 // on-screen overlay with "Hold LMB · slow circles" instructions, a
 // live progress bar, and a "Skip · Auto-Complete" button.
 //
+// ── Phase 32 — Voice Acting MVP (2026-05-27) ────────────────────
+// `Line(...)` now accepts an optional `lineId` that DialogueUI passes
+// through to `VoicePlayer.Play(lineId)` for in-sync voice playback.
+// Every Doris line in this director carries its canonical id from the
+// Tools/generate_voices.sh table (e.g. doris_m1_greet_01). When the
+// VoiceLibrarySO has a clip for that id, the matching macOS-`say`
+// (or ElevenLabs / XTTS / Piper — D-051) .wav plays alongside the
+// typewriter. Lines with no clip play silently — zero regression.
+//
 // Flow:
 //   1. Doris greets the player ("You're the new one. I thought you'd be taller.")
 //   2. 3-option opener (Hello / silent / "Who was the old one?")
@@ -166,10 +175,10 @@ namespace HearthboundHollow.Mission
             LockPlayer(true);
 
             // Doris_M1_Start — canonical opener.
-            yield return Line(dorisVillager, "Doris", "You're the new one.");
-            yield return Line(dorisVillager, "Doris", "I thought you'd be taller.");
-            yield return Line(dorisVillager, "Doris", "Don't mind me — I thought that about the old one, too.");
-            yield return Line(dorisVillager, "Doris", "Come in. The kettle's only just stopped.");
+            yield return Line(dorisVillager, "Doris", "You're the new one.", "doris_m1_greet_01");
+            yield return Line(dorisVillager, "Doris", "I thought you'd be taller.", "doris_m1_greet_02");
+            yield return Line(dorisVillager, "Doris", "Don't mind me — I thought that about the old one, too.", "doris_m1_greet_03");
+            yield return Line(dorisVillager, "Doris", "Come in. The kettle's only just stopped.", "doris_m1_greet_04");
 
             // 3-option opener (Mission 1 Guide § 8.2).
             int reply = -1;
@@ -185,19 +194,19 @@ namespace HearthboundHollow.Mission
             switch (reply)
             {
                 case 0:
-                    yield return Line(dorisVillager, "Doris", "Aye. The very same.");
-                    yield return Line(dorisVillager, "Doris", "They've put my name on the sign and everything. Look — there.");
+                    yield return Line(dorisVillager, "Doris", "Aye. The very same.", "doris_m1_reply_help_01");
+                    yield return Line(dorisVillager, "Doris", "They've put my name on the sign and everything. Look — there.", "doris_m1_reply_help_02");
                     break;
                 case 1:
-                    yield return Line(dorisVillager, "Doris", "A quiet one, then. Good.");
-                    yield return Line(dorisVillager, "Doris", "The bread likes quiet.");
+                    yield return Line(dorisVillager, "Doris", "A quiet one, then. Good.", "doris_m1_reply_silent_01");
+                    yield return Line(dorisVillager, "Doris", "The bread likes quiet.", "doris_m1_reply_silent_02");
                     AdjustTrust("doris", +1);
                     break;
                 case 2:
                     // The ONLY way to plant the Marin reveal thread in M1.
-                    yield return Line(dorisVillager, "Doris", "... Mm.");
-                    yield return Line(dorisVillager, "Doris", "That's a conversation for a longer day.");
-                    yield return Line(dorisVillager, "Doris", "Come in. Tea first.");
+                    yield return Line(dorisVillager, "Doris", "... Mm.", "doris_m1_reply_unsure_01");
+                    yield return Line(dorisVillager, "Doris", "That's a conversation for a longer day.", "doris_m1_reply_unsure_02");
+                    yield return Line(dorisVillager, "Doris", "Come in. Tea first.", "doris_m1_reply_unsure_03");
                     if (vs != null) vs.askedAboutPredecessor = true;
                     AdjustTrust("doris", +2);
                     break;
@@ -205,23 +214,23 @@ namespace HearthboundHollow.Mission
 
             // Doris_M1_BakeryEnter.
             if (vs != null) vs.metDoris = true;
-            yield return Line(dorisVillager, "Doris", "Mind the flour.");
-            yield return Line(dorisVillager, "Doris", "I haven't swept since Tuesday. I keep meaning to.");
-            yield return Line(dorisVillager, "Doris", "... The shop next door is yours. The Hollow.");
-            yield return Line(dorisVillager, "Doris", "I've been keeping the key safe for you.");
+            yield return Line(dorisVillager, "Doris", "Mind the flour.", "doris_m1_kitchen_01");
+            yield return Line(dorisVillager, "Doris", "I haven't swept since Tuesday. I keep meaning to.", "doris_m1_kitchen_02");
+            yield return Line(dorisVillager, "Doris", "... The shop next door is yours. The Hollow.", "doris_m1_kitchen_03");
+            yield return Line(dorisVillager, "Doris", "I've been keeping the key safe for you.", "doris_m1_kitchen_04");
 
             // "First customer" preamble.
-            yield return Line(dorisVillager, "Doris", "... I have something for you. Before you go in.");
-            yield return Line(dorisVillager, "Doris", "I'd like to be your first customer, if that's all right.");
+            yield return Line(dorisVillager, "Doris", "... I have something for you. Before you go in.", "doris_m1_offer_01");
+            yield return Line(dorisVillager, "Doris", "I'd like to be your first customer, if that's all right.", "doris_m1_offer_02");
 
             // Doris_M1_OfferOrb — the iconic line.
-            yield return Line(dorisVillager, "Doris", "This is the memory.");
-            yield return Line(dorisVillager, "Doris", "Hold it like you'd hold a hot bun. Not by the side. Underneath.");
-            yield return Line(dorisVillager, "Doris", "It's a small thing.");
-            yield return Line(dorisVillager, "Doris", "First time I made bread that didn't shame me.");
-            yield return Line(dorisVillager, "Doris", "Most days I think of it.");
-            yield return Line(dorisVillager, "Doris", "I want to put it down, now, for a while.");
-            yield return Line(dorisVillager, "Doris", "Will you take it?");
+            yield return Line(dorisVillager, "Doris", "This is the memory.", "doris_m1_memory_01");
+            yield return Line(dorisVillager, "Doris", "Hold it like you'd hold a hot bun. Not by the side. Underneath.", "doris_m1_memory_02");
+            yield return Line(dorisVillager, "Doris", "It's a small thing.", "doris_m1_memory_03");
+            yield return Line(dorisVillager, "Doris", "First time I made bread that didn't shame me.", "doris_m1_memory_04");
+            yield return Line(dorisVillager, "Doris", "Most days I think of it.", "doris_m1_memory_05");
+            yield return Line(dorisVillager, "Doris", "I want to put it down, now, for a while.", "doris_m1_memory_06");
+            yield return Line(dorisVillager, "Doris", "Will you take it?", "doris_m1_memory_07");
 
             // 3-option orb response.
             int orbReply = -1;
@@ -236,8 +245,8 @@ namespace HearthboundHollow.Mission
             if (orbReply == 2)
             {
                 // Refusal path — Mission 1 Guide § 9.4. Fully valid route.
-                yield return Line(dorisVillager, "Doris", "Aye. Some days are not the day.");
-                yield return Line(dorisVillager, "Doris", "I'll be here when one is.");
+                yield return Line(dorisVillager, "Doris", "Aye. Some days are not the day.", "doris_m1_defer_01");
+                yield return Line(dorisVillager, "Doris", "I'll be here when one is.", "doris_m1_defer_02");
                 if (vs != null)
                 {
                     vs.refusedDorisOrb = true;
@@ -250,16 +259,16 @@ namespace HearthboundHollow.Mission
             if (orbReply == 1)
             {
                 // Doris_M1_AboutTheLoaves — the 5-line aside.
-                yield return Line(dorisVillager, "Doris", "I was twenty-four.");
-                yield return Line(dorisVillager, "Doris", "The oven was new. The bricks were new. I was new.");
-                yield return Line(dorisVillager, "Doris", "I'd been baking other people's bread for nine years.");
-                yield return Line(dorisVillager, "Doris", "That morning was the first morning that was just mine.");
-                yield return Line(dorisVillager, "Doris", "I want to take a rest from carrying it. That's all.");
+                yield return Line(dorisVillager, "Doris", "I was twenty-four.", "doris_m1_story_01");
+                yield return Line(dorisVillager, "Doris", "The oven was new. The bricks were new. I was new.", "doris_m1_story_02");
+                yield return Line(dorisVillager, "Doris", "I'd been baking other people's bread for nine years.", "doris_m1_story_03");
+                yield return Line(dorisVillager, "Doris", "That morning was the first morning that was just mine.", "doris_m1_story_04");
+                yield return Line(dorisVillager, "Doris", "I want to take a rest from carrying it. That's all.", "doris_m1_story_05");
             }
 
             // Doris_M1_PriceNegotiation — 3 options in COPPERS (per canonical).
-            yield return Line(dorisVillager, "Doris", "Four coppers, if you're asking.");
-            yield return Line(dorisVillager, "Doris", "It's a small memory. I'll not have you overpay your first day.");
+            yield return Line(dorisVillager, "Doris", "Four coppers, if you're asking.", "doris_m1_price_01");
+            yield return Line(dorisVillager, "Doris", "It's a small memory. I'll not have you overpay your first day.", "doris_m1_price_02");
 
             int price = -1;
             PresentChoices(new[]
@@ -274,14 +283,14 @@ namespace HearthboundHollow.Mission
             switch (price)
             {
                 case 0: // Honor
-                    yield return Line(dorisVillager, "Doris", "Aye. Thank you.");
+                    yield return Line(dorisVillager, "Doris", "Aye. Thank you.", "doris_m1_price_fair");
                     coinDelta = -4;
                     if (vs != null) vs.vow5Integrity = VillageState.Adjust(vs.vow5Integrity, +2);
                     break;
                 case 1: // Pay 6 → she settles at 5
-                    yield return Line(dorisVillager, "Doris", "That's too much. I'll not have you ruin yourself.");
-                    yield return Line(dorisVillager, "Doris", "Take it back. — Well. Take *some* back.");
-                    yield return Line(dorisVillager, "Doris", "Five, then. Final.");
+                    yield return Line(dorisVillager, "Doris", "That's too much. I'll not have you ruin yourself.", "doris_m1_price_high_01");
+                    yield return Line(dorisVillager, "Doris", "Take it back. — Well. Take *some* back.", "doris_m1_price_high_02");
+                    yield return Line(dorisVillager, "Doris", "Five, then. Final.", "doris_m1_price_high_03");
                     coinDelta = -5;
                     if (vs != null)
                     {
@@ -290,8 +299,8 @@ namespace HearthboundHollow.Mission
                     }
                     break;
                 default: // Underpay 2 → debt thread
-                    yield return Line(dorisVillager, "Doris", "...");
-                    yield return Line(dorisVillager, "Doris", "Aye, that'll do. Bring the rest when you find some.");
+                    yield return Line(dorisVillager, "Doris", "...", "doris_m1_price_low_01");
+                    yield return Line(dorisVillager, "Doris", "Aye, that'll do. Bring the rest when you find some.", "doris_m1_price_low_02");
                     coinDelta = -2;
                     if (vs != null)
                     {
@@ -303,11 +312,11 @@ namespace HearthboundHollow.Mission
             if (vs != null) vs.coin = Mathf.Max(0, vs.coin + coinDelta);
 
             // Doris_M1_HandOff — the first hint that Pickle has been here for years.
-            yield return Line(dorisVillager, "Doris", "There.");
-            yield return Line(dorisVillager, "Doris", "The old keeper showed me how to make it. Took me four tries.");
-            yield return Line(dorisVillager, "Doris", "I cracked the first three. The cat watched me. Judged me, I think.");
-            yield return Line(dorisVillager, "Doris", "I'll be in the bakery if you want me. Knock twice.");
-            yield return Line(dorisVillager, "Doris", "There's a kettle on the workbench. Mind the wood stove — it bites.");
+            yield return Line(dorisVillager, "Doris", "There.", "doris_m1_handover_01");
+            yield return Line(dorisVillager, "Doris", "The old keeper showed me how to make it. Took me four tries.", "doris_m1_handover_02");
+            yield return Line(dorisVillager, "Doris", "I cracked the first three. The cat watched me. Judged me, I think.", "doris_m1_handover_03");
+            yield return Line(dorisVillager, "Doris", "I'll be in the bakery if you want me. Knock twice.", "doris_m1_handover_04");
+            yield return Line(dorisVillager, "Doris", "There's a kettle on the workbench. Mind the wood stove — it bites.", "doris_m1_handover_05");
 
             // Hand off the orb visually.
             if (workbenchOrb != null) workbenchOrb.gameObject.SetActive(true);
@@ -372,7 +381,7 @@ namespace HearthboundHollow.Mission
             // stays in the bakery; the polish itself is private.) Then
             // surface the polish tutorial UI before unlocking input.
             yield return Line(dorisVillager, "Doris",
-                "I'll wait. Take your time, Keeper.");
+                "I'll wait. Take your time, Keeper.", "doris_m1_polish_watch");
 
             if (dialogueUI != null) dialogueUI.Hide();
             LockPlayer(false);
@@ -450,14 +459,17 @@ namespace HearthboundHollow.Mission
             if (vs != null) vs.polishQuality = polishQuality;
 
             // Doris_M1_AfterPolish_Return — the warm exit.
-            yield return Line(dorisVillager, "Doris", "Aye.");
-            yield return Line(dorisVillager, "Doris", "There it is. That's the morning.");
+            yield return Line(dorisVillager, "Doris", "Aye.", "doris_m1_polish_done_01");
+            yield return Line(dorisVillager, "Doris", "There it is. That's the morning.", "doris_m1_polish_done_02");
+            // afterPolishLine is dynamic (branches on clarity) so no static lineId.
+            // When a future Phase 32.1 adds per-clarity clips, swap this line for
+            // a (lineId, fallback-text) tuple. For now: voice silent, typewriter only.
             yield return Line(dorisVillager, "Doris", afterPolishLine);
             AdjustTrust("doris", trustDelta);
 
             // Canonical M1 exit — no "goodbye." Vellis Rule § 2.1 #6.
-            yield return Line(dorisVillager, "Doris", "Sleep tonight. Dreams come.");
-            yield return Line(dorisVillager, "Doris", "I'll see you again, eventually.");
+            yield return Line(dorisVillager, "Doris", "Sleep tonight. Dreams come.", "doris_m1_polish_sleep_01");
+            yield return Line(dorisVillager, "Doris", "I'll see you again, eventually.", "doris_m1_polish_sleep_02");
 
             if (dialogueUI != null) dialogueUI.Hide();
 
@@ -509,11 +521,19 @@ namespace HearthboundHollow.Mission
             if (playerController != null) playerController.MovementLocked = locked;
         }
 
-        private IEnumerator Line(VillagerSO villager, string speakerName, string lineText)
+        /// <summary>
+        /// Present a dialogue line through the DialogueUI and wait for the
+        /// typewriter + advance input. Phase 32 — the optional
+        /// <paramref name="lineId"/> is passed straight through to
+        /// <see cref="DialogueUI.PresentLine(string,string,Sprite,string)"/>
+        /// so a matching voice clip plays in sync with the text. A null
+        /// lineId behaves identically to the pre-Phase-32 path.
+        /// </summary>
+        private IEnumerator Line(VillagerSO villager, string speakerName, string lineText, string lineId = null)
         {
             if (dialogueUI == null) yield break;
             Sprite portrait = villager != null ? villager.portraitNeutral : null;
-            dialogueUI.PresentLine(speakerName, lineText, portrait);
+            dialogueUI.PresentLine(speakerName, lineText, portrait, lineId);
             while (dialogueUI.IsBusy) yield return null;
             yield return WaitForAdvance();
         }
