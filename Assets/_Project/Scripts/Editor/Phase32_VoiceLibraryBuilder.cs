@@ -23,6 +23,15 @@
 //   3. Press Play. VoicePlayer.Awake calls Resources.Load and the dialogue
 //      starts speaking.
 //
+// Chained from `Hearthbound → 🚀 Build Everything` (Step 8.5) so the user
+// gets the voice library auto-built on the canonical one-click workflow —
+// no extra menu click required. The chain invokes `Build()` (silent — no
+// pop-up dialog) instead of the menu's `RebuildFromMenu()`.
+//
+// Chained from `Hearthbound → 🔍 Diagnose Build` (Step 6) so wiring problems
+// (missing SO, empty entries, broken AudioClip refs) surface in the aggregate
+// audit. The diagnostic invokes `Diagnose()` — read-only, never modifies.
+//
 // D-058: the .wav files themselves are the source of truth. Any TTS that
 // produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper) —
 // rerun this menu item after a regeneration and the bindings refresh.
@@ -43,6 +52,86 @@ namespace HearthboundHollow.EditorTools
 
         [MenuItem("Hearthbound/⚙️ Advanced/🎙️ Phase 32 — Rebuild Voice Library", priority = 1200)]
         public static void RebuildFromMenu() => Rebuild(verbose: true);
+
+        /// <summary>
+        /// Silent entry-point used by the `🚀 Build Everything` chain. Same as
+        /// <see cref="RebuildFromMenu"/> but skips the success dialog so the
+        /// capstone runs uninterrupted. The console summary still prints.
+        /// </summary>
+        public static void Build() => Rebuild(verbose: false);
+
+        /// <summary>
+        /// Read-only audit invoked by `🔍 Diagnose Build`. Reports:
+        ///   - whether `Resources/HearthboundVoiceLibrary.asset` exists,
+        ///   - how many entries it has,
+        ///   - how many of those entries have a non-null `clip` binding,
+        ///   - how many .wav files live under `Audio/Voice/**` on disk,
+        ///   - whether the entry count matches the on-disk count.
+        /// Never modifies any asset.
+        /// </summary>
+        public static void Diagnose()
+        {
+            var verdict = new System.Text.StringBuilder();
+            verdict.AppendLine("[Phase 32 — Voice Library Diagnostic]");
+
+            bool soPresent = false;
+            int entryCount = 0;
+            int boundClips = 0;
+            VoiceLibrarySO lib = AssetDatabase.LoadAssetAtPath<VoiceLibrarySO>(AssetPath);
+            if (lib == null)
+            {
+                verdict.AppendLine($"⚠ No VoiceLibrarySO at {AssetPath}. " +
+                                   "Run `bash Tools/generate_voices.sh` (macOS) then " +
+                                   "`Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library` " +
+                                   "(or just run `🚀 Build Everything`).");
+            }
+            else
+            {
+                soPresent = true;
+                entryCount = lib.entries != null ? lib.entries.Count : 0;
+                if (lib.entries != null)
+                {
+                    foreach (var e in lib.entries)
+                        if (e.clip != null) boundClips++;
+                }
+                verdict.AppendLine($"✓ VoiceLibrarySO loaded at {AssetPath}.");
+                verdict.AppendLine($"  • {entryCount} entries total");
+                verdict.AppendLine($"  • {boundClips} entries with a bound AudioClip");
+                int orphan = entryCount - boundClips;
+                if (orphan > 0)
+                    verdict.AppendLine($"  ⚠ {orphan} entries have NO clip — re-run Rebuild Voice Library.");
+            }
+
+            int wavCount = 0;
+            if (Directory.Exists(VoiceRoot))
+            {
+                wavCount = Directory.GetFiles(VoiceRoot, "*.wav", SearchOption.AllDirectories).Length;
+                verdict.AppendLine($"✓ Audio/Voice root present — {wavCount} .wav file(s) on disk.");
+            }
+            else
+            {
+                verdict.AppendLine($"⚠ Audio/Voice root not found at {VoiceRoot}. " +
+                                   "Voice playback is disabled (typewriter dialogue still works). " +
+                                   "Run `bash Tools/generate_voices.sh` on macOS to generate Doris's 48 clips.");
+            }
+
+            // Mismatch detection.
+            if (soPresent && wavCount > 0 && wavCount != entryCount)
+            {
+                verdict.AppendLine($"⚠ Mismatch: {wavCount} .wav file(s) on disk but {entryCount} SO entry/entries. " +
+                                   "Re-run Rebuild Voice Library to re-sync.");
+            }
+
+            // Always tell the user what file-swap policy applies.
+            verdict.AppendLine();
+            verdict.AppendLine("D-058: voice clips live under Audio/Voice/{character}/{lineId}.wav. " +
+                               "Any 22 kHz mono PCM16 .wav drops in (ElevenLabs / XTTS / Piper / human VO) " +
+                               "— overwrite the .wav files, rerun Rebuild Voice Library, done.");
+
+            string text = verdict.ToString();
+            Debug.Log(text);
+            EditorUtility.DisplayDialog("Phase 32 — Voice Library Diagnostic", text, "OK");
+        }
 
         /// <summary>
         /// Scan VoiceRoot for .wav files and produce / update the VoiceLibrarySO
