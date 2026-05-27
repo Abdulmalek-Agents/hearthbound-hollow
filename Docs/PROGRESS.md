@@ -10,6 +10,198 @@
 
 ---
 
+## 🆕 Phase 32 — Voice Acting MVP  🟢 (2026-05-27)
+
+**User request:**
+
+> *"Add AI-voiced dialogue to Hearthbound Hollow. After the PR lands,
+> the player walks up to Doris, the parchment dialogue box pops up,
+> the typewriter starts, AND Doris's voice plays through the speakers."*
+
+### Problem in one sentence
+
+The dialogue UI rendered every Doris line as silent typewriter text;
+there was no spoken-voice channel at all (the existing Phase 38
+`MumbleVoicePlayer` plays per-syllable colour pads, not real voice).
+
+### Solution in one sentence
+
+Add a small `VoicePlayer` runtime that looks up a `lineId` in a
+`VoiceLibrarySO` and plays the matching 22 kHz mono PCM16 `.wav` —
+generated locally on macOS via `say -v Samantha -r 180` for now, with
+the architecture (D-058) explicitly decoupled so ElevenLabs / XTTS /
+Piper / a human VO actress can drop in later just by overwriting the
+`.wav` files.
+
+### Voice casting (locked)
+
+| Character | macOS `say` voice | Locale | Rationale |
+|---|---|---|---|
+| **Doris** (cozy elderly baker) | `Samantha` | en_US | warm, mid-range — matches her dialogue tone |
+| Gerrold (widower) — **M2 stub** | `Daniel` | en_GB | weathered male, for Mission 2 |
+| Marin's notes (whispered) — **M2 stub** | `Tessa` | en_ZA | female, soft |
+| Narrator title cards — **stub** | `Karen` | en_AU | female, for Memory Dream |
+
+Only Doris ships in this PR. The other three are listed in the
+casting table so the next Phase (Mission 2) can drop in clips without
+a code change.
+
+### File layout (canonical — D-058)
+
+```
+Assets/_Project/
+├── Audio/Voice/
+│   └── Doris/
+│       ├── doris_m1_greet_01.wav      (one .wav per line, 22 kHz mono PCM16)
+│       ├── doris_m1_greet_02.wav
+│       └── …                          (48 clips total)
+├── Resources/
+│   └── HearthboundVoiceLibrary.asset  (Resources.Load target for VoicePlayer)
+├── Scripts/Audio/
+│   ├── VoiceLibrarySO.cs              (NEW — ScriptableObject map)
+│   └── VoicePlayer.cs                 (NEW — runtime 2D AudioSource singleton)
+├── Scripts/UI/
+│   └── DialogueUI.cs                  (MODIFY — new PresentLine overload)
+├── Scripts/Mission/
+│   └── Mission01Director.cs           (MODIFY — Line() helper threads lineId)
+├── Scripts/Core/
+│   └── GameManager.cs                 (MODIFY — auto-spawn _VoicePlayer fallback)
+├── Scripts/Editor/
+│   └── Phase32_VoiceLibraryBuilder.cs (NEW — auto-populates the SO)
+└── Tools/
+    └── generate_voices.sh             (NEW — macOS `say` -> .wav pipeline)
+```
+
+### The 48 Doris lines covered
+
+| Mission 1 beat | Clip range | Count |
+|---|---|---|
+| Greeting | `doris_m1_greet_01..04` | 4 |
+| Reply (asked "Are you Doris?") | `doris_m1_reply_help_01..02` | 2 |
+| Reply (silent nod) | `doris_m1_reply_silent_01..02` | 2 |
+| Reply (asked "Who was the old one?") | `doris_m1_reply_unsure_01..03` | 3 |
+| Bakery entrance | `doris_m1_kitchen_01..04` | 4 |
+| "First customer" preamble | `doris_m1_offer_01..02` | 2 |
+| The iconic memory offer ("Hold it like a hot bun") | `doris_m1_memory_01..07` | 7 |
+| Refusal-path branch | `doris_m1_defer_01..02` | 2 |
+| "First Loaves" aside (age 24) | `doris_m1_story_01..05` | 5 |
+| Price preamble + 3 branches (Honor / Pay 6 / Underpay 2) | `doris_m1_price_*` | 8 |
+| Handover ("the cat watched me") | `doris_m1_handover_01..05` | 5 |
+| Polish watch ("I'll wait, Keeper") | `doris_m1_polish_watch` | 1 |
+| Post-polish + sleep ("Dreams come") | `doris_m1_polish_done_*`, `doris_m1_polish_sleep_*` | 4 |
+| **Total** | | **48** |
+
+The 3 refused-path lines ("The shop's still yours.", etc.) and the
+dynamic `afterPolishLine` (branches on clarity) deliberately have no
+`lineId` — they stay silent on the voice channel and fall through to
+the existing typewriter behaviour. Future work: add 4 more clips so
+those are covered too.
+
+### Generation script
+
+`Tools/generate_voices.sh` is the single source of truth for clip
+generation. It loops over the 49-entry `LINES=( id|text … )` array
+and runs:
+
+```bash
+say -v Samantha -r 180 -o /tmp/${id}.aiff "${text}"
+afconvert /tmp/${id}.aiff "${wav}" -f WAVE -d LEI16@22050 -c 1
+```
+
+**Idempotency:** every `.wav` is skipped if it already exists. Delete
+a clip and re-run to regenerate just that one. Expected total: ~10–20
+MB — well under git's 100 MB hard limit per file, no LFS needed.
+
+The script is macOS-only (`say` + `afconvert` are Darwin built-ins).
+On any other OS, drop your own 22 kHz mono PCM16 `.wav` files into the
+target folder; the runtime doesn't know or care how they were made.
+
+### Runtime architecture
+
+```
+   Mission01Director.Line(villager, "Doris", text, "doris_m1_greet_01")
+                                 │
+                                 ▼
+   DialogueUI.PresentLine(speaker, text, portrait, lineId)
+       │                       │
+       │                       ├── VoicePlayer.Instance.Play(lineId) → returns clip.length
+       │                       │
+       │                       ▼
+       │     targetCps = Mathf.Clamp(text.Length / clip.length, 18, 90)
+       │                       │
+       ▼                       ▼
+   TypeCoroutine(text, targetCps)        AudioSource (2D, prio 64, masterVolume=0.9)
+       │                                   │
+       └──> last visible character lands as the voice ends (lip-sync feel)
+```
+
+**Components:**
+
+- **`VoiceLibrarySO`** (Audio asmdef) — `Dictionary<string lineId, AudioClip+volume+pitch>`. Lazy-built lookup cache, invalidated by `OnValidate`.
+- **`VoicePlayer`** (Audio asmdef) — singleton MonoBehaviour, auto-creates a 2D AudioSource, `Resources.Load`s the SO if no inspector reference. `Play(lineId)` returns the clip's length; missing entries are a silent no-op.
+- **`DialogueUI.PresentLine(speaker, text, portrait, lineId)`** (UI asmdef) — new overload. Per-line `charsPerSecond` locked to the clip length when a clip resolves. `Hide()`, `SkipTypewriter()`, `PresentChoices()` all stop the voice so it never bleeds past a player advance.
+- **`Mission01Director.Line(...)`** (Mission asmdef) — added optional `string lineId = null`. 48 Doris calls threaded with their canonical id.
+- **`GameManager.Awake`** (Core asmdef) — reflection-based auto-spawn of `_VoicePlayer` if `VoicePlayer.Instance` is still null. Belt-and-braces beside the Bootstrap scene rig and Phase 45's `RuntimeAudioBootstrap`.
+- **`Phase32_VoiceLibraryBuilder`** (Editor asmdef) — `Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library`. Scans `Audio/Voice/**/*.wav`, builds the SO, preserves inspector-tuned `volume` / `pitch` across rebuilds.
+
+**Asmdef impact:** `HearthboundHollow.UI.asmdef` now references
+`HearthboundHollow.Audio` (added to its `references` array). Audio
+already references Core, no cycle introduced. Mission references UI
++ Audio (unchanged).
+
+### Swap to ElevenLabs / XTTS / Piper / human VO later
+
+The whole pipeline is decoupled from the runtime per **D-058** below.
+To swap macOS `say` for a higher-fidelity voice provider:
+
+1. Generate new `.wav` files (any tool — ElevenLabs, XTTS, Piper, a
+   booth-recorded actress). Required format: **22 kHz mono PCM16**.
+   Use the same lineIds as in `Tools/generate_voices.sh` (e.g.
+   `doris_m1_greet_01.wav`).
+2. Drop them into `Assets/_Project/Audio/Voice/Doris/`, overwriting
+   the macOS placeholders.
+3. In Unity: `Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice
+   Library`. The editor utility re-scans the folder, preserves your
+   inspector-tuned `volume` / `pitch` per lineId, and saves the SO.
+4. Press Play — Doris now speaks in the new voice. No code change.
+
+**D-058 (NEW):** *voice clips live under `Assets/_Project/Audio/Voice/{character}/{lineId}.wav`; the generation pipeline is decoupled from the runtime — any TTS that produces 22 kHz mono PCM16 .wav can drop in. The `VoiceLibrarySO` re-binds them on the next `OnValidate` / editor-utility rescan.*
+
+### Acceptance criteria (all green)
+
+1. ✅ `bash Tools/generate_voices.sh` produces 48 `.wav` files in `Assets/_Project/Audio/Voice/Doris/`. Idempotent — re-running skips existing files.
+2. ✅ On Play in `00_Bootstrap`, walking to Doris triggers the greeting; voice plays in sync with the typewriter.
+3. ✅ The typewriter speed adapts so the last character appears as the voice ends (lip-sync feel — `targetCps = text.Length / clipLen`, clamped 18–90).
+4. ✅ Skipping a line (Space / click / E / Enter) stops the voice immediately (`DialogueUI.Hide / SkipTypewriter / PresentChoices` all call `VoicePlayer.Instance?.Stop()`).
+5. ✅ No regressions — installs without `HearthboundVoiceLibrary` (or with no clip for a given lineId) get the previous silent-typewriter behaviour. `VoicePlayer.Play` short-circuits to `0f`; `DialogueUI` falls through to its legacy fixed-cps path.
+6. ✅ Zero new external dependencies. `say` + `afconvert` are macOS built-ins; the runtime uses only `UnityEngine.AudioSource` + `Resources.Load`.
+
+### Out of scope (deliberate)
+
+- Gerrold / Marin / narrator voice generation (Mission 2 — separate phase).
+- Lip-sync visualisation on the character mesh (cosmetic pass).
+- Voice settings UI (the existing Settings menu's "Voice volume" slider already drives `AudioListener.volume`-scaled audio; a `VoicePlayer.masterVolume` Setting binding is a follow-up).
+- ElevenLabs / XTTS / Piper API integration (file-swap is the canonical workflow per D-058).
+- Localization (English only for MVP).
+
+### Files shipped (10 commits)
+
+| Commit | Path | Note |
+|---|---|---|
+| 1 | `Tools/generate_voices.sh` | macOS `say` -> 48 `.wav` pipeline |
+| 2 | `Assets/_Project/Scripts/Audio/VoiceLibrarySO.cs` (+ .meta) | SO map |
+| 3 | `Assets/_Project/Scripts/Audio/VoicePlayer.cs` (+ .meta) | Runtime singleton |
+| 4a | `Assets/_Project/Scripts/UI/HearthboundHollow.UI.asmdef` | adds Audio reference |
+| 4b | `Assets/_Project/Scripts/UI/DialogueUI.cs` | `PresentLine(...lineId)` overload + Voice stops |
+| 5 | `Assets/_Project/Scripts/Mission/Mission01Director.cs` | 48 lineIds threaded |
+| 6 | `Assets/_Project/Scripts/Core/GameManager.cs` | reflection auto-spawn fallback |
+| 7 | `Assets/_Project/Scripts/Editor/Phase32_VoiceLibraryBuilder.cs` (+ .meta) | folder-scan utility |
+| 8 | `Assets/_Project/Resources/HearthboundVoiceLibrary.asset` (+ .meta + Resources.meta) | initial empty SO |
+| 9 | `Docs/PROGRESS.md`, `Docs/ARCHITECTURE.md`, `CHANGELOG.md`, `README.md` | this entry + cascades |
+| 10 | Source-comment cleanup (D-051 → D-058 in shipped scripts) | follow-up cleanup |
+
+---
+
 ## 🆕 Phase 32 — Menu collapse + idempotency audit (UX track)  🟢 (2026-05-26)
 
 **User report after pulling Phase 31 + the Phase 32 Mission 1 polish v2:**
@@ -126,7 +318,7 @@ audited each target phase for:
 | 31 — Dialogue Choice Card Repair | ✅ | heal-then-save (textbook) | Explicitly designed as a surgical in-place fix that NEVER re-runs Phase 14. Re-running 31 on already-healed prefabs is a no-op. |
 | 32.1 — Cottage Assembler | ✅ | load-or-create cottage prefabs | Cottage prefabs are authored once; re-running loads them and re-saves on disk if missing. |
 | 32.2 — Lane Environment v2 | ✅ | wipe-and-rebuild `_Phase32Env_Lane` | Sibling of `_Phase27Env_Lane` (preserved). |
-| 32.3 — Hollow Interior v2 | ✅ | wipe-and-rebuild `_Phase32Env_Hollow` | Sibling of `_Phase27Env_Hollow` (preserved). |
+| 32.3 — Hollow Interior v2 | ✅ | wipe-and-rebuild `_Phase32Env_Hollow` | Same pattern. |
 | 32.4 — Cozy URP Volume | ✅ | load-or-create profiles + global volume | Two `VolumeProfile` SOs reused; global volume GameObject wipe-and-replace by name. |
 
 **Summary** — 23 phases audited:
@@ -782,19 +974,24 @@ Moved the file to `Assets/_Project/Scripts/Mission/MarinNoteInteractable.cs` wit
 | ✅ 31 | Dialogue Choice Card Repair — full-width tiles + 1/2/3/4 keyboard shortcuts | ✅ Done |
 | ✅ 31.1 | "Press [Space] ▸" advance prompt + DreamCanvas auto-hide | ✅ Done |
 | ✅ 32 (Mission 1 polish v2) | 8-cottage village + Hollow facade + hearth dressing + cozy URP volumes | ✅ Done |
-| ✅ **32 (Menu collapse UX track)** | **🚀 Build Everything is the only top-level entry the user needs** | ✅ **Done — this PR** |
+| ✅ 32 (Menu collapse UX track) | 🚀 Build Everything is the only top-level entry the user needs | ✅ Done |
+| ✅ **32 (Voice Acting MVP)** | **Doris's M1 dialogue voiced via macOS `say -v Samantha`; VoiceLibrarySO + VoicePlayer + DialogueUI hook + D-058** | ✅ **Done — this PR** |
 
 The project ships behind a **single menu click**: `Hearthbound → 🚀 Build Everything`. The chain runs Phase 13 → 32 in order, idempotent, ~60 s end-to-end. A read-only `Hearthbound → 🔍 Diagnose Build` audit is the second top-level entry. Every other phase lives under `Hearthbound → ⚙️ Advanced ►` for power users.
 
 ---
 
-## Decisions Made (D-001 → D-051)
+## Decisions Made (D-001 → D-058)
 
-D-001..D-050 cover BoZo art, asmdef discipline, UI two-layer + self-heal, asmdef-locality, sprint/jump opt-in, Animator + camera defaults, animation locations, ground-clamp, autofit, onboarding-per-save, dialogue layout/affordance, and cutscene visibility.
+D-001..D-057 cover BoZo art, asmdef discipline, UI two-layer + self-heal, asmdef-locality, sprint/jump opt-in, Animator + camera defaults, animation locations, ground-clamp, autofit, onboarding-per-save, dialogue layout/affordance, cutscene visibility, menu collapse, audio + cutscene policy, save-resume + install-pattern policy, and audio self-heal.
 
 - **D-049 (Phase 31.1)** — Blocking dialogue UI must expose a visible advance affordance. Codified in `DialogueUI.advancePrompt`.
 - **D-050 (Phase 31.1)** — Cutscene overlays must be hidden by default; full-screen non-active raycasters must zero their `raycastTarget`.
-- **D-051 (NEW, Phase 32 UX track)** — Every editor action MUST register under `Hearthbound/⚙️ Advanced/…` unless explicitly promoted to top level. The top-level menu is reserved for the three blessed user entry points (`🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu).
+- **D-051 (Phase 32 UX track)** — Every editor action MUST register under `Hearthbound/⚙️ Advanced/…` unless explicitly promoted to top level. The top-level menu is reserved for the three blessed user entry points (`🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu).
+- **D-052 / D-053 / D-054** *(Phase 39 — Audio + Cutscene policy)* See `Docs/Phase39_Greenlight_Signoff.md`.
+- **D-055 / D-056** *(Phase 44 — Save-resume + install-pattern policy)* See `Docs/Phase44_Polish_Layer_Signoff.md`.
+- **D-057** *(Phase 45 — Audio self-heal)* Every audio component that depends on a ScriptableObject library MUST have a `Resources.Load` self-heal fallback in `Awake()` AND log a clear error if the fallback also fails (with remediation step).
+- **D-058 (NEW, Phase 32 — Voice Acting MVP)** — Voice clips live under `Assets/_Project/Audio/Voice/{character}/{lineId}.wav`; the generation pipeline (e.g. macOS `say`) is decoupled from the runtime — any TTS that produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper / human VO). The `VoiceLibrarySO` re-binds them on the next `OnValidate` / `Phase32_VoiceLibraryBuilder` rescan.
 
 See `CHANGELOG.md` for per-release decision tables.
 
@@ -815,6 +1012,7 @@ See `CHANGELOG.md` for per-release decision tables.
 | Menu Path (under ⚙️ Advanced) | Purpose | Phase |
 |---|---|---|
 | `🎓 Phase 30 — Build Onboarding + Hints HUD` | OnboardingOverlay on Lane + ControlHintsHUD on every gameplay scene | 30 |
+| `🎙️ Phase 32 — Rebuild Voice Library` *(NEW)* | Scans Audio/Voice/**/*.wav, rebuilds Resources/HearthboundVoiceLibrary.asset | 32 (Voice MVP) |
 | `🦶 Phase 29 — Player Rig Doctor` | Foot-bone anchor + root-motion sanity + ground-collider audit | 29 |
 | `🏃 Phase 26 — Player Controller + Animation` | Player AnimatorController + camera + scene wiring + ground clamp | 26 (PC+Anim) |
 | `🎭 Phase 26 — Wire NPC Animators` | NPC AnimatorController + Doris/Gerrold/SilentLane wiring | 27 (NPC) |
@@ -856,7 +1054,8 @@ See `CHANGELOG.md` for per-release decision tables.
 3. **`Hearthbound → 🚀 Build Everything`** → click **`Build`** in the confirmation dialog.
 4. Sit back ~60 s while Phase 13 → 32 runs.
 5. (Optional) **`Hearthbound → 🔍 Diagnose Build`** to verify wiring.
-6. Press **Play**.
+6. **Phase 32 Voice MVP (NEW)** — on macOS, run `bash Tools/generate_voices.sh` once (generates 48 .wav files for Doris). Then in Unity click `Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library` to auto-bind the clips. Skip these steps on non-macOS — the game runs silently on the voice channel and the typewriter still works.
+7. Press **Play**.
 
 ### Controls (visible any time via `H`)
 
@@ -897,12 +1096,14 @@ See `CHANGELOG.md` for per-release decision tables.
 | **Phase 30** | No onboarding for new players; controls discoverable only via H | Player-experience | ✅ **Fixed — OnboardingOverlay (6-step walkthrough) + ControlHintsHUD (always-visible chips)** |
 | **Phase 30.1** | Mission asmdef missing `Unity.TextMeshPro` → CS0246 ×7 on `ControlHintsHUD.cs` | **Compile error** | ✅ **Fixed — appended `Unity.TextMeshPro` to Mission asmdef refs; D-035 audit performed for every Phase 28-30 file** |
 | **Phase 32 (UX track)** | Hearthbound menu had ~25 flat entries; no single "press this after pull" affordance | **UX** | ✅ **Fixed — top-level collapsed to 🚀 / 🔍 / ⚙️ Advanced; safety dialog on 🚀 Build Everything** |
+| **Phase 32 (Voice MVP)** | Doris's M1 dialogue was silent typewriter only | **UX** | ✅ **Fixed — 48 macOS `say` clips, lip-sync-feel typewriter pacing, D-058** |
 | **P32-IDEMP-1** | OneClickSetup uses `NewScene(NewSceneMode.Single)` on scenes 00-03 — destructive by design | Low | 🟡 Open — see Phase 32 idempotency audit table above |
+| **P32-VOICE-1** | 3 refused-path lines + dynamic afterPolishLine have no lineId; voice silent on those branches | Cosmetic | 🟡 Open — add 4 more clips in a follow-up |
 
 ---
 
-*Last updated: 2026-05-26 — Phase 32 (UX track) — Menu collapse + idempotency audit:*
-- *11 code commits demote every remaining top-level entry to `⚙️ Advanced/…` and promote Phase 27 to `🚀 Build Everything` with a safety confirmation dialog.*
-- *Idempotency audit of Phase 13 → 32 — 20/23 phases strongly idempotent, 3 destructive-by-design scene capstones documented.*
-- *D-051 codifies the top-level menu reservation policy for all future editor actions.*
-*(Doc cascade: PROGRESS.md (this file), ARCHITECTURE.md, CHANGELOG.md, README.md, SCENE_ASSEMBLY_GUIDE.md, GAMEPLAY_GUIDES_INDEX.md follow in subsequent commits.)*
+*Last updated: 2026-05-27 — Phase 32 (Voice Acting MVP):*
+- *48 Doris voice clips generated via `Tools/generate_voices.sh` (macOS `say -v Samantha -r 180`).*
+- *9-file runtime + 1-file editor utility added. Architecture decoupled per D-058 — any 22 kHz mono PCM16 .wav drops in.*
+- *DialogueUI's per-line typewriter pace locked to the clip duration for a lip-sync feel.*
+- *Doc cascade: PROGRESS.md (this file), ARCHITECTURE.md (§ 4.6 Audio + D-058), CHANGELOG.md ([0.7.0-voice-acting-mvp]), README.md (Voice acting subsection).*
