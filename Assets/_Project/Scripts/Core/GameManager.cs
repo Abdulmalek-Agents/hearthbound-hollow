@@ -8,6 +8,10 @@
 //   * Provide scene-transition helpers (SceneManager wrapper with Addressables
 //     fallback hooks for Phase 3+)
 //   * Boot the first scene (MainMenu) after bootstrap
+//   * Phase 32 — auto-spawn HearthboundHollow.Audio.VoicePlayer if it has
+//     not been wired into the Bootstrap scene. Belt-and-braces alongside
+//     Phase 45's RuntimeAudioBootstrap: even a fresh clone with no audio
+//     scene wiring gets a working VoicePlayer the moment GameManager wakes.
 
 using System;
 using UnityEngine;
@@ -41,6 +45,13 @@ namespace HearthboundHollow.Core
         [Tooltip("If true, auto-load MainMenu after one frame of bootstrap.")]
         public bool autoLoadMainMenu = true;
 
+        [Header("Audio (Phase 32 — Voice Acting MVP)")]
+        [Tooltip("If true, auto-spawn HearthboundHollow.Audio.VoicePlayer as a " +
+                 "child of GameManager when no VoicePlayer.Instance is present " +
+                 "by GameManager.Awake. Belt-and-braces alongside the scene-baked " +
+                 "rig + Phase 45 RuntimeAudioBootstrap.")]
+        public bool autoSpawnVoicePlayer = true;
+
         public event Action<string> OnSceneLoadStarted;
         public event Action<string> OnSceneLoadCompleted;
 
@@ -68,7 +79,58 @@ namespace HearthboundHollow.Core
 
             EventBus.Publish(new VillageStateLoadedEvent(villageState));
 
+            // Phase 32 — Voice Acting MVP: ensure a VoicePlayer exists. This
+            // is a no-op when the Bootstrap scene already wires one (preferred),
+            // and when Phase 45's RuntimeAudioBootstrap has already installed
+            // the audio rig. Belt-and-braces for fresh clones where neither
+            // path has run yet. The lookup is reflection-light: we use a fully
+            // qualified type name so Core asmdef has zero compile-time dep on
+            // Audio asmdef (Audio already references Core, not the other way
+            // round — avoiding a cycle).
+            if (autoSpawnVoicePlayer) TryAutoSpawnVoicePlayer();
+
             Hh.Log(LogCategory.Boot, $"GameManager bootstrapped. Day {villageState.currentDayIndex}, Coin {villageState.coin}.");
+        }
+
+        /// <summary>
+        /// Spawn a HearthboundHollow.Audio.VoicePlayer GameObject under us if
+        /// the Audio assembly is loaded and no VoicePlayer.Instance is set.
+        /// Done via reflection so the Core asmdef does not need a reference
+        /// to the Audio asmdef (which would create an asmdef cycle: Audio
+        /// already references Core).
+        /// </summary>
+        private void TryAutoSpawnVoicePlayer()
+        {
+            // Find the VoicePlayer type via reflection — Audio asmdef is loaded
+            // in the same Editor process / build because Mission01Director
+            // (Mission asmdef → Audio asmdef) is referenced from the scene.
+            var voicePlayerType = Type.GetType("HearthboundHollow.Audio.VoicePlayer, HearthboundHollow.Audio");
+            if (voicePlayerType == null)
+            {
+                Hh.Log(LogCategory.Audio,
+                    "GameManager: HearthboundHollow.Audio.VoicePlayer type not found " +
+                    "(Audio asmdef not loaded). Skipping auto-spawn.");
+                return;
+            }
+
+            // Check the static `Instance` property — if non-null, the rig is
+            // already up (scene-baked or Phase 45 auto-installed).
+            var instanceProp = voicePlayerType.GetProperty(
+                "Instance",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+            var existing = instanceProp != null ? instanceProp.GetValue(null) : null;
+            if (existing != null)
+            {
+                Hh.Log(LogCategory.Audio,
+                    "GameManager: existing VoicePlayer detected; skipping auto-spawn.");
+                return;
+            }
+
+            var go = new GameObject("_VoicePlayer", voicePlayerType);
+            go.transform.SetParent(transform, false);
+            Hh.Log(LogCategory.Audio,
+                "GameManager: auto-spawned _VoicePlayer (Phase 32 fallback). " +
+                "For Inspector control, wire one into the Bootstrap scene.");
         }
 
         private void Start()
