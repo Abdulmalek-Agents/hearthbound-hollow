@@ -36,6 +36,17 @@
 // so MumbleVoicePlayer (Audio asmdef, no UI dep) can sync per-character
 // syllable playback to the typewriter reveal. Speaker is lower-cased to
 // match the canonical character id in MumbleVoiceLibrarySO.banks.
+//
+// ── Phase 32 — Voice Acting MVP (2026-05-27) ────────────────────
+// PresentLine now has an overload taking a `lineId`. When that lineId
+// resolves in `VoicePlayer.Instance` → `VoiceLibrarySO`, the matching
+// 22 kHz mono PCM16 voice clip plays in sync with the typewriter. The
+// per-line `charsPerSecond` is locked to `clip.length / text.Length`
+// so the last visible character lands exactly as the voice ends — a
+// real lip-sync feel. Skipping a line (Space / click) ALSO stops the
+// voice (DialogueUI.Hide / SkipTypewriter / PresentChoices). Zero
+// regression: the parameterless overload still exists; missing voice
+// data is a silent no-op and the old typewriter-only path runs.
 
 using System;
 using System.Collections;
@@ -43,6 +54,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using HearthboundHollow.Audio;
 using HearthboundHollow.Core;
 
 namespace HearthboundHollow.UI
@@ -50,6 +62,14 @@ namespace HearthboundHollow.UI
     public interface IDialoguePresenter
     {
         void PresentLine(string speakerName, string lineText, Sprite portrait);
+
+        /// <summary>
+        /// Phase 32 overload — additionally accepts a stable lineId looked up
+        /// in <see cref="VoiceLibrarySO"/> via <see cref="VoicePlayer"/>. A
+        /// null/empty lineId behaves identically to the no-lineId overload.
+        /// </summary>
+        void PresentLine(string speakerName, string lineText, Sprite portrait, string lineId);
+
         void PresentChoices(IReadOnlyList<string> choices, Action<int> onChoiceSelected);
         void Hide();
         bool IsBusy { get; }
@@ -174,6 +194,18 @@ namespace HearthboundHollow.UI
         }
 
         public void PresentLine(string speaker, string text, Sprite portrait)
+            => PresentLine(speaker, text, portrait, null);
+
+        /// <summary>
+        /// Phase 32 — Voice Acting MVP overload. <paramref name="lineId"/> is
+        /// looked up in <see cref="VoicePlayer.Instance"/>'s VoiceLibrarySO;
+        /// if it resolves the clip plays in sync with the typewriter, and the
+        /// per-line typewriter speed is locked to <c>text.Length / clipLen</c>
+        /// so the last character lands as the voice ends (lip-sync feel).
+        /// A null/empty lineId, missing entry, or null clip is a silent no-op
+        /// and the old typewriter-only behaviour runs.
+        /// </summary>
+        public void PresentLine(string speaker, string text, Sprite portrait, string lineId)
         {
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             if (root != null) root.SetActive(true);
@@ -212,11 +244,29 @@ namespace HearthboundHollow.UI
 
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
 
+            // ── Phase 32 — Voice Acting MVP ────────────────────────────
+            // Play the voice clip (if any) for this line. The typewriter
+            // charsPerSecond is then locked to the clip duration so the last
+            // character lands as the voice ends — gives a real lip-sync feel.
+            // VoicePlayer.Play returns 0f when there's no clip, in which case
+            // we fall through to the legacy fixed charsPerSecond path.
+            float clipLen = VoicePlayer.Instance != null ? VoicePlayer.Instance.Play(lineId) : 0f;
+            int targetCps = charsPerSecond;
+            if (clipLen > 0.4f && !string.IsNullOrEmpty(text))
+                targetCps = Mathf.Clamp(Mathf.RoundToInt(text.Length / clipLen), 18, 90);
+
             // Phase 38 — publish DialogueLineStartedEvent so MumbleVoicePlayer
             // (Audio asmdef, no direct UI reference) can sync syllable
             // playback to this line. Speaker is lower-cased to match the
             // canonical character id used by MumbleVoiceLibrarySO.banks.
-            float estimatedDur = ComputeTypewriterDuration(_fullLineText);
+            //
+            // Note: when a real voice clip is playing (Phase 32), mumble VO is
+            // still published — MumbleVoicePlayer is expected to suppress its
+            // syllable bank for characters that have a real voice. That's a
+            // follow-up Phase 32.1 wiring (see PROGRESS.md).
+            float estimatedDur = clipLen > 0.4f
+                ? clipLen + postLineLinger
+                : ComputeTypewriterDuration(_fullLineText, targetCps);
             _lastSpeakerId = (speaker ?? string.Empty).Trim().ToLowerInvariant();
             EventBus.Publish(new DialogueLineStartedEvent(
                 _lastSpeakerId,
@@ -225,7 +275,7 @@ namespace HearthboundHollow.UI
 
             if (gameObject.activeInHierarchy && isActiveAndEnabled)
             {
-                _typeCoroutine = StartCoroutine(TypeCoroutine(text));
+                _typeCoroutine = StartCoroutine(TypeCoroutine(text, targetCps));
             }
             else
             {
@@ -243,11 +293,19 @@ namespace HearthboundHollow.UI
         /// `DialogueLineStartedEvent` payload can carry an accurate duration
         /// for the mumble VO to pace its syllable count against.
         /// </summary>
-        private float ComputeTypewriterDuration(string text)
+        private float ComputeTypewriterDuration(string text) => ComputeTypewriterDuration(text, charsPerSecond);
+
+        /// <summary>
+        /// Phase 32 overload — when a voice clip is playing, the typewriter
+        /// speed is locked to the clip duration; this overload lets callers
+        /// pass the resulting <paramref name="cps"/> so the predicted
+        /// duration matches the actual coroutine timing.
+        /// </summary>
+        private float ComputeTypewriterDuration(string text, int cps)
         {
             if (string.IsNullOrEmpty(text)) return 0.3f;
-            int cps = Mathf.Max(1, charsPerSecond);
-            return text.Length / (float)cps + postLineLinger;
+            int useCps = Mathf.Max(1, cps);
+            return text.Length / (float)useCps + postLineLinger;
         }
 
         /// <summary>
@@ -279,6 +337,9 @@ namespace HearthboundHollow.UI
             if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
             if (lineText != null) lineText.text = _fullLineText;
             IsBusy = false;
+            // Phase 32 — stop the voice clip immediately on skip so the
+            // audio doesn't keep speaking after the player advances.
+            VoicePlayer.Instance?.Stop();
             // Phase 38 — tell MumbleVoicePlayer the line is done early.
             EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
         }
@@ -287,6 +348,10 @@ namespace HearthboundHollow.UI
         {
             _choiceCallback = onChoiceSelected;
             ClearChoices();
+
+            // Phase 32 — stop any in-progress voice clip when choices appear,
+            // so a lingering line doesn't bleed into the player's decision moment.
+            VoicePlayer.Instance?.Stop();
 
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             if (root != null && !root.activeSelf) root.SetActive(true);
@@ -333,6 +398,9 @@ namespace HearthboundHollow.UI
                 lineText.gameObject.SetActive(true);
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
             _fullLineText = null;
+            // Phase 32 — stop voice playback when the dialogue UI hides so a
+            // voice clip doesn't keep playing after the conversation ends.
+            VoicePlayer.Instance?.Stop();
             // Phase 38 — stop mumble playback when the dialogue UI hides.
             EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
             if (root != null && root != gameObject) root.SetActive(false);
@@ -357,12 +425,19 @@ namespace HearthboundHollow.UI
             cb?.Invoke(index);
         }
 
-        private IEnumerator TypeCoroutine(string text)
+        private IEnumerator TypeCoroutine(string text) => TypeCoroutine(text, charsPerSecond);
+
+        /// <summary>
+        /// Phase 32 overload — accepts an explicit chars-per-second so the
+        /// voice-locked typewriter pace from <see cref="PresentLine(string,string,Sprite,string)"/>
+        /// is honoured. Falls back to <see cref="charsPerSecond"/> if not given.
+        /// </summary>
+        private IEnumerator TypeCoroutine(string text, int cps)
         {
             IsBusy = true;
             if (lineText == null) { IsBusy = false; yield break; }
             lineText.text = string.Empty;
-            float interval = 1f / Mathf.Max(1, charsPerSecond);
+            float interval = 1f / Mathf.Max(1, cps);
             for (int i = 0; i < text.Length; i++)
             {
                 lineText.text += text[i];
