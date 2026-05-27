@@ -24,6 +24,12 @@
 // AmbienceLibrarySO, MumbleVoiceLibrarySO, DreamAudioBinder cueMap, and
 // per-scene SceneAudioBeacon wiring.
 //
+// Phase 46 update (2026-05-27): added a 6th step that runs the level-polish
+// diagnostic (Phase46_LevelPolishDiagnostic) — verifies skybox material
+// assignment, sun-light bind, perimeter wall count, invisible void-blocker
+// count, guide-lantern LaneGuidePulse component count, and cottage
+// HearthFlicker component count across all four gameplay scenes.
+//
 // READ-ONLY. Never modifies any asset. Safe to run any number of times.
 //
 // USE: Menu → Hearthbound → 🔍 Diagnose Build
@@ -51,7 +57,7 @@ namespace HearthboundHollow.EditorTools
             try
             {
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 1/5 — Phase 23 diagnostic …", 0.05f);
+                    "Step 1/6 — Phase 23 diagnostic …", 0.05f);
                 if (TryRun("Phase 23 — Scene/Wiring Diagnostic",
                           "HearthboundHollow.EditorTools.Phase23_DiagnosticReport", "Run") ||
                     TryRun("Phase 23 — Scene/Wiring Diagnostic",
@@ -61,7 +67,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 2/5 — Phase 26 diagnostic (Animator + Player + cameras) …", 0.25f);
+                    "Step 2/6 — Phase 26 diagnostic (Animator + Player + cameras) …", 0.20f);
                 if (TryRun("Phase 26 — Player + Animator Diagnostic",
                           "HearthboundHollow.EditorTools.Phase26_DiagnosticReport", "Run") ||
                     TryRun("Phase 26 — Player + Animator Diagnostic",
@@ -71,7 +77,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 3/5 — Phase 32 diagnostic (Mission 1 polish v2) …", 0.45f);
+                    "Step 3/6 — Phase 32 diagnostic (Mission 1 polish v2) …", 0.38f);
                 if (TryRun("Phase 32 — Mission 1 Polish Diagnostic",
                           "HearthboundHollow.EditorTools.Phase32_Diagnostic", "Diagnose") ||
                     TryRun("Phase 32 — Mission 1 Polish Diagnostic",
@@ -86,7 +92,7 @@ namespace HearthboundHollow.EditorTools
                 // diagnostic ALSO reports on the Phase 36 / 37 deliverables
                 // before the audio + cutscene work has fully landed.
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 4/5 — Phase 35 continuation audit (cutscenes + audio + menus) …", 0.65f);
+                    "Step 4/6 — Phase 35 continuation audit (cutscenes + audio + menus) …", 0.55f);
                 if (TryRun("Phase 35 — Flat Entry Audit",
                           "HearthboundHollow.EditorTools.Phase35_FlatEntryAudit", "Run"))
                     ran++;
@@ -98,15 +104,29 @@ namespace HearthboundHollow.EditorTools
                 // text-grep). Catches audio regressions even when the Phase
                 // 35 audit is satisfied.
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Step 5/5 — Phase 40 audio-wiring diagnostic …", 0.85f);
+                    "Step 5/6 — Phase 40 audio-wiring diagnostic …", 0.72f);
                 if (TryRun("Phase 40 — Audio Wiring Diagnostic",
                           "HearthboundHollow.EditorTools.Phase40_AudioDiagnostic", "Run"))
                     ran++;
                 else
                     skipped++;
 
+                // Phase 46 — Level polish diagnostic (skybox / sun bind /
+                // perimeter boundary count / invisible blockers / guide
+                // lantern pulse-component count / cottage hearth flicker).
+                // Chained here so the aggregate diagnostic reports on the
+                // Phase 46 deliverables alongside the audio + cutscene
+                // results from Phases 35 / 40.
                 EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
-                    "Aggregating results …", 0.95f);
+                    "Step 6/6 — Phase 46 level polish diagnostic …", 0.88f);
+                if (TryRun("Phase 46 — Level Polish Diagnostic",
+                          "HearthboundHollow.EditorTools.Phase46_LevelPolishDiagnostic", "Diagnose"))
+                    ran++;
+                else
+                    skipped++;
+
+                EditorUtility.DisplayProgressBar("Hearthbound · Diagnose Build",
+                    "Aggregating results …", 0.97f);
             }
             finally
             {
