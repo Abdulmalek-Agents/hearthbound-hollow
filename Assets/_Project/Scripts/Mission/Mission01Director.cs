@@ -46,7 +46,7 @@
 // Every Doris line in this director carries its canonical id from the
 // Tools/generate_voices.sh table (e.g. doris_m1_greet_01). When the
 // VoiceLibrarySO has a clip for that id, the matching macOS-`say`
-// (or ElevenLabs / XTTS / Piper — D-051) .wav plays alongside the
+// (or ElevenLabs / XTTS / Piper — D-058) .wav plays alongside the
 // typewriter. Lines with no clip play silently — zero regression.
 //
 // Flow:
