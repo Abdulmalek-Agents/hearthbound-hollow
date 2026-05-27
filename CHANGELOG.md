@@ -33,9 +33,11 @@ All notable changes to this project will be documented here. Entries follow the 
 
 - **`Assets/_Project/Scripts/Mission/Mission01Director.cs`** — `Line(...)` helper gains an optional `string lineId = null` that's forwarded to `DialogueUI.PresentLine(...lineId)`. Every Doris call now carries its canonical id from the Tools/generate_voices.sh table (e.g. `doris_m1_greet_01`, `doris_m1_memory_02`, `doris_m1_polish_done_01`). 48 total. The 3 refused-path lines and the dynamic `afterPolishLine` deliberately have no lineId — they remain silent on the voice channel and fall through to the legacy typewriter behaviour.
 
-**E. Editor utility (1 new script + 1 menu entry)**
+**E. Editor utility + chain integration (1 new script + 2 chain hookups)**
 
-- **`Assets/_Project/Scripts/Editor/Phase32_VoiceLibraryBuilder.cs`** — `Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library`. Scans `Assets/_Project/Audio/Voice/**/*.wav` recursively, derives the lineId from each filename, and binds the AudioClip into the SO. Idempotent: preserves inspector-tuned `volume` / `pitch` for entries whose lineId is unchanged; new clips get added with defaults; entries whose .wav was deleted are pruned. Resources/ folder is created on demand.
+- **`Assets/_Project/Scripts/Editor/Phase32_VoiceLibraryBuilder.cs`** — `Hearthbound → ⚙️ Advanced → 🎙️ Phase 32 — Rebuild Voice Library`. Scans `Assets/_Project/Audio/Voice/**/*.wav` recursively, derives the lineId from each filename, and binds the AudioClip into the SO. Idempotent: preserves inspector-tuned `volume` / `pitch` for entries whose lineId is unchanged; new clips get added with defaults; entries whose .wav was deleted are pruned. Resources/ folder is created on demand. Exposes three entry points: `RebuildFromMenu()` (the menu callback, pops a success dialog), `Build()` (silent — for chain use), `Diagnose()` (read-only audit — for the aggregate diagnostic).
+- **`Assets/_Project/Scripts/Editor/Phase27_BuildEverything.cs`** — New Step 8.5 invokes `Phase32_VoiceLibraryBuilder.Build()` so the canonical `🚀 Build Everything` workflow auto-builds the voice library without an extra menu click.
+- **`Assets/_Project/Scripts/Editor/Phase33_AggregateDiagnostic.cs`** — New Step 6/6 invokes `Phase32_VoiceLibraryBuilder.Diagnose()` so `🔍 Diagnose Build` surfaces voice-library regressions (orphan entries, missing clips, on-disk-vs-SO mismatches) in the standard one-click audit.
 
 ### Voice casting (locked)
 
@@ -50,26 +52,41 @@ All notable changes to this project will be documented here. Entries follow the 
 
 - **D-058 (NEW):** Voice clips live under `Assets/_Project/Audio/Voice/{character}/{lineId}.wav`; the generation pipeline is decoupled from the runtime — any TTS that produces 22 kHz mono PCM16 .wav can drop in. The `VoiceLibrarySO` re-binds them on the next `OnValidate` / `Phase32_VoiceLibraryBuilder` rescan. Codifies the file-swap path for moving from macOS `say` to ElevenLabs / XTTS / Piper / a booth-recorded actress without touching any code.
 
-### Files shipped (9 commits)
+### Chain integration
 
-1. `Tools/generate_voices.sh`
-2. `Assets/_Project/Scripts/Audio/VoiceLibrarySO.cs` (+ .meta)
-3. `Assets/_Project/Scripts/Audio/VoicePlayer.cs` (+ .meta)
-4. `Assets/_Project/Scripts/UI/HearthboundHollow.UI.asmdef`
-5. `Assets/_Project/Scripts/UI/DialogueUI.cs`
-6. `Assets/_Project/Scripts/Mission/Mission01Director.cs`
-7. `Assets/_Project/Scripts/Core/GameManager.cs`
-8. `Assets/_Project/Scripts/Editor/Phase32_VoiceLibraryBuilder.cs` (+ .meta)
-9. `Assets/_Project/Resources/HearthboundVoiceLibrary.asset` (+ .meta + Resources.meta)
-10. `Docs/PROGRESS.md`, `Docs/ARCHITECTURE.md`, `CHANGELOG.md`, `README.md` (this entry + cascades)
+The Voice Library Builder is chained into both top-level entry points so the user gets the canonical Hearthbound "one-button" workflow:
+
+- **`🚀 Build Everything` (Step 8.5)** — invokes `Phase32_VoiceLibraryBuilder.Build()` silently after the Phase 32 Mission 1 Polish v2 capstone. Idempotent and harmless on installs without any `.wav` files (logs a warning, leaves the SO empty, DialogueUI falls through to typewriter-only mode per D-058).
+- **`🔍 Diagnose Build` (Step 6/6)** — invokes `Phase32_VoiceLibraryBuilder.Diagnose()` read-only. Reports SO presence, entry count, bound-clip count, on-disk .wav count, mismatch detection, and the D-058 file-swap policy.
+
+### Files shipped (17 commits total)
+
+| # | Path | Note |
+|---|---|---|
+| 1 | `Tools/generate_voices.sh` | macOS `say` -> 48 `.wav` pipeline |
+| 2 | `Assets/_Project/Scripts/Audio/VoiceLibrarySO.cs` (+ .meta) | SO map |
+| 3 | `Assets/_Project/Scripts/Audio/VoicePlayer.cs` (+ .meta) | Runtime singleton |
+| 4 | `Assets/_Project/Scripts/UI/HearthboundHollow.UI.asmdef` | adds Audio reference |
+| 5 | `Assets/_Project/Scripts/UI/DialogueUI.cs` | `PresentLine(...lineId)` overload + Voice stops |
+| 6 | `Assets/_Project/Scripts/Mission/Mission01Director.cs` | 48 lineIds threaded |
+| 7 | `Assets/_Project/Scripts/Core/GameManager.cs` | reflection auto-spawn fallback |
+| 8 | `Assets/_Project/Scripts/Editor/Phase32_VoiceLibraryBuilder.cs` (+ .meta) | folder-scan utility |
+| 9 | `Assets/_Project/Resources/HearthboundVoiceLibrary.asset` (+ .meta + Resources.meta) | initial empty SO |
+| 10 | `Docs/PROGRESS.md`, `Docs/ARCHITECTURE.md`, `CHANGELOG.md`, `README.md` | initial entry + cascades |
+| 11–15 | Source-comment cleanup (D-051 → D-058 in 5 shipped files) | one commit per file |
+| 16 | `Phase32_VoiceLibraryBuilder.cs` — adds `Build()` + `Diagnose()` entry points | for the chain integrations |
+| 17a | `Phase27_BuildEverything.cs` — chains Voice Library as Step 8.5 | one-button workflow |
+| 17b | `Phase33_AggregateDiagnostic.cs` — chains Voice Library as Step 6/6 | one-button diagnostic |
+| 17c | `README.md` — Step 8.5 + Step 6/6 cross-refs + Implementation Status row update | doc cascade |
 
 ### Acceptance criteria (all green)
 
 - ✅ After pulling, `bash Tools/generate_voices.sh` produces 48 `.wav` files in `Assets/_Project/Audio/Voice/Doris/`. Idempotent — re-running skips existing files.
-- ✅ Open Unity, press Play in `00_Bootstrap`. Walk to Doris. The greeting plays through the speakers, in sync with the typewriter.
+- ✅ Open Unity, run `Hearthbound → 🚀 Build Everything` — Step 8.5 auto-builds the voice library. Press Play in `00_Bootstrap`. Walk to Doris. The greeting plays through the speakers, in sync with the typewriter. (No extra menu click required.)
 - ✅ Typewriter speed adapts (`Mathf.Clamp(text.Length / clipLen, 18, 90)`) so the last character appears as the voice ends — gives a real lip-sync feel.
 - ✅ Skipping a line via Space / click / E / Enter stops the voice immediately.
 - ✅ No regressions — installs without `HearthboundVoiceLibrary` in `Resources/` (or with no clip for a given lineId) get the previous silent typewriter behaviour. `VoicePlayer.Play` short-circuits to `0f`; `DialogueUI` falls through to the legacy fixed-cps path.
+- ✅ `🔍 Diagnose Build` includes a voice-library audit (Step 6/6) reporting SO presence, entry count, bound clips, on-disk .wav count, and any mismatch.
 - ✅ Zero new external dependencies — `say` + `afconvert` are macOS built-ins; runtime uses only `UnityEngine.AudioSource` + `Resources.Load`.
 
 ### Out of scope (deliberate)
