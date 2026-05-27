@@ -3,7 +3,7 @@
 # Regenerates every Doris voice clip via macOS `say`. Safe to re-run.
 #
 # Phase 32 — Voice Acting MVP. See Docs/PROGRESS.md for the design rationale.
-# D-051: voice clips live under Assets/_Project/Audio/Voice/{character}/{lineId}.wav;
+# D-058: voice clips live under Assets/_Project/Audio/Voice/{character}/{lineId}.wav;
 #        the generation pipeline is decoupled from the runtime — any TTS that
 #        produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper
 #        all work; just overwrite the .wav files and the SO re-binds on
