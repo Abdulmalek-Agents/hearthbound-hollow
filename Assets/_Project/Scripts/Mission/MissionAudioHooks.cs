@@ -202,8 +202,8 @@ namespace HearthboundHollow.Mission
             sfx?.PlayOneShot("ui_close", 0.6f);
             // Day-end music swap — soften toward the menu cue. The next
             // scene's beacon will swap to its own theme on load.
-            var music = ServiceLocator.Get<MusicPlayer>();
-            if (music != null)
+            // Phase 46 — use TryGet to avoid console-warning spam.
+            if (ServiceLocator.TryGet<MusicPlayer>(out var music))
             {
                 // The user could be reading the Evening Ledger for a long
                 // time — let the music drift to menu warmth gradually.
@@ -220,8 +220,8 @@ namespace HearthboundHollow.Mission
 
         private void DuckMusic()
         {
-            var music = ServiceLocator.Get<MusicPlayer>();
-            if (music == null) return;
+            // Phase 46 — TryGet to avoid console-warning spam.
+            if (!ServiceLocator.TryGet<MusicPlayer>(out var music)) return;
             if (!_ducked)
             {
                 _preDuckScale = music.globalScale;
@@ -234,8 +234,7 @@ namespace HearthboundHollow.Mission
 
         private void RecoverMusic()
         {
-            var music = ServiceLocator.Get<MusicPlayer>();
-            if (music == null) return;
+            if (!ServiceLocator.TryGet<MusicPlayer>(out var music)) return;
             music.globalScale = _preDuckScale;
             _ducked = false;
         }
@@ -248,8 +247,8 @@ namespace HearthboundHollow.Mission
         /// </summary>
         private void OnSceneAudioRequested(SceneAudioRequestedEvent ev)
         {
-            var vs = ServiceLocator.Get<VillageState>();
-            if (vs == null) return;
+            // Phase 46 — TryGet to avoid console-warning spam.
+            if (!ServiceLocator.TryGet<VillageState>(out var vs)) return;
             if (!string.IsNullOrEmpty(ev.MusicId)) vs.lastMusicId = ev.MusicId;
             if (!string.IsNullOrEmpty(ev.AmbienceId)) vs.lastAmbienceId = ev.AmbienceId;
         }
@@ -259,6 +258,12 @@ namespace HearthboundHollow.Mission
         /// SceneAudioBeacon's per-scene Start() may override this within
         /// 0.20 s — but for the rare case where the save resumed on a scene
         /// without a beacon, the audio still continues.
+        ///
+        /// Phase 46 — use `TryGet` instead of `Get` so we don't spam the
+        /// console with "no service registered" warnings during boot-time
+        /// state restoration (the MusicPlayer may not have Awake'd yet when
+        /// VillageStateLoadedEvent fires from GameManager.Awake). If the
+        /// service isn't ready yet, defer to the first scene-loaded callback.
         /// </summary>
         private void OnVillageStateLoaded(VillageStateLoadedEvent ev)
         {
@@ -266,11 +271,31 @@ namespace HearthboundHollow.Mission
             if (vs == null) return;
             if (string.IsNullOrEmpty(vs.lastMusicId)) return;
 
-            var music = ServiceLocator.Get<MusicPlayer>();
-            if (music == null) return;
+            if (!ServiceLocator.TryGet<MusicPlayer>(out var music))
+            {
+                // MusicPlayer not yet registered (e.g. Bootstrap rig spawns
+                // after GameManager.Awake fires VillageStateLoadedEvent).
+                // Defer the restore until the first scene-loaded callback
+                // when MusicPlayer.Awake will have run.
+                _pendingMusicRestore = vs.lastMusicId;
+                UnityEngine.SceneManagement.SceneManager.sceneLoaded += DeferredMusicRestore;
+                return;
+            }
             music.Play(vs.lastMusicId);
             Hh.Log(LogCategory.Audio,
                 $"MissionAudioHooks: restored music '{vs.lastMusicId}' from saved state.");
+        }
+
+        private string _pendingMusicRestore;
+        private void DeferredMusicRestore(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode m)
+        {
+            if (string.IsNullOrEmpty(_pendingMusicRestore)) return;
+            if (!ServiceLocator.TryGet<MusicPlayer>(out var music)) return;
+            music.Play(_pendingMusicRestore);
+            Hh.Log(LogCategory.Audio,
+                $"MissionAudioHooks: deferred restore of music '{_pendingMusicRestore}' (Phase 46 fix).");
+            _pendingMusicRestore = null;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= DeferredMusicRestore;
         }
     }
 }
