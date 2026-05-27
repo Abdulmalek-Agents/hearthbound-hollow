@@ -13,15 +13,18 @@
 // Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes)
 // AND, in the Voice Acting MVP track, rebuilds the Resources/HearthboundVoice
 // Library.asset from any .wav files the user has dropped under
-// Assets/_Project/Audio/Voice/ (per D-058). Phase 46 (NEW) auto-generates
-// those .wav files via espeak-ng if it's on PATH (cross-platform), so the
-// voice library is no longer empty on Linux/Windows installs. Phase 36 builds
-// the Dream 2 + Listen Timeline library. Phase 37 generates the procedural
-// audio (music, ambience, missing SFX, mumble VO). Phase 45 migrates the
-// audio libraries to Resources/ for runtime Resources.Load fallback. Phase 38
-// wires every audio asset to the scenes + dialogue UI + cutscene timelines.
+// Assets/_Project/Audio/Voice/ (per D-058). Phase 46 (Voice Generator) auto-
+// generates those .wav files via espeak-ng if it's on PATH (cross-platform),
+// so the voice library is no longer empty on Linux/Windows installs. Phase 36
+// builds the Dream 2 + Listen Timeline library. Phase 37 generates the
+// procedural audio (music, ambience, missing SFX, mumble VO). Phase 45 migrates
+// the audio libraries to Resources/ for runtime Resources.Load fallback. Phase
+// 38 wires every audio asset to the scenes + dialogue UI + cutscene timelines.
 // Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
-// Phase 27 chains them all — single click, ~95 s, fully wired.
+// Phase 47 (NEW) layers the level boundaries, autumn skybox, interior polish,
+// collider hardening, and onboarding wayfinding on top of everything — fixes
+// the four pre-greenlight polish gaps (narrow lane, no boundaries, no skybox,
+// thin cottage interior). Phase 27 chains them all — single click, ~110 s.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
@@ -65,7 +68,7 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 46 chain (~95 s).\n" +
+                "This runs the full Phase 13 → 47 chain (~110 s).\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -143,13 +146,6 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 8.4: Phase 46 — Cross-platform voice generator.
-                // Calls espeak-ng (Linux/Windows/macOS) to synthesise Doris's
-                // 48 dialogue clips into Audio/Voice/Doris/ if they don't
-                // already exist. Idempotent — skips clips that exist. Logs
-                // a friendly install hint and no-ops if espeak-ng + `say`
-                // are both absent from PATH (Phase 32 builder then sees an
-                // empty Voice/ folder, library has 0 entries, dialogue
-                // falls through to typewriter-only — D-058, no regression).
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 46 (Voice Generator) …", 0.85f);
                 if (TryRun("Phase 46 — Voice Generator (cross-platform)",
                           "HearthboundHollow.EditorTools.Phase46_VoiceGenerator", "Build"))
@@ -158,14 +154,7 @@ namespace HearthboundHollow.EditorTools
                     skipped++;
 
                 // Step 8.5: Phase 32 — Voice Acting MVP. Rebuilds
-                // Resources/HearthboundVoiceLibrary.asset by scanning
-                // Assets/_Project/Audio/Voice/**/*.wav. Idempotent — does
-                // nothing harmful if the user hasn't yet run
-                // `bash Tools/generate_voices.sh` on macOS (logs a warning,
-                // leaves the SO empty so VoicePlayer's Resources.Load still
-                // resolves and DialogueUI falls through to typewriter-only
-                // mode — D-058). Silent (verbose=false) so the chain isn't
-                // interrupted by a pop-up.
+                // Resources/HearthboundVoiceLibrary.asset.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Voice Library) …", 0.86f);
                 if (TryRun("Phase 32 — Voice Library (D-058)",
                           "HearthboundHollow.EditorTools.Phase32_VoiceLibraryBuilder", "Build"))
@@ -173,10 +162,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 9: Phase 36 — Cutscene Library Completion. Builds
-                // Dream 2 variants A/B/C/D/E + Listen scene Timelines and
-                // re-wires the MemoryDreamRig prefab so the missing 6
-                // PlayableAsset slots are filled (per D-052).
+                // Step 9: Phase 36 — Cutscene Library Completion.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 36 (Cutscene Library) …", 0.89f);
                 if (TryRun("Phase 36 — Cutscene Library",
                           "HearthboundHollow.EditorTools.Phase36_CutsceneLibraryBuilder", "Build"))
@@ -184,12 +170,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 10: Phase 37 — Procedural Audio Studio. Imports the
-                // pre-generated music + ambience + SFX + mumble VO WAVs into
-                // the project, builds MusicLibrarySO + AmbienceLibrarySO +
-                // MumbleVoiceLibrarySO, refreshes SfxLibrary so the
-                // previously-empty entries (polish_hum_*, ambient_autumn_loop)
-                // are now mapped. Idempotent.
+                // Step 10: Phase 37 — Procedural Audio Studio.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 37 (Procedural Audio Studio) …", 0.92f);
                 if (TryRun("Phase 37 — Procedural Audio Studio",
                           "HearthboundHollow.EditorTools.Phase37_ProceduralAudioStudio", "Build"))
@@ -197,13 +178,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 10b: Phase 45 — Library Migrator. Moves the libraries
-                // from Assets/_Project/Audio/Foo.asset → Assets/_Project/Audio/
-                // Resources/Foo.asset (preserves GUIDs so scene refs survive).
-                // This is what enables the runtime Resources.Load fallback in
-                // MumbleVoicePlayer / MusicPlayer for the dialogue-sound
-                // self-healing path. Idempotent — runs after Phase 37 so any
-                // freshly-created legacy assets are immediately migrated.
+                // Step 10b: Phase 45 — Library Migrator.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 45 (Library Migration) …", 0.94f);
                 if (TryRun("Phase 45 — Library Migrator",
                           "HearthboundHollow.EditorTools.Phase45_LibraryMigrator", "RunSilent"))
@@ -211,10 +186,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 11: Phase 38 — Audio + Cutscene Wiring. Binds the
-                // Phase 37 audio assets to the Phase 36 Timeline AudioTracks,
-                // attaches AmbientAudio + MusicPlayer to every scene, and
-                // wires MumbleVoicePlayer onto the DialogueUI prefab.
+                // Step 11: Phase 38 — Audio + Cutscene Wiring.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 38 (Audio + Cutscene Wiring) …", 0.96f);
                 if (TryRun("Phase 38 — Audio + Cutscene Wiring",
                           "HearthboundHollow.EditorTools.Phase38_AudioAndCutsceneWiring", "Build"))
@@ -222,16 +194,40 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 12: Phase 42 — Listen Scene Camera Authoring. Drops
-                // ListenSceneCameraDirector on the Cottage scene, wires it to
-                // the ListenSceneSequencer, and configures the 4-waypoint
-                // camera path (30s wide → 60s chair → 60s hands → 30s pull-back).
-                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 42 (Listen Scene Camera) …", 0.98f);
+                // Step 12: Phase 42 — Listen Scene Camera Authoring.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 42 (Listen Scene Camera) …", 0.97f);
                 if (TryRun("Phase 42 — Listen Scene Camera",
                           "HearthboundHollow.EditorTools.Phase42_ListenSceneCameraBuilder", "Build"))
                     ran++;
                 else
                     skipped++;
+
+                // Step 13: Phase 47 — Level Boundaries + Wider Environment +
+                // Skybox + Interior Polish + Collider Hardening + Wayfinding.
+                // Layered LAST so it sits on top of every earlier capstone's
+                // output, additively. The Phase 47 capstone is reflection-
+                // dispatched here as 7 individual sub-builders so each opens
+                // its own success dialog (consistent with Phase 32's pattern).
+                //
+                // NOTE on numbering: Phase 46 is reserved for the
+                // cross-platform voice generator (Step 8.4 above). The
+                // level-polish family lives at Phase 47.x to avoid the
+                // collision. The two phases are functionally independent.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 47 (Level Boundaries + Polish) …", 0.98f);
+                if (TryRun("Phase 47.1 — Autumn Skybox + Lighting",
+                          "HearthboundHollow.EditorTools.Phase47_AutumnSkyboxAndLighting", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 47.2 — Lane Boundaries + Wide Env",
+                          "HearthboundHollow.EditorTools.Phase47_LaneBoundariesAndWideEnv", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 47.3 — Hollow Boundaries + Interior",
+                          "HearthboundHollow.EditorTools.Phase47_HollowBoundariesAndInterior", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 47.4 — Garden Boundaries + Path",
+                          "HearthboundHollow.EditorTools.Phase47_GardenBoundariesAndPath", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 47.5 — Cottage Interior Polish",
+                          "HearthboundHollow.EditorTools.Phase47_CottageInteriorPolish", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 47.6 — Collider Hardening",
+                          "HearthboundHollow.EditorTools.Phase47_ColliderHardening", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 47.7 — Guide Lights + Wayfinding",
+                          "HearthboundHollow.EditorTools.Phase47_GuideLightsAndWayfinding", "Build")) ran++; else skipped++;
 
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
@@ -334,6 +330,9 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 45 — Libraries migrated to Resources/ for runtime Resources.Load fallback");
             sb.AppendLine("  • Phase 38 — Per-scene MusicPlayer + AmbientAudio attached, DialogueUI MumbleVoicePlayer wired");
             sb.AppendLine("  • Phase 42 — ListenSceneCameraDirector on Cottage scene with 4-waypoint cinematic path");
+            sb.AppendLine("  • Phase 47 — Autumn skybox, 24×36m Lane with stone-wall perimeter + void blockers,");
+            sb.AppendLine("                Hollow + Cottage interior polish, cottage hearth flicker, guide lanterns,");
+            sb.AppendLine("                firefly wayfinding, every prop has a Collider (no clipping)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
