@@ -107,17 +107,26 @@ namespace HearthboundHollow.Core
     /// "marin", …); UI normalises the speaker name to lowercase before publish.
     /// `EstimatedDurationSec` is the typewriter duration the UI is about to
     /// run — the mumble player uses it to scale syllable count.
+    ///
+    /// Phase 32.10 — `HasVoiceClip` is set true when DialogueUI just kicked
+    /// off a real voice clip via VoicePlayer.Play(). MumbleVoicePlayer reads
+    /// this and SUPPRESSES its syllable bank for that line so we don't
+    /// stack a procedural mumble on top of a real voice. Backward-compat:
+    /// the field defaults to false on the old constructor, so legacy
+    /// publishers (none in-tree) get the previous mumble-always-plays behaviour.
     /// </summary>
     public readonly struct DialogueLineStartedEvent
     {
         public readonly string Speaker;
         public readonly string LineText;
         public readonly float EstimatedDurationSec;
-        public DialogueLineStartedEvent(string speaker, string text, float dur)
+        public readonly bool   HasVoiceClip;
+        public DialogueLineStartedEvent(string speaker, string text, float dur, bool hasVoiceClip = false)
         {
             Speaker = speaker;
             LineText = text;
             EstimatedDurationSec = dur;
+            HasVoiceClip = hasVoiceClip;
         }
     }
 
@@ -129,6 +138,33 @@ namespace HearthboundHollow.Core
     {
         public readonly string Speaker;
         public DialogueLineEndedEvent(string speaker) { Speaker = speaker; }
+    }
+
+    /// <summary>
+    /// Published by VoicePlayer when it starts a real voice clip. MusicPlayer
+    /// + AmbientAudio subscribe and duck their channels for the duration of
+    /// the clip — gives the dialogue beat the cinematic ducked feel of
+    /// hit games (Disco Elysium, Spiritfarer, Coffee Talk). Phase 32.10.
+    /// </summary>
+    public readonly struct VoiceClipStartedEvent
+    {
+        /// <summary>Stable lineId being played (e.g. "doris_m1_greet_01").</summary>
+        public readonly string LineId;
+        /// <summary>Clip length in seconds — subscribers can schedule the un-duck restore.</summary>
+        public readonly float ClipLengthSec;
+        public VoiceClipStartedEvent(string id, float len) { LineId = id; ClipLengthSec = len; }
+    }
+
+    /// <summary>
+    /// Published by VoicePlayer when a voice clip ends — either naturally
+    /// (full clip played) or because DialogueUI called Stop() on skip/hide/
+    /// PresentChoices. Subscribers use this to immediately restore their
+    /// pre-duck volume. Phase 32.10.
+    /// </summary>
+    public readonly struct VoiceClipEndedEvent
+    {
+        public readonly string LineId;
+        public VoiceClipEndedEvent(string id) { LineId = id; }
     }
 
     /// <summary>

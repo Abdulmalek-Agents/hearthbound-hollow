@@ -14,6 +14,13 @@
 // diagnostic logging on the first failed lookup so the cause of silent
 // dialogue is visible in the Console.
 //
+// ── Phase 32.10 (2026-05-27) ─────────────────────────────────────
+// OnDialogueLineStarted now reads the new HasVoiceClip flag on the
+// event payload. When true (DialogueUI just kicked off a real voice
+// clip via VoicePlayer), the procedural mumble bank is SUPPRESSED for
+// THIS line so we don't stack two voices. When false (legacy / silent-
+// dialogue path), the original mumble-always-plays behaviour runs.
+//
 // Usage (manual call, if needed):
 //   var mumble = ServiceLocator.Get<MumbleVoicePlayer>();
 //   mumble?.SpeakLine("doris", "You're the new one.", typewriterDuration);
@@ -115,6 +122,20 @@ namespace HearthboundHollow.Audio
 
         private void OnDialogueLineStarted(DialogueLineStartedEvent ev)
         {
+            // Phase 32.10 — if DialogueUI just kicked off a real voice clip
+            // for this line via VoicePlayer, suppress the procedural mumble
+            // bank so we don't stack two voices on top of each other.
+            // Backward-compat: ev.HasVoiceClip defaults to false for any
+            // legacy publisher, so existing scenes that don't have a
+            // VoiceLibrarySO entry for the line still get mumble.
+            if (ev.HasVoiceClip)
+            {
+                if (verboseLogging)
+                    Hh.Log(LogCategory.Audio,
+                        $"MumbleVoicePlayer: suppressed for '{ev.Speaker}' " +
+                        $"(real voice clip is playing).");
+                return;
+            }
             SpeakLine(ev.Speaker, ev.LineText, ev.EstimatedDurationSec);
         }
 

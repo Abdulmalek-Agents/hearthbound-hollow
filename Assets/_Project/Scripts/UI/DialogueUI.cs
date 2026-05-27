@@ -6,12 +6,12 @@
 // abstract `IDialoguePresenter` — the YarnVillageStateBridge in the Dialogue
 // asmdef adapts Yarn calls onto this presenter.
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────────
+// ── Phase 25 hotfix ─────────────────────────────────────────
 // PresentLine() now self-activates the script-host before running the
 // typewriter coroutine. Same defensive pattern applied across all UI
 // overlays in this release.
 //
-// ── Playtest pass fix (commit 5/6) ──────────────────────────────
+// ── Playtest pass fix (commit 5/6) ───────────────────────────────
 // QA simulated-playthrough audit found Pickle's 13 lines (4 canonical +
 // 4 conditional + 3 contextual + 2 hints) were being rendered IDENTICALLY
 // to Doris and Gerrold — same Bamao parchment box, same regular font.
@@ -31,7 +31,7 @@
 // the italic-mode visual. All other speakers (Doris, Gerrold, etc.)
 // render in the default Bamao parchment style — UNCHANGED.
 //
-// ── Phase 38 (2026-05-26) ───────────────────────────────────────
+// ── Phase 38 (2026-05-26) ────────────────────────────────────
 // PresentLine now publishes a DialogueLineStartedEvent to the EventBus
 // so MumbleVoicePlayer (Audio asmdef, no UI dep) can sync per-character
 // syllable playback to the typewriter reveal. Speaker is lower-cased to
@@ -47,6 +47,13 @@
 // voice (DialogueUI.Hide / SkipTypewriter / PresentChoices). Zero
 // regression: the parameterless overload still exists; missing voice
 // data is a silent no-op and the old typewriter-only path runs.
+//
+// ── Phase 32.10 (2026-05-27) ──────────────────────────────────
+// DialogueLineStartedEvent now carries a HasVoiceClip flag, set true
+// when VoicePlayer.Play returned a non-zero clip length. MumbleVoicePlayer
+// reads this and suppresses its syllable bank for THIS line so we don't
+// stack the procedural mumble on top of a real voice (which would sound
+// muddy and double-tracked). Backward-compat: defaults to false.
 
 using System;
 using System.Collections;
@@ -244,7 +251,7 @@ namespace HearthboundHollow.UI
 
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
 
-            // ── Phase 32 — Voice Acting MVP ────────────────────────────
+            // ── Phase 32 — Voice Acting MVP ──────────────────────────────
             // Play the voice clip (if any) for this line. The typewriter
             // charsPerSecond is then locked to the clip duration so the last
             // character lands as the voice ends — gives a real lip-sync feel.
@@ -260,10 +267,10 @@ namespace HearthboundHollow.UI
             // playback to this line. Speaker is lower-cased to match the
             // canonical character id used by MumbleVoiceLibrarySO.banks.
             //
-            // Note: when a real voice clip is playing (Phase 32), mumble VO is
-            // still published — MumbleVoicePlayer is expected to suppress its
-            // syllable bank for characters that have a real voice. That's a
-            // follow-up Phase 32.1 wiring (see PROGRESS.md).
+            // Phase 32.10 — pass HasVoiceClip = (clipLen > 0) so
+            // MumbleVoicePlayer suppresses its syllable bank for THIS
+            // line when a real voice clip is already playing. Stops the
+            // procedural mumble + real voice from stacking.
             float estimatedDur = clipLen > 0.4f
                 ? clipLen + postLineLinger
                 : ComputeTypewriterDuration(_fullLineText, targetCps);
@@ -271,7 +278,8 @@ namespace HearthboundHollow.UI
             EventBus.Publish(new DialogueLineStartedEvent(
                 _lastSpeakerId,
                 _fullLineText,
-                estimatedDur));
+                estimatedDur,
+                hasVoiceClip: clipLen > 0f));
 
             if (gameObject.activeInHierarchy && isActiveAndEnabled)
             {
