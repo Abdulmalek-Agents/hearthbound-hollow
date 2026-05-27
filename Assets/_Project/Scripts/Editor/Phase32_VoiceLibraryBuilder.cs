@@ -23,7 +23,7 @@
 //   3. Press Play. VoicePlayer.Awake calls Resources.Load and the dialogue
 //      starts speaking.
 //
-// D-051: the .wav files themselves are the source of truth. Any TTS that
+// D-058: the .wav files themselves are the source of truth. Any TTS that
 // produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper) —
 // rerun this menu item after a regeneration and the bindings refresh.
 
