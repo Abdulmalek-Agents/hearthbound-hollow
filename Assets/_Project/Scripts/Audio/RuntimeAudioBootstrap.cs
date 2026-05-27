@@ -25,6 +25,15 @@
 // This makes the dialogue + music subsystem **self-healing**: even on a
 // fresh clone where the user hasn't pressed Build Everything yet, sound
 // works.
+//
+// ── Phase 32.10 (2026-05-27) ─────────────────────────────────────
+// Extended to also install VoicePlayer (the Phase 32 Voice Acting MVP
+// real-voice channel) when the scene-baked rig is missing. Self-heal
+// completeness: previously only GameManager's reflection fallback would
+// spawn a VoicePlayer; now the runtime audio bootstrap handles all four
+// players (Music + Mumble + Voice + Ambient) in one place. Also makes
+// the partial-install case idempotent — if a root with some players
+// already exists, we top up the missing ones rather than duplicate.
 
 using UnityEngine;
 using HearthboundHollow.Core;
@@ -68,21 +77,26 @@ namespace HearthboundHollow.Audio
         public static void EnsureAudioRig()
         {
             // 1. If Phase 38's scene-baked rig is present, don't duplicate.
-            //    We detect by finding any MusicPlayer (only one allowed at
-            //    a time per the DontDestroyOnLoad + ServiceLocator pattern).
-            var existingMusic = Object.FindFirstObjectByType<MusicPlayer>();
+            //    We detect by finding the four canonical players. All four
+            //    present means the scene wiring is intact.
+            var existingMusic  = Object.FindFirstObjectByType<MusicPlayer>();
             var existingMumble = Object.FindFirstObjectByType<MumbleVoicePlayer>();
-            if (existingMusic != null && existingMumble != null)
+            var existingVoice  = Object.FindFirstObjectByType<VoicePlayer>();
+            if (existingMusic != null && existingMumble != null && existingVoice != null)
             {
-                // Both present — the scene wiring is intact.
                 Hh.Log(LogCategory.Audio,
                     "RuntimeAudioBootstrap: scene-baked audio rig detected; no install needed.");
                 return;
             }
 
-            // 2. Build the programmatic rig.
-            var root = new GameObject(BootstrapGameObjectName);
-            Object.DontDestroyOnLoad(root);
+            // 2. Build the programmatic rig (or top up the missing pieces).
+            //    If a root already exists from a partial install, reuse it.
+            var root = GameObject.Find(BootstrapGameObjectName);
+            if (root == null)
+            {
+                root = new GameObject(BootstrapGameObjectName);
+                Object.DontDestroyOnLoad(root);
+            }
 
             // MusicPlayer — its Awake() will Resources.Load the library
             // if we don't pre-assign it.
@@ -106,25 +120,45 @@ namespace HearthboundHollow.Audio
                 mumble.library = Resources.Load<MumbleVoiceLibrarySO>(MumbleVoicePlayer.ResourcesLibraryName);
             }
 
+            // Phase 32.10 — VoicePlayer on a child GameObject.
+            // Self-heal completeness: previously the only auto-install path
+            // for VoicePlayer was GameManager's reflection fallback. Adding
+            // it here means a fresh-clone Bootstrap scene without Phase 38
+            // wiring still gets a real-voice channel alongside the procedural
+            // music + mumble + ambient.
+            if (existingVoice == null)
+            {
+                var voiceHost = new GameObject("VoicePlayer");
+                voiceHost.transform.SetParent(root.transform, false);
+                var voice = voiceHost.AddComponent<VoicePlayer>();
+                voice.masterVolume = 0.9f;
+                voice.library = Resources.Load<VoiceLibrarySO>(VoicePlayer.ResourcesLibraryName);
+            }
+
             // AmbientAudio — uses SfxLibrarySO, lives at the canonical
             // (non-Resources) path. AmbientAudio.Awake() already handles
             // a null library gracefully (logs a warning).
-            var ambHost = new GameObject("AmbientAudio");
-            ambHost.transform.SetParent(root.transform, false);
-            ambHost.AddComponent<AudioSource>();
-            var amb = ambHost.AddComponent<AmbientAudio>();
-            amb.baseVolume = 0.35f;
-            amb.playOnStart = false;
-            amb.surviveSceneLoad = true;
-            // Try Resources first; AmbientAudio also has its own load path.
-            amb.library = Resources.Load<SfxLibrarySO>("SfxLibrary");
-            amb.libraryEntryId = "ambient_autumn_loop";
+            // Skip if any AmbientAudio already exists in the scene.
+            if (Object.FindFirstObjectByType<AmbientAudio>() == null)
+            {
+                var ambHost = new GameObject("AmbientAudio");
+                ambHost.transform.SetParent(root.transform, false);
+                ambHost.AddComponent<AudioSource>();
+                var amb = ambHost.AddComponent<AmbientAudio>();
+                amb.baseVolume = 0.35f;
+                amb.playOnStart = false;
+                amb.surviveSceneLoad = true;
+                // Try Resources first; AmbientAudio also has its own load path.
+                amb.library = Resources.Load<SfxLibrarySO>("SfxLibrary");
+                amb.libraryEntryId = "ambient_autumn_loop";
+            }
 
             Hh.Log(LogCategory.Audio,
                 $"RuntimeAudioBootstrap: programmatic audio rig installed " +
                 $"({BootstrapGameObjectName}, DontDestroyOnLoad). " +
-                $"Music lib: {(existingMusic == null ? "loaded" : "kept existing")}; " +
-                $"Mumble lib: {(existingMumble == null ? "loaded" : "kept existing")}. " +
+                $"Music: {(existingMusic == null ? "new" : "kept")}; " +
+                $"Mumble: {(existingMumble == null ? "new" : "kept")}; " +
+                $"Voice: {(existingVoice == null ? "new" : "kept")}. " +
                 $"Re-run `Hearthbound → 🚀 Build Everything` to upgrade to the " +
                 $"scene-baked Phase 38 rig for full inspector control.");
         }

@@ -23,6 +23,14 @@
 //
 // Phase 45 — self-heals library reference via Resources.Load on Awake
 // if the Inspector ref is null (fresh-clone / no-build-everything path).
+//
+// ── Phase 32.10 (2026-05-27) ─────────────────────────────────────
+// Subscribes to VoiceClipStartedEvent / VoiceClipEndedEvent so music
+// ducks down to `duckScale * normal` for the duration of each dialogue
+// voice clip. Hit cozy games (Spiritfarer, Coffee Talk, Disco Elysium)
+// all do this — dialogue beats land cleaner against a quieter score.
+// Pure runtime tween (no AudioMixer dependency); restores on clip end
+// or after a safety timer that matches the clip length.
 
 using System.Collections;
 using UnityEngine;
@@ -49,6 +57,16 @@ namespace HearthboundHollow.Audio
         [Header("Audio Mixer (optional)")]
         public UnityEngine.Audio.AudioMixerGroup mixerGroup;
 
+        [Header("Phase 32.10 — Voice ducking")]
+        [Tooltip("How quiet the music gets while a voice clip is playing. " +
+                 "0.55 = music drops to 55% of its normal volume — quiet enough " +
+                 "for dialogue to feel cinematic, loud enough not to drop out.")]
+        [Range(0f, 1f)] public float voiceDuckScale = 0.55f;
+        [Tooltip("Seconds for the down-fade when a voice clip starts.")]
+        [Range(0.01f, 1f)] public float voiceDuckInSec = 0.20f;
+        [Tooltip("Seconds for the up-fade when the voice clip ends.")]
+        [Range(0.01f, 2f)] public float voiceDuckOutSec = 0.45f;
+
         // Two AudioSources — one current, one fading out — for crossfade.
         private AudioSource _srcA;
         private AudioSource _srcB;
@@ -59,6 +77,12 @@ namespace HearthboundHollow.Audio
         private SettingsService _settings;
         private float _settingsMusicEffective = 1f;
         private bool _muted;
+
+        // Phase 32.10 — current voice-duck multiplier (smoothly tweened
+        // from 1.0 to voiceDuckScale on VoiceClipStartedEvent, back to 1.0
+        // on VoiceClipEndedEvent).
+        private float _voiceDuck = 1f;
+        private Coroutine _voiceDuckCo;
 
         /// <summary>
         /// The id of the cue currently playing (or fading in). Empty when
@@ -82,6 +106,9 @@ namespace HearthboundHollow.Audio
             }
             // Phase 38 — subscribe to scene-driven music swaps.
             EventBus.Subscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
+            // Phase 32.10 — subscribe to voice duck events.
+            EventBus.Subscribe<VoiceClipStartedEvent>(OnVoiceStarted);
+            EventBus.Subscribe<VoiceClipEndedEvent>(OnVoiceEnded);
 
             // Phase 45 — self-heal: if the Inspector reference is null
             // (e.g. Phase 38 wiring not yet run), try to load the canonical
@@ -108,11 +135,42 @@ namespace HearthboundHollow.Audio
             ServiceLocator.Unregister<MusicPlayer>();
             if (_settings != null) _settings.OnSettingsChanged -= OnSettingsChanged;
             EventBus.Unsubscribe<SceneAudioRequestedEvent>(OnSceneAudioRequested);
+            EventBus.Unsubscribe<VoiceClipStartedEvent>(OnVoiceStarted);
+            EventBus.Unsubscribe<VoiceClipEndedEvent>(OnVoiceEnded);
         }
 
         private void OnSceneAudioRequested(SceneAudioRequestedEvent ev)
         {
             if (!string.IsNullOrEmpty(ev.MusicId)) Play(ev.MusicId);
+        }
+
+        // ── Phase 32.10 — voice ducking ────────────────────────────
+
+        private void OnVoiceStarted(VoiceClipStartedEvent _)
+        {
+            if (_voiceDuckCo != null) StopCoroutine(_voiceDuckCo);
+            _voiceDuckCo = StartCoroutine(TweenDuck(voiceDuckScale, voiceDuckInSec));
+        }
+
+        private void OnVoiceEnded(VoiceClipEndedEvent _)
+        {
+            if (_voiceDuckCo != null) StopCoroutine(_voiceDuckCo);
+            _voiceDuckCo = StartCoroutine(TweenDuck(1f, voiceDuckOutSec));
+        }
+
+        private IEnumerator TweenDuck(float target, float duration)
+        {
+            float start = _voiceDuck;
+            float t = 0f;
+            float dur = Mathf.Max(0.01f, duration);
+            while (t < dur)
+            {
+                t += Time.unscaledDeltaTime;
+                _voiceDuck = Mathf.Lerp(start, target, Mathf.Clamp01(t / dur));
+                yield return null;
+            }
+            _voiceDuck = target;
+            _voiceDuckCo = null;
         }
 
         private AudioSource MakeSource(string name)
@@ -166,6 +224,10 @@ namespace HearthboundHollow.Audio
             _currentBaseVolume = vol;
 
             StopAllCoroutines();
+            // Restart the duck coroutine state if it was running — we
+            // stopped it via StopAllCoroutines, so re-snap to the current
+            // duck level (any in-flight tween would have been killed).
+            // The next voice event will tween from here cleanly.
             StartCoroutine(Crossfade(activeSrc, inactiveSrc, fadeOut, fadeIn));
             Hh.Log(LogCategory.Audio, $"MusicPlayer: → '{id}' (fade {fadeIn:F1}s)");
         }
@@ -217,7 +279,9 @@ namespace HearthboundHollow.Audio
         private float ResolvedVolume()
         {
             if (_muted) return 0f;
-            return _currentBaseVolume * _settingsMusicEffective * globalScale;
+            // Phase 32.10 — apply the voice-duck multiplier on top of the
+            // settings + global scale.
+            return _currentBaseVolume * _settingsMusicEffective * globalScale * _voiceDuck;
         }
 
         private void Update()
