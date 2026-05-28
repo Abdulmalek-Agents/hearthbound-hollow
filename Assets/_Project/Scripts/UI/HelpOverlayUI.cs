@@ -62,11 +62,13 @@ namespace HearthboundHollow.UI
             if (root != null && root != gameObject) root.SetActive(false);
             if (closeButton != null) closeButton.onClick.AddListener(Hide);
 
-            // Phase 29 — defensive autofit so the controls reference card
-            // wraps + shrinks rather than clipping on smaller canvases.
-            UIAutoFitText.ApplyToButtonLabel(titleLabel,    minSize: 22, maxSize: 40);
-            UIAutoFitText.ApplyToLabel(subtitleLabel,        minSize: 14, maxSize: 22);
-            UIAutoFitText.ApplyToLabel(bodyText,             minSize: 13, maxSize: 24);
+            // Phase 32.19 — readability pass. Headline pops with cream
+            // outline + drop-shadow; body prose gets ink-dark on cream so
+            // the controls list reads cleanly against any parchment.
+            UIReadabilityHelper.ApplyHeadline (titleLabel,    min: 48, max: 88);
+            UIReadabilityHelper.ApplySubtitle (subtitleLabel, min: 22, max: 32);
+            UIReadabilityHelper.ApplyBody     (bodyText,      min: 22, max: 34);
+            if (bodyText != null) UIReadabilityHelper.AddDarkWash(bodyText.rectTransform, padding: 16f);
         }
 
         private void Start()
