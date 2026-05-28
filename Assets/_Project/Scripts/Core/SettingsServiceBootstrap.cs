@@ -23,6 +23,22 @@ namespace HearthboundHollow.Core
                 ServiceLocator.Register(new SettingsService());
                 Hh.Log(LogCategory.Boot, "SettingsService registered via SettingsServiceBootstrap.");
             }
+
+            // Phase 60 — Arabic Localization MVP.
+            // Register the LocalizationService at the same execution-order
+            // priority as SettingsService so any UI script can resolve
+            // localized strings from its earliest Awake / OnEnable.
+            // RuntimeInitializeOnLoad in LocalizationBootstrap is the
+            // belt-and-braces install for scenes that don't host the
+            // SettingsServiceBootstrap GameObject (e.g. when running an
+            // isolated EditMode test scene).
+            if (ServiceLocator.Get<LocalizationService>() == null)
+            {
+                ServiceLocator.Register(new LocalizationService());
+                Hh.Log(LogCategory.Boot,
+                    "LocalizationService registered via SettingsServiceBootstrap " +
+                    $"(active locale: {ServiceLocator.Get<LocalizationService>().CurrentLocale}).");
+            }
         }
     }
 }
