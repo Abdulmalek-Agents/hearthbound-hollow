@@ -141,6 +141,13 @@ namespace HearthboundHollow.MiniGames
             State = MiniGameState.Active;
             if (pointerPositionAction != null) pointerPositionAction.action?.Enable();
             if (pointerActiveAction != null) pointerActiveAction.action?.Enable();
+
+            // Phase 32.14 — attach the world-space highlighter: pulsing gold
+            // ring orbiting the orb, scale-pulse on the orb itself, cursor
+            // trail while LMB is held, camera dolly-in. Auto-spawned, no
+            // scene wiring required.
+            PolishOrbHighlighter.AttachTo(this, orb);
+
             Hh.Log(LogCategory.MiniGame,
                 $"[Polish] BeginGame fired. State={State}. Target={(orb != null ? orb.name : "null")}. " +
                 $"verboseDiag={verboseInputDiagnostics}. Phase 35 quad-source input wired.");
@@ -280,6 +287,12 @@ namespace HearthboundHollow.MiniGames
         {
             if (State == MiniGameState.Complete) return;
             FinishGame();
+
+            // Phase 32.14 — tear down the highlighter / restore the orb
+            // scale + camera dolly cleanly.
+            var hl = GetComponent<PolishOrbHighlighter>();
+            if (hl != null) hl.Unbind();
+
             float finalClarity = targetOrb != null ? targetOrb.runtimeClarity : 1f;
             EventBus.Publish(new MemoryPolishedEvent(targetOrb != null ? targetOrb.memory : null, finalClarity, autoCompleted));
         }
