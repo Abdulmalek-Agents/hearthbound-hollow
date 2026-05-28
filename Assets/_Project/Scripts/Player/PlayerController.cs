@@ -227,6 +227,14 @@ namespace HearthboundHollow.Player
             _cc = GetComponent<CharacterController>();
             if (interactOrigin == null) interactOrigin = transform;
 
+            // Phase 32.15 — every PlayerController gets a PlayerSafetyNet
+            // (fall-respawn + stuck-nudge + auto-boundary). Idempotent: the
+            // [RequireComponent(PlayerController)] on PlayerSafetyNet means
+            // Unity will auto-add it on serialise too; this call covers the
+            // runtime path for prefabs that pre-date the safety net.
+            if (GetComponent<PlayerSafetyNet>() == null)
+                gameObject.AddComponent<PlayerSafetyNet>();
+
             // Try to auto-pick up the animator from common rig layouts. BoZo's
             // animator sits on the "Body" child created by Phase 13. Defensive:
             // we don't fail if the rig isn't there yet — the controller still
