@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented here. Entries follow the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+> **Older releases (v0.1.0 → v0.7.3)** are preserved in [`Docs/CHANGELOG_HISTORY.md`](Docs/CHANGELOG_HISTORY.md). The active CHANGELOG.md focuses on the most recent release for fast scanning. For verbose per-release detail older than v0.8.0, inspect git history of CHANGELOG.md prior to commit `8677f511`.
+
 ## [0.8.0-depth-layer] — 2026-05-28
 
 **Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.7.3-voice-acting-piper)
@@ -136,12 +138,28 @@ and reflection-friendly. **Zero new external dependencies**.
 
 ---
 
-## [0.7.0-voice-acting-mvp] — 2026-05-27
+## Older releases
 
-**Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.7.1-polish-layer)
-**Theme:** Phase 32 — Voice Acting MVP. Doris's complete Mission 1 dialogue (48 lines) is now AI-voiced via macOS `say -v Samantha -r 180`. Architecture decoupled — ElevenLabs / XTTS / Piper / a human VO actress can swap in later just by overwriting the `.wav` files.
+The full per-release detail for **v0.1.0 → v0.7.3** lives in
+[`Docs/CHANGELOG_HISTORY.md`](Docs/CHANGELOG_HISTORY.md). Quick summary
+of what landed in each:
 
-### User request
+- **v0.7.3-voice-acting-piper** — Open-source Piper TTS pipeline + espeak-ng fallback + voice ducking + mumble suppression + per-character casting defaults (D-058, D-059).
+- **v0.7.1-polish-layer** — Phase 40-43 audio diagnostic + mission audio hooks + Listen scene camera + save audio restoration (D-055, D-056, D-057).
+- **v0.7.0-foundation** — Phase 35-39 cutscene library completion + procedural audio studio + audio + cutscene wiring + greenlight sign-off (D-052, D-053, D-054).
+- **v0.7.0-voice-acting-mvp** — Phase 32 — Doris's 48 voiced M1 lines via macOS `say` (D-058).
+- **v0.6.0-menu-collapse** — Phase 32 UX track — 3-entry top-level Hearthbound menu (D-051).
+- **v0.6.0-mission1-polish-v2** — Phase 32 — 8-cottage village, Hollow facade, hearth dressing, cozy URP volumes.
+- **v0.5.2-advance-prompt-and-dream-canvas-hide** — Phase 31.1 — visible advance affordance + DreamCanvas auto-hide (D-049, D-050).
+- **v0.5.1-dialogue-choice-card-repair** — Phase 31 — full-width tiles + 1/2/3/4 shortcuts (D-045 → D-048).
+- **v0.5.0-onboarding-hints-and-rig-doctor** — Phase 28/29/30 — body alignment + UI never-clips + onboarding (D-041 → D-044).
+- **v0.4.0-build-everything-and-npc-animator** — Phase 27 — Build Everything master capstone + NPC animator pipeline.
+- **v0.3.0-player-controller-and-animation** — Phase 26 — WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator (D-036 → D-040).
+- **v0.2.1-mission-1-2-ui-activation-hotfix** — Phase 25 — Two-layer UI wiring fix (D-033, D-034).
+- **v0.2.0-mission-1-2-polished-playable** — Phase 23+24 — Polished Mission 1 + 2 (D-028 → D-032).
+- **v0.1.1-mission-1-2-bugfix-and-tooling** — Bug-fix cycle (D-008 → D-010).
+- **v0.1.0-mission-1-2-architecture** — Phase 0 → 10 architecture (D-001 → D-007).
 
-> *"Add AI-voiced dialogue to Hearthbound Hollow. After the PR lands, the player walks up to Doris, the parchment dialogue box pops up, the typewriter starts, AND Doris's voice plays through the speakers."*
+---
 
+*Format: [SemVer](https://semver.org/spec/v2.0.0.html). 1.0.0 when the 20-person greenlight playtest passes.*
