@@ -385,7 +385,7 @@ namespace HearthboundHollow.EditorTools
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var tmp = go.AddComponent<TextMeshProUGUI>();
-            tmp.text = "Click or [Space] ▸";
+            tmp.text = "Click or [Space] >"; // Phase 32.11 — ASCII for LiberationSans SDF
             tmp.fontSize = 18;
             tmp.fontStyle = FontStyles.Italic;
             tmp.alignment = TextAlignmentOptions.MidlineRight;

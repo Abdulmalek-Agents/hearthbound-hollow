@@ -36,6 +36,25 @@
 // (Disco Elysium / Spiritfarer / Coffee Talk). End-event also fires
 // automatically when the clip's natural duration elapses (Update loop
 // watches `source.isPlaying` flip false).
+//
+// ── Phase 32.11 hotfix (player report: silent dialogue) ─────────
+// User on macOS pulled Phase 32.10, opened Mission01_Hollow, walked to
+// Doris — no voice came out of the speakers. Diagnosis:
+//   77 .wav files OK, VoiceLibrarySO loaded with 77 entries, Mission01-
+//   Director threading lineIds correctly, VoicePlayer auto-spawned via
+//   GameManager.Awake. The fault was in the *output* end: ZERO
+//   AudioListener anywhere in the scene chain (00_Bootstrap.unity = 0,
+//   03_Mission01_Hollow.unity = 0). Without an AudioListener Unity has
+//   no microphone to render any AudioSource through — every clip in
+//   the project (voice + ambient + footsteps + SFX) was silent.
+// Fix: VoicePlayer now also ensures EXACTLY ONE AudioListener exists.
+//   * If Camera.main has one, do nothing.
+//   * Else if some other scene object has one, do nothing.
+//   * Else attach an AudioListener to Camera.main if present, otherwise
+//     to this GameObject (which is parented under GameManager and
+//     persists across scene loads).
+// One-line `if (AudioListener.volume == 0f) AudioListener.volume = 1f;`
+// also defends against a stale build where the global mute was left on.
 
 using UnityEngine;
 using HearthboundHollow.Core;
@@ -82,6 +101,7 @@ namespace HearthboundHollow.Audio
             Instance = this;
 
             EnsureAudioSource();
+            EnsureAudioListenerExists();
 
             if (library == null)
             {
@@ -116,6 +136,72 @@ namespace HearthboundHollow.Audio
             source.priority = 64;            // Above SFX (128 default); music sits higher (~32).
             source.bypassEffects = false;
             source.bypassListenerEffects = false;
+        }
+
+        /// <summary>
+        /// Phase 32.11 — guarantee exactly one AudioListener in the active
+        /// scene graph. Without an AudioListener, Unity silently renders
+        /// nothing — every AudioSource (voice, ambient, footsteps, SFX) is
+        /// inaudible. Scenes built before Phase 32.11 didn't include one,
+        /// hence the user-reported "I can't hear anything" regression.
+        /// Idempotent — calling this when a listener already exists is a
+        /// no-op, and the runtime guarantees we never add a duplicate.
+        /// </summary>
+        private void EnsureAudioListenerExists()
+        {
+            // Defend against a stale build with the global mute left on.
+            if (AudioListener.volume <= 0.001f) AudioListener.volume = 1f;
+            AudioListener.pause = false;
+
+#if UNITY_2022_3_OR_NEWER
+            var existing = Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+            var existing = Object.FindObjectsOfType<AudioListener>(includeInactive: true);
+#endif
+            if (existing != null && existing.Length > 0)
+            {
+                // Multiple listeners spam a warning every frame; prune dupes.
+                if (existing.Length > 1)
+                {
+                    for (int i = 1; i < existing.Length; i++)
+                    {
+                        if (existing[i] != null) Destroy(existing[i]);
+                    }
+                    Hh.Warn(LogCategory.Audio,
+                        $"VoicePlayer: pruned {existing.Length - 1} duplicate AudioListener(s); " +
+                        $"kept the one on '{existing[0].gameObject.name}'.");
+                }
+                return;
+            }
+
+            // No listener anywhere — attach one. Prefer the main camera (cozy
+            // games conventionally hang the listener off the player's view
+            // so positional audio is right). Fall back to this VoicePlayer
+            // GameObject (it's parented under GameManager and persists).
+            var host = Camera.main != null ? Camera.main.gameObject : gameObject;
+            host.AddComponent<AudioListener>();
+            Hh.Log(LogCategory.Audio,
+                $"VoicePlayer: no AudioListener found — attached one to '{host.name}'. " +
+                "Voice + ambient + SFX will now be audible.");
+        }
+
+        private void OnEnable()
+        {
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene,
+                                   UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            // Phase 32.11 — each gameplay scene re-attaches its own
+            // Main Camera. If THAT camera has no AudioListener, the
+            // scene is silent until we add one.
+            EnsureAudioListenerExists();
         }
 
         /// <summary>

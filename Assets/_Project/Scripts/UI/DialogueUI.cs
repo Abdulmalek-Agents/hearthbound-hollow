@@ -103,9 +103,11 @@ namespace HearthboundHollow.UI
         [Range(0f, 1f)] public float postLineLinger = 0.5f;
 
         [Header("Advance prompt (auto-created if null)")]
-        [Tooltip("Pulsing 'Press [Space] to continue ▸' label that appears " +
+        [Tooltip("Pulsing 'Click or [Space] >' label that appears " +
                  "in the dialogue box's lower-right when the line is fully " +
-                 "rendered and no choices are showing.")]
+                 "rendered and no choices are showing. Uses ASCII '>' so the " +
+                 "default LiberationSans SDF font can render it (the previous " +
+                 "U+25B8 ▸ glyph was not in the font and spammed warnings).")]
         public TextMeshProUGUI advancePrompt;
 
         [Header("Pickle styling (playtest pass commit 5/6)")]
@@ -156,7 +158,16 @@ namespace HearthboundHollow.UI
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
 
             EnsureAdvancePromptExists();
-            if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
+            if (advancePrompt != null)
+            {
+                // Phase 32.11 — if the prefab baked the old ▸ glyph (not in
+                // LiberationSans SDF), overwrite with ">" at runtime so the
+                // missing-character spam stops on installs that haven't
+                // re-run Phase 31's editor capstone yet.
+                if (!string.IsNullOrEmpty(advancePrompt.text) && advancePrompt.text.Contains("▸"))
+                    advancePrompt.text = advancePrompt.text.Replace("▸", ">");
+                advancePrompt.gameObject.SetActive(false);
+            }
 
             // Cache the inspector-set default colors + font styles so we can
             // restore them when a non-Pickle line follows a Pickle line.
@@ -191,7 +202,17 @@ namespace HearthboundHollow.UI
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             advancePrompt = go.AddComponent<TextMeshProUGUI>();
-            advancePrompt.text = "Click or [Space] ▸";
+            // Phase 32.11 — use ">" instead of "▸" (U+25B8 BLACK RIGHT-POINTING
+            // SMALL TRIANGLE). LiberationSans SDF (the default TMP font that
+            // ships with Unity 6) does NOT include U+25B8, so it was being
+            // substituted with U+25A1 WHITE SQUARE □ and spamming a warning
+            // every frame: "The character with Unicode value ▸ was not
+            // found in [LiberationSans SDF] … replaced by □".
+            // ">" is in every font; the visual carries the same "continue"
+            // meaning. If you need the fancier glyph, add a font fallback
+            // (Window → TextMeshPro → Font Asset Creator) to a font that
+            // has U+25B8 such as Noto Sans Symbols.
+            advancePrompt.text = "Click or [Space] >";
             advancePrompt.fontSize = 18;
             advancePrompt.fontStyle = FontStyles.Italic;
             advancePrompt.alignment = TextAlignmentOptions.MidlineRight;
