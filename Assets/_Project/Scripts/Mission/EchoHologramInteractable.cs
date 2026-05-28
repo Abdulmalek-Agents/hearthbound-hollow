@@ -42,6 +42,11 @@
 //
 // Idempotent — `echoHologramHeard == true` short-circuits the monologue
 // path so re-interacting just plays the faint hum-state.
+//
+// ── Hotfix 2026-05-28 ──────────────────────────────────────────────
+// Replaced `ServiceLocator.Resolve<T>()` with `ServiceLocator.Get<T>()`
+// (the canonical Core API). 2 call sites corrected in this file. See
+// the companion fix on MemoryWebOverlay.cs for the full audit summary.
 
 using System.Collections;
 using UnityEngine;
@@ -110,7 +115,7 @@ namespace HearthboundHollow.Mission
 
         protected void OnEnable()
         {
-            _state = ServiceLocator.Resolve<VillageState>();
+            _state = ServiceLocator.Get<VillageState>();
             ApplyHologramState(false);
         }
 
@@ -123,7 +128,7 @@ namespace HearthboundHollow.Mission
         public override void Activate(GameObject player)
         {
             if (_busy) return;
-            if (_state == null) _state = ServiceLocator.Resolve<VillageState>();
+            if (_state == null) _state = ServiceLocator.Get<VillageState>();
             bool first = _state == null || !_state.echoHologramHeard;
             StartCoroutine(PlayHologram(first));
         }
