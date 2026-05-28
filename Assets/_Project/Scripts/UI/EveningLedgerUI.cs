@@ -49,15 +49,24 @@ namespace HearthboundHollow.UI
             if (root != null && root != gameObject) root.SetActive(false);
             WireButtons();
 
-            // Phase 29 — defensive autofit on every TMP label so end-of-day
-            // text never clips on smaller canvases.
-            UIAutoFitText.ApplyToButtonLabel(dayLabel,  minSize: 32, maxSize: 60);
-            UIAutoFitText.ApplyToButtonLabel(coinLabel, minSize: 14, maxSize: 24);
-            UIAutoFitText.ApplyToLabel(summaryProse,     minSize: 14, maxSize: 24);
-            UIAutoFitText.ApplyToLabel(heldMemoriesList, minSize: 14, maxSize: 22);
-            UIAutoFitText.ApplyToButtonLabel(saveSlot1Label, minSize: 12, maxSize: 20);
-            UIAutoFitText.ApplyToButtonLabel(saveSlot2Label, minSize: 12, maxSize: 20);
-            UIAutoFitText.ApplyToButtonLabel(saveSlot3Label, minSize: 12, maxSize: 20);
+            // Phase 32.19 — high-contrast typography across the parchment.
+            // Title-sized day banner, prose body for the summary, gold coin
+            // count, bold cream-on-dark for buttons. Each helper internally
+            // bounds autosize so the layout still adapts to canvas size.
+            UIReadabilityHelper.ApplyHeadline (dayLabel,        min: 56, max: 110);
+            UIReadabilityHelper.ApplyMonetary (coinLabel,       min: 28, max: 56);
+            UIReadabilityHelper.ApplyBody     (summaryProse,    min: 26, max: 38);
+            UIReadabilityHelper.ApplyBody     (heldMemoriesList, min: 24, max: 34);
+            UIReadabilityHelper.ApplyButtonLabel(saveSlot1Label, min: 20, max: 30);
+            UIReadabilityHelper.ApplyButtonLabel(saveSlot2Label, min: 20, max: 30);
+            UIReadabilityHelper.ApplyButtonLabel(saveSlot3Label, min: 20, max: 30);
+
+            // Drop a soft dark wash behind the two prose columns so the
+            // Bamao parchment-book background's decorative star + ornament
+            // never washes the text out (the user-reported readability
+            // issue).
+            if (summaryProse != null)     UIReadabilityHelper.AddDarkWash(summaryProse.rectTransform, padding: 18f);
+            if (heldMemoriesList != null) UIReadabilityHelper.AddDarkWash(heldMemoriesList.rectTransform, padding: 18f);
         }
 
         private void WireButtons()
