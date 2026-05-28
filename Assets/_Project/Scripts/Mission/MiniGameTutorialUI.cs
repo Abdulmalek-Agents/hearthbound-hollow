@@ -126,11 +126,75 @@ namespace HearthboundHollow.Mission
         private void OnEnable()
         {
             DiscoverAndSubscribeAll();
+            // Phase 32.17 — fail-safe: if a watched game is ALREADY in the
+            // Active state by the time we enable (i.e. BeginGame fired
+            // BEFORE this component was attached / re-enabled), the
+            // OnGameStarted event is gone and the tutorial HUD would
+            // never show. Detect that here and replay the handler.
+            CatchUpAlreadyActiveGames();
         }
 
         private void OnDisable()
         {
             UnsubscribeAll();
+        }
+
+        private void CatchUpAlreadyActiveGames()
+        {
+            if (watchedGames == null) return;
+            for (int i = 0; i < watchedGames.Length; i++)
+            {
+                var g = watchedGames[i];
+                if (g != null && g.State == MiniGames.MiniGameState.Active && _active == null)
+                {
+                    OnGameStarted(g);
+                    if (g is PolishMiniGame pg) OnPolishClarityChanged(pg.CurrentClarity01);
+                    return;
+                }
+            }
+        }
+
+        // Phase 32.17 — belt-and-braces polling. Even if subscriptions go
+        // sideways for any reason (Mission director adding the component
+        // mid-frame, scene reloads, etc.) make sure the panel state matches
+        // whatever the watched game actually says. ~5 Hz is plenty.
+        private float _pollAccum;
+        private void Update()
+        {
+            _pollAccum += Time.unscaledDeltaTime;
+            if (_pollAccum < 0.2f) return;
+            _pollAccum = 0f;
+
+            MiniGameBase active = null;
+            if (watchedGames != null)
+            {
+                for (int i = 0; i < watchedGames.Length; i++)
+                {
+                    if (watchedGames[i] != null &&
+                        watchedGames[i].State == MiniGames.MiniGameState.Active)
+                    {
+                        active = watchedGames[i];
+                        break;
+                    }
+                }
+            }
+
+            bool shouldShow = active != null;
+            bool isShowing  = panelRoot != null && panelRoot.activeSelf;
+            if (shouldShow && !isShowing)
+            {
+                // Resync — tutorial missed OnGameStarted (or this component
+                // was just added). Catch up.
+                OnGameStarted(active);
+                if (active is PolishMiniGame pg) OnPolishClarityChanged(pg.CurrentClarity01);
+            }
+            else if (!shouldShow && isShowing && _active != null
+                     && (_active.State == MiniGames.MiniGameState.Complete ||
+                         _active.State == MiniGames.MiniGameState.Aborted))
+            {
+                HideImmediate();
+                _active = null;
+            }
         }
 
         // ───── Auto-discovery ────────────────────────────────────
@@ -362,15 +426,17 @@ namespace HearthboundHollow.Mission
             if (panelRoot != null && headlineLabel != null && instructionsLabel != null
                 && progressBar != null && autoCompleteButton != null) return;
 
-            // Find or create a Canvas to host the overlay.
+            // Phase 32.17 — build our OWN dedicated overlay canvas. The
+            // previous "find any canvas in the scene" path was hostile:
+            // it could land on a transient short-lived canvas (e.g. the
+            // PolishOrbHighlighter's Canvas, the Memory Web overlay, the
+            // Cold Open cinematic) whose lifecycle destroys it on the
+            // next BeginGame / scene reload — taking the tutorial HUD's
+            // visuals down with it. A dedicated canvas owned by THIS
+            // component cannot be silently disposed by anyone else.
             if (hostCanvas == null)
             {
-                #if UNITY_2022_3_OR_NEWER
-                var anyCanvas = Object.FindFirstObjectByType<Canvas>();
-                #else
-                var anyCanvas = Object.FindObjectOfType<Canvas>();
-                #endif
-                hostCanvas = anyCanvas != null ? anyCanvas : CreateOverlayCanvas();
+                hostCanvas = CreateOverlayCanvas();
             }
 
             // Two-layer pattern (D-033) — host always active, panelRoot toggled.
