@@ -21,6 +21,14 @@
 // no scene-level reference is wired. The asset is populated by the editor
 // utility `Phase32_VoiceLibraryBuilder` (Hearthbound → ⚙️ Advanced submenu),
 // which scans Audio/Voice/ and writes an entry per .wav file.
+//
+// ── Phase 60 — Arabic Localization MVP ─────────────────────────────
+// Entry now carries a second `clipAr` field for Arabic-locale voice
+// playback. `VoicePlayer.Play(lineId)` checks the active locale via
+// `ServiceLocator.Get<LocalizationService>()` and picks `clipAr` when
+// Locale.Arabic is active and the slot is non-null. Falls back to
+// `clip` (English) silently when the Arabic clip hasn't been recorded
+// yet — graceful degrade during translation work (D-064).
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -39,6 +47,15 @@ namespace HearthboundHollow.Audio
             public string lineId;
 
             public AudioClip clip;
+
+            [Tooltip("Phase 60 — Optional Arabic voice clip for this lineId. " +
+                     "When the active locale is Arabic and this clip is set, " +
+                     "VoicePlayer.Play(lineId) returns its length and plays " +
+                     "it instead of `clip`. Missing Arabic clip → English " +
+                     "clip plays (with localized SUBTITLE only, voice stays " +
+                     "in English source-of-truth). This is graceful degrade " +
+                     "while voice acting catches up.")]
+            public AudioClip clipAr;
 
             [Tooltip("Per-clip volume scalar. 1 = neutral. " +
                      "VoicePlayer.masterVolume multiplies this.")]
