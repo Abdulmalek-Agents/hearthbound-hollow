@@ -21,6 +21,14 @@
 //        └── _LineTemplate
 //
 // Idempotent. Re-running deletes the previously-built canvas.
+//
+// ── Hotfix 2026-05-28 ──────────────────────────────────────────────
+// TextAlignmentOptions.MidlineCenter does NOT exist in TMPro — the
+// correct value for "horizontal Center + vertical Midline" is just
+// `Midline` (no suffix). Verified against the project's existing usage
+// in UIAutoFitText / DialogueUI / Phase14 / Phase31 — those use
+// MidlineLeft / MidlineRight (which DO exist). One call site at
+// line ~189 corrected. See commit message for the full audit.
 
 using TMPro;
 using UnityEditor;
@@ -186,7 +194,12 @@ namespace HearthboundHollow.EditorTools
             tipTmp.text = "";
             tipTmp.color = C_Title;
             tipTmp.fontSize = 18;
-            tipTmp.alignment = TextAlignmentOptions.MidlineCenter;
+            // TMP's TextAlignmentOptions has Midline (horizontal-Center + vertical-
+            // midline), not MidlineCenter. The latter looks intuitive but is not a
+            // valid enum value in this TMP version. Verified against the project's
+            // other usages: MidlineRight / MidlineLeft / Midline all exist, but
+            // there is no MidlineCenter. (Hotfix 2026-05-28.)
+            tipTmp.alignment = TextAlignmentOptions.Midline;
             tipTmp.fontStyle = FontStyles.Italic;
             tipTmp.raycastTarget = false;
 
