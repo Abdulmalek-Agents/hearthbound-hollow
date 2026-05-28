@@ -21,10 +21,14 @@
 // the audio libraries to Resources/ for runtime Resources.Load fallback. Phase
 // 38 wires every audio asset to the scenes + dialogue UI + cutscene timelines.
 // Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
-// Phase 47 (NEW) layers the level boundaries, autumn skybox, interior polish,
+// Phase 47 layers the level boundaries, autumn skybox, interior polish,
 // collider hardening, and onboarding wayfinding on top of everything — fixes
 // the four pre-greenlight polish gaps (narrow lane, no boundaries, no skybox,
-// thin cottage interior). Phase 27 chains them all — single click, ~110 s.
+// thin cottage interior). PHASES 48-51 (NEW — the Depth Layer) add: a Cold
+// Open cinematic on Bootstrap (the hook), Marin's Echo Hologram on the Hollow
+// workbench (first predecessor encounter), a tone-personalized Preface Beat on
+// the Lane scene (3 narrator lines), and a Tab-key Memory Web overlay with 4
+// canonical Echo connections. Phase 27 chains them all — single click, ~115 s.
 //
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
@@ -68,7 +72,7 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 47 chain (~110 s).\n" +
+                "This runs the full Phase 13 → 51 chain (~115 s).\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -204,15 +208,6 @@ namespace HearthboundHollow.EditorTools
 
                 // Step 13: Phase 47 — Level Boundaries + Wider Environment +
                 // Skybox + Interior Polish + Collider Hardening + Wayfinding.
-                // Layered LAST so it sits on top of every earlier capstone's
-                // output, additively. The Phase 47 capstone is reflection-
-                // dispatched here as 7 individual sub-builders so each opens
-                // its own success dialog (consistent with Phase 32's pattern).
-                //
-                // NOTE on numbering: Phase 46 is reserved for the
-                // cross-platform voice generator (Step 8.4 above). The
-                // level-polish family lives at Phase 47.x to avoid the
-                // collision. The two phases are functionally independent.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 47 (Level Boundaries + Polish) …", 0.98f);
                 if (TryRun("Phase 47.1 — Autumn Skybox + Lighting",
                           "HearthboundHollow.EditorTools.Phase47_AutumnSkyboxAndLighting", "Build")) ran++; else skipped++;
@@ -228,6 +223,24 @@ namespace HearthboundHollow.EditorTools
                           "HearthboundHollow.EditorTools.Phase47_ColliderHardening", "Build")) ran++; else skipped++;
                 if (TryRun("Phase 47.7 — Guide Lights + Wayfinding",
                           "HearthboundHollow.EditorTools.Phase47_GuideLightsAndWayfinding", "Build")) ran++; else skipped++;
+
+                // Step 14: Phase 48-51 Depth Layer (the Hook + deep system family).
+                // - 48: Cold Open Cinematic on the Bootstrap scene (the hook).
+                // - 49: Echo Hologram of Marin on the Hollow workbench.
+                // - 50: Tone-Personalized Preface Beat on the Lane scene.
+                // - 51: Memory Web Overlay on the Bootstrap scene (Tab to open).
+                // Each phase is fully idempotent and re-runs cleanly on every
+                // `git pull` cycle. Skipped gracefully when a phase isn't
+                // shipped on this branch.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 48-51 (Depth Layer) …", 0.985f);
+                if (TryRun("Phase 48 — Cold Open Cinematic (the hook)",
+                          "HearthboundHollow.EditorTools.Phase48_BootstrapHookCinematic", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 49 — Echo Hologram (Marin)",
+                          "HearthboundHollow.EditorTools.Phase49_EchoHologramBuilder", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 50 — Preface Beat (Lane)",
+                          "HearthboundHollow.EditorTools.Phase50_PrefaceBeatBuilder", "Build")) ran++; else skipped++;
+                if (TryRun("Phase 51 — Memory Web Overlay (Tab)",
+                          "HearthboundHollow.EditorTools.Phase51_MemoryWebBuilder", "Build")) ran++; else skipped++;
 
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
@@ -333,6 +346,10 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 47 — Autumn skybox, 24×36m Lane with stone-wall perimeter + void blockers,");
             sb.AppendLine("                Hollow + Cottage interior polish, cottage hearth flicker, guide lanterns,");
             sb.AppendLine("                firefly wayfinding, every prop has a Collider (no clipping)");
+            sb.AppendLine("  • Phase 48 — Cold Open cinematic on Bootstrap (candle, Marin's letter, Pickle eyes, title)");
+            sb.AppendLine("  • Phase 49 — Echo Hologram of Marin on the Hollow workbench (3-line monologue)");
+            sb.AppendLine("  • Phase 50 — Tone-Personalized Preface Beat on Lane scene (3 narrator lines, skippable)");
+            sb.AppendLine("  • Phase 51 — Memory Web overlay (Tab opens it, 4 canonical Echo connections)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
@@ -345,6 +362,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  Zoom      Mouse scroll / Gamepad LB-RB");
             sb.AppendLine("  Pause     Escape");
             sb.AppendLine("  Help      H");
+            sb.AppendLine("  Memory Web  Tab");
             return sb.ToString();
         }
     }
