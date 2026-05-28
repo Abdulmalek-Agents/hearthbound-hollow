@@ -25,6 +25,15 @@
 //
 // All animations use unscaledDeltaTime so the overlay is still usable
 // while the game is paused.
+//
+// ── Hotfix 2026-05-28 ──────────────────────────────────────────────
+// Replaced `ServiceLocator.Resolve<T>()` with the canonical
+// `ServiceLocator.Get<T>()` (the API is `Get`, never `Resolve` — that
+// was a typo on initial author). See `Scripts/Core/ServiceLocator.cs`:
+//   public static T Get<T>() where T : class { ... }
+// The same fix landed simultaneously in:
+//   Scripts/Mission/EchoHologramInteractable.cs (2x)
+//   Scripts/Mission/PrefaceBeatDirector.cs (1x)
 
 using System.Collections;
 using System.Collections.Generic;
@@ -115,7 +124,7 @@ namespace HearthboundHollow.UI
 
         public void OpenWeb()
         {
-            _state = ServiceLocator.Resolve<VillageState>();
+            _state = ServiceLocator.Get<VillageState>();
             BuildSnapshot();
             _open = true;
             if (rootGroup != null) rootGroup.gameObject.SetActive(true);
