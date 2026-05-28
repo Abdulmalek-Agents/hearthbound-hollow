@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &199941550
+--- !u!1 &185293117
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,111 +127,48 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 199941552}
-  - component: {fileID: 199941551}
-  - component: {fileID: 199941553}
+  - component: {fileID: 185293118}
+  - component: {fileID: 185293119}
   m_Layer: 0
-  m_Name: _GameRoot
+  m_Name: MumbleVoicePlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &199941551
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 199941550}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1c191b3046e64bf3868e50f1932cc29, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HearthboundHollow.Core::HearthboundHollow.Core.GameManager
-  villageState: {fileID: 11400000, guid: f935054ee6d664e84b687cfbcef654c6, type: 2}
-  mainMenuSceneName: 01_MainMenu
-  bootstrapSceneName: 00_Bootstrap
-  autoLoadMainMenu: 1
-  autoSpawnVoicePlayer: 1
---- !u!4 &199941552
+--- !u!4 &185293118
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 199941550}
+  m_GameObject: {fileID: 185293117}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 2116063785}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &199941553
+--- !u!114 &185293119
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 199941550}
+  m_GameObject: {fileID: 185293117}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7c3a2f4d5e6b7a8190c1d2e3f4a5b6c7, type: 3}
+  m_Script: {fileID: 11500000, guid: 2bfff2f6b9976404395ee1ebc520ea84, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: HearthboundHollow.Core::HearthboundHollow.Core.SettingsServiceBootstrap
---- !u!1 &314197747
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 314197749}
-  - component: {fileID: 314197748}
-  m_Layer: 0
-  m_Name: _HHAudio_Bootstrap
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &314197748
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 314197747}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b5ee7bebd3e894bdfb273e606d78fb52, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: HearthboundHollow.Audio::HearthboundHollow.Audio.MusicPlayer
+  m_EditorClassIdentifier: HearthboundHollow.Audio::HearthboundHollow.Audio.MumbleVoicePlayer
   library: {fileID: 0}
-  surviveSceneLoad: 1
-  globalScale: 0.75
+  globalScale: 0.55
+  honorMumbleSetting: 1
+  verboseLogging: 0
   mixerGroup: {fileID: 0}
---- !u!4 &314197749
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 314197747}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1045355013}
-  - {fileID: 1838234659}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &531580881
+--- !u!1 &237810286
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -239,8 +176,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 531580883}
-  - component: {fileID: 531580882}
+  - component: {fileID: 237810288}
+  - component: {fileID: 237810287}
   m_Layer: 0
   m_Name: Splash Camera
   m_TagString: MainCamera
@@ -248,13 +185,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!20 &531580882
+--- !u!20 &237810287
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 531580881}
+  m_GameObject: {fileID: 237810286}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
@@ -299,13 +236,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &531580883
+--- !u!4 &237810288
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 531580881}
+  m_GameObject: {fileID: 237810286}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -314,7 +251,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1045355012
+--- !u!1 &1217179515
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -322,48 +259,61 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1045355013}
-  - component: {fileID: 1045355014}
+  - component: {fileID: 1217179517}
+  - component: {fileID: 1217179516}
+  - component: {fileID: 1217179518}
   m_Layer: 0
-  m_Name: MumbleVoicePlayer
+  m_Name: _GameRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1045355013
+--- !u!114 &1217179516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1217179515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1c191b3046e64bf3868e50f1932cc29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HearthboundHollow.Core::HearthboundHollow.Core.GameManager
+  villageState: {fileID: 11400000, guid: f935054ee6d664e84b687cfbcef654c6, type: 2}
+  mainMenuSceneName: 01_MainMenu
+  bootstrapSceneName: 00_Bootstrap
+  autoLoadMainMenu: 1
+  autoSpawnVoicePlayer: 1
+--- !u!4 &1217179517
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1045355012}
+  m_GameObject: {fileID: 1217179515}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 314197749}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1045355014
+--- !u!114 &1217179518
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1045355012}
+  m_GameObject: {fileID: 1217179515}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bfff2f6b9976404395ee1ebc520ea84, type: 3}
+  m_Script: {fileID: 11500000, guid: 7c3a2f4d5e6b7a8190c1d2e3f4a5b6c7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: HearthboundHollow.Audio::HearthboundHollow.Audio.MumbleVoicePlayer
-  library: {fileID: 0}
-  globalScale: 0.55
-  honorMumbleSetting: 1
-  verboseLogging: 0
-  mixerGroup: {fileID: 0}
---- !u!1 &1838234658
+  m_EditorClassIdentifier: HearthboundHollow.Core::HearthboundHollow.Core.SettingsServiceBootstrap
+--- !u!1 &1918543032
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -371,9 +321,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1838234659}
-  - component: {fileID: 1838234661}
-  - component: {fileID: 1838234660}
+  - component: {fileID: 1918543033}
+  - component: {fileID: 1918543035}
+  - component: {fileID: 1918543034}
   m_Layer: 0
   m_Name: AmbientAudio
   m_TagString: Untagged
@@ -381,28 +331,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1838234659
+--- !u!4 &1918543033
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1838234658}
+  m_GameObject: {fileID: 1918543032}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 314197749}
+  m_Father: {fileID: 2116063785}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1838234660
+--- !u!114 &1918543034
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1838234658}
+  m_GameObject: {fileID: 1918543032}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b53827e4c5cd19515fbbdcf8c74483fa, type: 3}
@@ -415,13 +365,16 @@ MonoBehaviour:
   playOnStart: 0
   surviveSceneLoad: 1
   fadeInSeconds: 2
---- !u!82 &1838234661
+  voiceDuckScale: 0.75
+  voiceDuckInSec: 0.2
+  voiceDuckOutSec: 0.45
+--- !u!82 &1918543035
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1838234658}
+  m_GameObject: {fileID: 1918543032}
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
@@ -512,10 +465,63 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &2116063783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2116063785}
+  - component: {fileID: 2116063784}
+  m_Layer: 0
+  m_Name: _HHAudio_Bootstrap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2116063784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2116063783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5ee7bebd3e894bdfb273e606d78fb52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: HearthboundHollow.Audio::HearthboundHollow.Audio.MusicPlayer
+  library: {fileID: 0}
+  surviveSceneLoad: 1
+  globalScale: 0.75
+  mixerGroup: {fileID: 0}
+  voiceDuckScale: 0.55
+  voiceDuckInSec: 0.2
+  voiceDuckOutSec: 0.45
+--- !u!4 &2116063785
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2116063783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 185293118}
+  - {fileID: 1918543033}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 199941552}
-  - {fileID: 531580883}
-  - {fileID: 314197749}
+  - {fileID: 1217179517}
+  - {fileID: 237810288}
+  - {fileID: 2116063785}
