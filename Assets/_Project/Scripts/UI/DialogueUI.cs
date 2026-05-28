@@ -237,6 +237,10 @@ namespace HearthboundHollow.UI
         {
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             if (root != null) root.SetActive(true);
+            // Phase 32.16 — restore CanvasGroup visibility (it may have been
+            // hidden by a previous Hide() call). Mirror of the ApplyVisibility
+            // call in Hide().
+            ApplyVisibility(true);
 
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
@@ -432,8 +436,37 @@ namespace HearthboundHollow.UI
             VoicePlayer.Instance?.Stop();
             // Phase 38 — stop mumble playback when the dialogue UI hides.
             EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
-            if (root != null && root != gameObject) root.SetActive(false);
+            // Phase 32.16 — drive a CanvasGroup on the root for invisibility
+            // (alpha = 0 + blocksRaycasts = false). The original
+            // `if (root != gameObject) root.SetActive(false)` guard was a
+            // NO-OP under the Phase 14 builder's wiring (`root = gameObject`)
+            // — the dialogue panel never actually hid, so "I'll wait. Take
+            // your time, Keeper." stayed on screen for the entire polish
+            // mini-game. CanvasGroup hides reliably regardless of root
+            // wiring while keeping the script host alive (Phase 25 invariant).
+            ApplyVisibility(false);
             IsBusy = false;
+        }
+
+        /// <summary>
+        /// Phase 32.16 — visibility toggle that works whether `root` is the
+        /// host GameObject (Phase 14 builder default) or a separate panel
+        /// child (the recommended two-layer pattern). Uses a CanvasGroup on
+        /// the root so the script host stays Active either way.
+        /// </summary>
+        private void ApplyVisibility(bool visible)
+        {
+            var target = root != null ? root : gameObject;
+            var cg = target.GetComponent<CanvasGroup>();
+            if (cg == null) cg = target.AddComponent<CanvasGroup>();
+            cg.alpha = visible ? 1f : 0f;
+            cg.blocksRaycasts = visible;
+            cg.interactable = visible;
+            // Belt-and-braces: if the recommended two-layer pattern IS in
+            // play (root is a child distinct from gameObject), also toggle
+            // its active state as the legacy code did.
+            if (root != null && root != gameObject && root.activeSelf != visible)
+                root.SetActive(visible);
         }
 
         private void ClearChoices()

@@ -1,104 +1,98 @@
 // SPDX-License-Identifier: MIT
 // Hearthbound Hollow — MiniGames / PolishOrbHighlighter
 //
-// PHASE 32.14 — "Where do I even click?" visual aid.
+// PHASE 32.16 — screen-space rewrite of the polish "where do I click?" aid.
 //
-// User report: opened the polish mini-game, saw a tiny grey orb on the
-// workbench, no idea what to do. Got 40% by accidentally hitting the right
-// gestures somewhere on-screen. Console showed legacyLMB=False/active=False
-// the whole time — TTS-style instructions weren't translating to action.
+// The 32.14 LineRenderer version of this highlighter relied on
+// `Shader.Find("Universal Render Pipeline/Unlit")` succeeding and the
+// LineRenderer rendering correctly through arbitrary world geometry. On
+// the user's URP-Mobile + ASE-patched shader setup the ring rendered
+// either invisibly or hidden behind the workbench mesh — the video
+// playtest showed a small grey orb with NO visible glow ring, and the
+// HUD's "around the glowing orb" copy lied to the player.
 //
-// FIX — make the polish target a screaming-obvious cinematic target:
+// Phase 32.16 ditches the world-space LineRenderer for a guaranteed-
+// visible **screen-space overlay canvas** drawn at the orb's projected
+// screen position, sized to match PolishMiniGame.polishRadiusPx +
+// coreRadiusPx exactly. Players see EXACTLY where they need to drag
+// their cursor — the visual matches the input gate to the pixel.
 //
-//   1. **World-space glow ring** orbits the orb at ~1.2× its radius —
-//      pulses warm gold at 0.8 Hz so it's impossible to miss.
-//   2. **Orb scale pulse** — the orb itself breathes 1.0 ↔ 1.06× so it
-//      feels alive and tagged-for-interaction.
-//   3. **Quadrant pie ring** — same orbit ring is split into 4 wedges;
-//      each wedge becomes solid gold once the player has covered that
-//      quadrant. Live readout of "you've done 2 of 4 corners".
-//   4. **Cursor trail** — a screen-space LineRenderer-style overlay
-//      paints the last ~30 cursor positions while LMB is held so the
-//      player SEES they're drawing. Fades on release.
-//   5. **Auto-spawn** — PolishMiniGame finds and binds an instance on
-//      BeginGame. Removes itself on FinishGame. Zero scene wiring.
-//   6. **Camera dolly hint** — bumps the SmoothFollowCamera.distance
-//      from default to a closer 3.2 m for the duration of the polish
-//      so the orb fills more of the frame. Restored on FinishGame.
+//   * Outer ring  → polishRadiusPx        ("draw inside this circle")
+//   * Inner ring  → coreRadiusPx          ("don't scrub on the core")
+//   * 4 wedges    → quadrant coverage     (fill gold as covered)
+//   * Pulse alpha + width keyed to remaining quadrants
+//   * Cursor halo (small dot at cursor) so the player can find the
+//     cursor on a busy screen
 //
-// Performance: one LineRenderer with 64 verts (ring), one with 30 verts
-// (trail), one MaterialPropertyBlock pulse on the orb. No allocations in
-// Update. Safe on mobile.
+// All drawn via `UnityEngine.UI.Image` with a procedurally-built circle
+// sprite (transparent centre) — no shader-find, no depth issues, no
+// world-geometry occlusion. Camera dolly-in is kept as a separate
+// effect that only fires if SmoothFollowCamera is still in control
+// (DialogueCameraDirector takes over during dialogue — if it's active,
+// the polish camera nudge is skipped because the dialogue director's
+// over-shoulder shot is already cinematic).
 
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using HearthboundHollow.Core;
 using HearthboundHollow.Player;
 
 namespace HearthboundHollow.MiniGames
 {
-    [DefaultExecutionOrder(70)] // after PolishMiniGame.Update
+    [DefaultExecutionOrder(70)]
     public class PolishOrbHighlighter : MonoBehaviour
     {
-        // ───── Tunables (cozy gold palette) ────────────────────────
+        // ───── Source ──────────────────────────────────────────────
 
         [Header("Source")]
         public PolishMiniGame game;
 
-        [Header("Ring (orbits the orb)")]
-        [Tooltip("Ring radius as a multiplier of the orb's bounds extent.")]
-        [Range(1.05f, 2.5f)] public float ringRadiusMul = 1.35f;
-        [Tooltip("Height above the orb's centre (m).")]
-        [Range(-0.5f, 0.5f)] public float ringHeightOffset = 0.02f;
-        [Tooltip("Ring thickness (line width, m).")]
-        [Range(0.005f, 0.08f)] public float ringWidth = 0.025f;
-        [Range(24, 128)] public int ringSegments = 80;
-        [Tooltip("Idle (un-covered quadrant) colour.")]
-        public Color ringIdleColor   = new Color(1f, 0.78f, 0.32f, 0.55f);
-        [Tooltip("Covered (quadrant complete) colour.")]
-        public Color ringCoveredColor = new Color(1f, 0.92f, 0.50f, 0.95f);
-        [Tooltip("Pulse frequency (Hz) for the idle ring.")]
-        [Range(0.2f, 3f)] public float pulseHz = 0.8f;
+        // ───── Tunables ────────────────────────────────────────────
 
-        [Header("Orb scale pulse")]
+        [Header("Visuals")]
+        [Tooltip("Idle ring colour (un-covered quadrants).")]
+        public Color ringIdleColor    = new Color(1.00f, 0.78f, 0.32f, 0.85f);
+        [Tooltip("Solid-gold colour as all 4 quadrants are covered.")]
+        public Color ringCoveredColor = new Color(1.00f, 0.92f, 0.52f, 1.00f);
+        [Tooltip("Core 'don't scrub here' dim band colour.")]
+        public Color coreColor        = new Color(0.62f, 0.46f, 0.20f, 0.45f);
+        [Tooltip("Cursor halo (small dot at the cursor position).")]
+        public Color cursorColor      = new Color(1.00f, 0.95f, 0.78f, 0.90f);
+
+        [Range(0.3f, 4f)] public float pulseHz = 1.2f;
+        [Range(4f, 30f)] public float ringThicknessPx = 14f;
+
+        [Header("Orb scale pulse (3D)")]
         [Range(1.0f, 1.2f)] public float scalePulseMax = 1.06f;
 
-        [Header("Cursor trail (screen-space overlay)")]
-        [Tooltip("Maximum trail points; older points fade out first.")]
-        [Range(8, 80)] public int trailMaxPoints = 30;
-        [Range(0.01f, 0.5f)] public float trailFadeSeconds = 0.25f;
-        public Color trailColor = new Color(1f, 0.85f, 0.45f, 0.9f);
-        [Range(1f, 20f)] public float trailWidthPx = 6f;
-
-        [Header("Camera dolly hint")]
-        [Tooltip("If true, smoothly pulls SmoothFollowCamera in closer while " +
-                 "the polish mini-game is active, then restores on finish.")]
+        [Header("Camera dolly hint (skipped if DialogueCameraDirector is active)")]
         public bool dollyCameraIn = true;
         [Range(1.5f, 5f)] public float dollyDistance = 3.2f;
         [Range(0.5f, 60f)] public float dollyPitch = 32f;
 
         // ───── Runtime state ──────────────────────────────────────
 
-        private LineRenderer _ring;
-        private Material _ringMat;
+        private Canvas _canvas;
+        private RectTransform _outerRingRT;
+        private RectTransform _innerRingRT;
+        private RectTransform _cursorDotRT;
+        private Image _outerRing;
+        private Image _innerRing;
+        private Image _cursorDot;
+
+        private Sprite _ringSprite;
+        private Sprite _fillSprite;
+
         private Transform _orbT;
         private MemoryOrbInteractable _orb;
         private Vector3 _orbBaseScale;
         private SmoothFollowCamera _cam;
         private float _savedCamDistance;
         private float _savedCamPitch;
+        private bool _dollyApplied;
 
-        // Trail overlay (screen-space UI lines via OnGUI is too coarse —
-        // we instead draw via a child Canvas + UI.LineRenderer-equivalent;
-        // here we use a Camera-frustum-billboarded LineRenderer in world
-        // space attached to the camera so it shows up in any scene without
-        // a UI overlay setup).
-        private LineRenderer _trail;
-        private Material _trailMat;
-        private readonly List<Vector3> _trailPoints = new();
-        private readonly List<float> _trailTimes = new();
-
-        // ───── Wiring (called by PolishMiniGame.BeginGame) ────────
+        // ───── Wiring ─────────────────────────────────────────────
 
         public static PolishOrbHighlighter AttachTo(PolishMiniGame game, MemoryOrbInteractable orb)
         {
@@ -116,204 +110,204 @@ namespace HearthboundHollow.MiniGames
             _orbT = orb != null ? orb.transform : null;
             if (_orbT != null) _orbBaseScale = _orbT.localScale;
 
-            BuildRingIfMissing();
-            BuildTrailIfMissing();
-            EnableVisuals(true);
+            BuildCanvasIfMissing();
+            SetVisible(true);
 
-            // Camera dolly-in.
+            // Phase 32.16 — only apply the dolly if the SmoothFollowCamera is
+            // currently in control. DialogueCameraDirector (Phase 32.12) takes
+            // over the camera transform during dialogue and disables the
+            // SmoothFollowCamera component — pushing distance/pitch on a
+            // disabled component does nothing visible. The cinematic over-
+            // shoulder shot is already framing the workbench area, so we
+            // leave the camera alone in that case.
+            _dollyApplied = false;
             if (dollyCameraIn && Camera.main != null)
             {
                 _cam = Camera.main.GetComponent<SmoothFollowCamera>();
-                if (_cam != null)
+                if (_cam != null && _cam.enabled)
                 {
                     _savedCamDistance = _cam.distance;
                     _savedCamPitch    = _cam.pitch;
                     _cam.distance = dollyDistance;
                     _cam.pitch    = dollyPitch;
+                    _dollyApplied = true;
                 }
             }
         }
 
         public void Unbind()
         {
-            EnableVisuals(false);
+            SetVisible(false);
             if (_orbT != null) _orbT.localScale = _orbBaseScale;
 
-            // Restore camera dolly.
-            if (_cam != null)
+            if (_cam != null && _dollyApplied)
             {
                 _cam.distance = _savedCamDistance;
                 _cam.pitch    = _savedCamPitch;
-                _cam = null;
             }
+            _cam = null;
+            _dollyApplied = false;
             _orb = null;
             _orbT = null;
         }
 
         private void OnDestroy()
         {
-            if (_ringMat != null) Destroy(_ringMat);
-            if (_trailMat != null) Destroy(_trailMat);
+            if (_canvas != null) Destroy(_canvas.gameObject);
+            if (_ringSprite != null) Destroy(_ringSprite);
+            if (_fillSprite != null) Destroy(_fillSprite);
         }
 
-        // ───── Build visuals ──────────────────────────────────────
-
-        private static Shader FindShader()
+        private void SetVisible(bool on)
         {
-            // URP unlit gives correct alpha + no lighting cost; fall back if
-            // the project is on built-in.
-            var s = Shader.Find("Universal Render Pipeline/Unlit");
-            if (s == null) s = Shader.Find("Sprites/Default");
-            if (s == null) s = Shader.Find("Unlit/Color");
-            return s;
+            if (_canvas != null) _canvas.gameObject.SetActive(on);
         }
 
-        private void BuildRingIfMissing()
+        // ───── Canvas build (screen-space overlay, sortingOrder 80) ─
+
+        private void BuildCanvasIfMissing()
         {
-            if (_ring != null) return;
-            var go = new GameObject("PolishOrbHighlighter_Ring");
-            go.transform.SetParent(transform, false);
-            _ring = go.AddComponent<LineRenderer>();
-            _ring.loop = true;
-            _ring.useWorldSpace = true;
-            _ring.positionCount = ringSegments;
-            _ring.widthMultiplier = ringWidth;
-            _ring.numCornerVertices = 4;
-            _ring.numCapVertices = 4;
-            _ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            _ring.receiveShadows = false;
+            if (_canvas != null) return;
 
-            _ringMat = new Material(FindShader());
-            _ringMat.color = ringIdleColor;
-            _ring.material = _ringMat;
+            _ringSprite = BuildRingSprite();
+            _fillSprite = BuildFillSprite();
+
+            var go = new GameObject("PolishOrbHighlighter_Canvas",
+                                    typeof(Canvas), typeof(CanvasScaler));
+            _canvas = go.GetComponent<Canvas>();
+            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _canvas.sortingOrder = 80; // above gameplay, below dialogue (90) and pause (100)
+
+            var scaler = go.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+
+            // Outer ring (the "draw inside here" guide).
+            _outerRingRT = MakeImage(go.transform, "OuterRing", _ringSprite, ringIdleColor,
+                                     out _outerRing);
+            // Inner ring (the "don't scrub here" core).
+            _innerRingRT = MakeImage(go.transform, "InnerRing", _ringSprite, coreColor,
+                                     out _innerRing);
+            // Cursor dot — tiny filled circle painted at cursor position.
+            _cursorDotRT = MakeImage(go.transform, "CursorDot", _fillSprite, cursorColor,
+                                     out _cursorDot);
         }
 
-        private void BuildTrailIfMissing()
+        private static RectTransform MakeImage(Transform parent, string n, Sprite sprite,
+                                               Color c, out Image img)
         {
-            if (_trail != null) return;
-            var go = new GameObject("PolishOrbHighlighter_Trail");
-            // Parent to camera so it stays visible regardless of player movement.
-            var cam = Camera.main != null ? Camera.main.transform : null;
-            go.transform.SetParent(cam != null ? cam : transform, false);
-            _trail = go.AddComponent<LineRenderer>();
-            _trail.useWorldSpace = true;
-            _trail.positionCount = 0;
-            _trail.widthMultiplier = trailWidthPx * 0.001f;  // converted to world-space
-            _trail.numCornerVertices = 2;
-            _trail.numCapVertices = 2;
-            _trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            _trail.receiveShadows = false;
-
-            _trailMat = new Material(FindShader());
-            _trailMat.color = trailColor;
-            _trail.material = _trailMat;
+            var go = new GameObject(n, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            img = go.AddComponent<Image>();
+            img.sprite = sprite;
+            img.color = c;
+            img.raycastTarget = false;
+            return (RectTransform)go.transform;
         }
 
-        private void EnableVisuals(bool on)
+        // Procedurally builds a 128×128 transparent-centre ring sprite so we
+        // never depend on a project asset. Anti-aliased edge falls off
+        // smoothly so the ring reads as a glow rather than a hard band.
+        private static Sprite BuildRingSprite()
         {
-            if (_ring != null) _ring.enabled = on;
-            if (_trail != null) _trail.enabled = on;
+            const int N = 128;
+            const float outer = 60f;  // px from centre (radius)
+            const float inner = 44f;
+            var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+            var pixels = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+            for (int x = 0; x < N; x++)
+            {
+                float dx = x - N * 0.5f + 0.5f;
+                float dy = y - N * 0.5f + 0.5f;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+                float a = 0f;
+                if (r >= inner && r <= outer)
+                {
+                    // Anti-aliased radial falloff toward the centre of the ring band.
+                    float t = Mathf.Abs((r - (inner + outer) * 0.5f) / ((outer - inner) * 0.5f));
+                    a = Mathf.Clamp01(1f - t);
+                    a = Mathf.SmoothStep(0f, 1f, a);
+                }
+                pixels[y * N + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, N, N), new Vector2(0.5f, 0.5f), 100f);
         }
 
-        // ───── Update — ring + scale pulse + trail ────────────────
+        // Filled disk for the cursor dot.
+        private static Sprite BuildFillSprite()
+        {
+            const int N = 64;
+            const float radius = 28f;
+            var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+            var pixels = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+            for (int x = 0; x < N; x++)
+            {
+                float dx = x - N * 0.5f + 0.5f;
+                float dy = y - N * 0.5f + 0.5f;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+                float a = Mathf.Clamp01(1f - (r - (radius - 4f)) / 4f);
+                pixels[y * N + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, N, N), new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        // ───── Update — drive the screen-space ring + orb pulse ────
 
         private void LateUpdate()
         {
-            if (_orbT == null) return;
+            if (_orbT == null || _canvas == null || game == null) return;
+            if (Camera.main == null) return;
 
-            // ── Ring: position + per-segment colour by quadrant coverage ──
-            float radius = ringRadiusMul * ApproxOrbRadius();
-            Vector3 centre = _orbT.position + Vector3.up * ringHeightOffset;
-            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseHz * Mathf.PI * 2f);
+            // 1. Project the orb's world position to screen.
+            Vector3 sp = Camera.main.WorldToScreenPoint(_orbT.position);
+            bool offScreen = sp.z < 0f;
 
-            for (int i = 0; i < ringSegments; i++)
-            {
-                float t = (float)i / ringSegments;
-                float angle = t * Mathf.PI * 2f;
-                // Which quadrant does this segment belong to? Use the
-                // same packing PolishMiniGame.MarkQuadrant uses: (top? 2 : 0) + (right? 1 : 0)
-                float x = Mathf.Cos(angle);
-                float z = Mathf.Sin(angle);
-                bool right = x > 0f;
-                bool top   = z > 0f;
-                int q = (top ? 2 : 0) + (right ? 1 : 0);
+            // 2. Place the outer ring at the orb's projected position, sized
+            //    to PolishMiniGame.PolishRadiusPx. Hide if behind camera.
+            float outerDiameter = game.PolishRadiusPx * 2f;
+            float innerDiameter = Mathf.Max(20f, game.CoreRadiusPx * 2f);
 
-                _ring.SetPosition(i, centre + new Vector3(x, 0f, z) * radius);
+            _outerRingRT.sizeDelta = new Vector2(outerDiameter, outerDiameter);
+            _innerRingRT.sizeDelta = new Vector2(innerDiameter, innerDiameter);
+            _outerRingRT.position = sp;
+            _innerRingRT.position = sp;
+            _outerRing.enabled = !offScreen;
+            _innerRing.enabled = !offScreen;
 
-                // colour will be set via vertex colors next pass (LineRenderer
-                // supports gradient, simpler with color keys — we keep a
-                // single material colour and instead modulate alpha so the
-                // un-covered quadrants pulse and the covered ones glow solid).
-                _ = q; _ = pulse; // (segment colour aggregated below)
-            }
-
-            // Ring colour: blend toward "all quadrants covered = solid gold".
-            int coveredCount = game != null ? game.QuadrantCoverageCount : 0;
+            // 3. Pulse colour by quadrant coverage.
+            int coveredCount = game.QuadrantCoverageCount;
             float coverT = coveredCount / 4f;
-            Color mixed = Color.Lerp(ringIdleColor, ringCoveredColor, coverT);
-            // Pulse the idle alpha so the prompt is hard to ignore.
-            mixed.a = Mathf.Lerp(0.55f + 0.30f * pulse, 1f, coverT);
-            if (_ringMat != null) _ringMat.color = mixed;
-            _ring.widthMultiplier = ringWidth * (1f + 0.18f * pulse * (1f - coverT));
+            float pulse  = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseHz * Mathf.PI * 2f);
 
-            // ── Orb scale pulse ──
-            float scaleT = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseHz * Mathf.PI * 2f);
-            float k = Mathf.Lerp(1f, scalePulseMax, scaleT * (1f - 0.6f * coverT));
-            _orbT.localScale = _orbBaseScale * k;
+            Color outerC = Color.Lerp(ringIdleColor, ringCoveredColor, coverT);
+            outerC.a = Mathf.Lerp(ringIdleColor.a + 0.15f * pulse, 1f, coverT);
+            _outerRing.color = outerC;
 
-            // ── Cursor trail ──
-            UpdateTrail();
-        }
-
-        private float ApproxOrbRadius()
-        {
-            // Use the renderer bounds if available, else fall back to scale.
-            if (_orb != null && _orb.orbRenderer != null)
-            {
-                var ext = _orb.orbRenderer.bounds.extents;
-                return Mathf.Max(ext.x, ext.z);
-            }
-            return 0.25f * Mathf.Max(_orbBaseScale.x, _orbBaseScale.z);
-        }
-
-        private void UpdateTrail()
-        {
-            if (_trail == null || Camera.main == null || game == null) return;
-
-            // Only sample while the press-gate is active AND the cursor is moving.
+            // 4. Cursor dot — show at cursor screen position while polishing.
             if (game.IsPointerActive)
             {
-                Vector2 screen = game.LastPointerScreenPos;
-                // Project the cursor onto a plane in front of the camera, 1.2 m away.
-                Camera c = Camera.main;
-                Ray r = c.ScreenPointToRay(new Vector3(screen.x, screen.y, 0f));
-                Vector3 wp = r.origin + r.direction * 1.2f;
-                _trailPoints.Add(wp);
-                _trailTimes.Add(Time.time);
-                if (_trailPoints.Count > trailMaxPoints)
-                {
-                    _trailPoints.RemoveAt(0);
-                    _trailTimes.RemoveAt(0);
-                }
+                _cursorDot.enabled = true;
+                _cursorDotRT.position = game.LastPointerScreenPos;
+                _cursorDotRT.sizeDelta = new Vector2(28f, 28f);
+            }
+            else
+            {
+                _cursorDot.enabled = false;
             }
 
-            // Age out old points.
-            float now = Time.time;
-            while (_trailPoints.Count > 0 && (now - _trailTimes[0]) > trailFadeSeconds)
-            {
-                _trailPoints.RemoveAt(0);
-                _trailTimes.RemoveAt(0);
-            }
-
-            // Render.
-            _trail.positionCount = _trailPoints.Count;
-            for (int i = 0; i < _trailPoints.Count; i++) _trail.SetPosition(i, _trailPoints[i]);
-            if (_trailMat != null)
-            {
-                var c = trailColor;
-                c.a = trailColor.a * Mathf.Clamp01(_trailPoints.Count / (float)trailMaxPoints);
-                _trailMat.color = c;
-            }
+            // 5. Orb scale pulse for the 3D mesh too.
+            float scaleT = pulse;
+            float k = Mathf.Lerp(1f, scalePulseMax, scaleT * (1f - 0.5f * coverT));
+            _orbT.localScale = _orbBaseScale * k;
         }
     }
 }

@@ -76,6 +76,17 @@ namespace HearthboundHollow.MiniGames
         [Header("Coverage tracking (4 quadrants)")]
         [Range(1, 4)] public int requiredQuadrants = 1;
 
+        [Header("Polish radius (Phase 32.16)")]
+        [Tooltip("Quadrants are computed RELATIVE TO THE ORB'S SCREEN POSITION, " +
+                 "not the centre of the screen. The cross-hair sits at the orb. " +
+                 "Cursor positions OUTSIDE polishRadiusPx don't count — keeps " +
+                 "the 'draw small circles around the orb' instruction honest.")]
+        [Range(60f, 600f)] public float polishRadiusPx = 220f;
+        [Tooltip("Cursor positions INSIDE coreRadiusPx (the very centre of the " +
+                 "orb on screen) also don't count — encourages the player to " +
+                 "circle around the orb rather than scrub on top of it.")]
+        [Range(0f, 200f)] public float coreRadiusPx = 30f;
+
         [Header("Diagnostics (Phase 35)")]
         [Tooltip("Logs a 1Hz line summarising which input source fired + cursor + clarity. " +
                  "Leave on through the 20-person playtest, disable for ship.")]
@@ -203,9 +214,17 @@ namespace HearthboundHollow.MiniGames
                 }
             }
 
-            if (active && speed > motionThresholdNormalized)
+            // Phase 32.16 — gate on cursor-near-orb. Project the orb's world
+            // position into screen-space and only count circle-drag motion
+            // that falls inside [coreRadiusPx … polishRadiusPx] of the orb
+            // on screen. Without this gate, a screen-spanning drag could
+            // farm clarity from anywhere on the display — the visible orb
+            // becomes irrelevant.
+            bool nearOrb = IsCursorNearOrb(cur, out Vector2 orbScreen);
+
+            if (active && speed > motionThresholdNormalized && nearOrb)
             {
-                MarkQuadrant(cur);
+                MarkQuadrant(cur, orbScreen);
                 int touched = QuadrantCoverageCount;
                 float multiplier = Mathf.Clamp01((float)touched / requiredQuadrants);
 
@@ -250,15 +269,63 @@ namespace HearthboundHollow.MiniGames
             _pointerWasActive = active;
         }
 
-        private void MarkQuadrant(Vector2 pos)
+        private void MarkQuadrant(Vector2 cursor, Vector2 orbScreen)
         {
-            bool right = pos.x >= Screen.width * 0.5f;
-            bool top = pos.y >= Screen.height * 0.5f;
+            // Phase 32.16 — quadrants are RELATIVE TO THE ORB'S SCREEN POSITION.
+            // A cursor 'right' of the orb is +X relative to the orb, not the
+            // screen centre. A 200-px circle around the visible orb now covers
+            // all 4 quadrants in one smooth circle — matches the player's
+            // mental model of "draw a circle around the orb".
+            bool right = cursor.x >= orbScreen.x;
+            bool top   = cursor.y >= orbScreen.y;
             int q = (top ? 2 : 0) + (right ? 1 : 0);
             bool wasTouched = _quadrantTouched[q];
             _quadrantTouched[q] = true;
             if (!wasTouched) OnQuadrantCovered?.Invoke(q);
         }
+
+        /// <summary>
+        /// Phase 32.16 — true if the cursor lies inside the polish ring
+        /// (between coreRadiusPx and polishRadiusPx of the orb's screen
+        /// position). Outputs the orb's projected screen position so the
+        /// quadrant test can reuse it without re-projecting.
+        /// </summary>
+        private bool IsCursorNearOrb(Vector2 cursor, out Vector2 orbScreenPos)
+        {
+            orbScreenPos = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f); // fallback
+            if (targetOrb == null) return false;
+            var cam = Camera.main;
+            if (cam == null) return true; // no camera → don't gate, fall through to legacy
+            Vector3 sp = cam.WorldToScreenPoint(targetOrb.transform.position);
+            if (sp.z < 0f) return false;  // orb is behind the camera
+            orbScreenPos = new Vector2(sp.x, sp.y);
+            float d2 = (cursor - orbScreenPos).sqrMagnitude;
+            float minD2 = coreRadiusPx * coreRadiusPx;
+            float maxD2 = polishRadiusPx * polishRadiusPx;
+            return d2 >= minD2 && d2 <= maxD2;
+        }
+
+        /// <summary>
+        /// Phase 32.16 — public read-only screen-space position of the
+        /// target orb. Used by PolishOrbHighlighter to draw a screen-space
+        /// "draw here" guide ring matching the input gate's geometry.
+        /// </summary>
+        public bool TryGetOrbScreenPos(out Vector2 screen)
+        {
+            screen = Vector2.zero;
+            if (targetOrb == null) return false;
+            var cam = Camera.main;
+            if (cam == null) return false;
+            Vector3 sp = cam.WorldToScreenPoint(targetOrb.transform.position);
+            if (sp.z < 0f) return false;
+            screen = new Vector2(sp.x, sp.y);
+            return true;
+        }
+
+        /// <summary>Polish radius in screen pixels (read-only mirror for the highlighter).</summary>
+        public float PolishRadiusPx => polishRadiusPx;
+        /// <summary>Core radius in screen pixels (read-only mirror for the highlighter).</summary>
+        public float CoreRadiusPx   => coreRadiusPx;
 
         public override void DoAutoComplete()
         {
