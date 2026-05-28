@@ -31,6 +31,13 @@
 //   - lastMusicId (MusicLibrarySO id)
 //   - lastAmbienceId (AmbienceLibrarySO id)
 //   - playedDreamVariants (List<string> of Dream Timeline names already seen)
+//
+// ── Phase 48 → 54 (Depth Layer) ─────────────────────────────────
+// 9 fields added at the bottom for the Cold Open Hook, Echo Hologram,
+// Preface Beat, Memory Web view, and Reading Nook subsystems. None are
+// mandatory for M1-2 completion — each gates a depth feature that can be
+// opted out of in Settings. The schema is the contract; the runtime
+// implementations land alongside their phase scripts.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -173,6 +180,52 @@ namespace HearthboundHollow.Core
                  "Dream Cinema (Codex 11) replay menu.")]
         public List<string> playedDreamVariants = new();
 
+        // ───── Depth Layer flags (Phase 48 → 54) ────────────────────────
+        // The "Hook & Deep" expansion that runs on top of the M1-2 slice.
+        // None of these are mandatory for completion — every one of them
+        // is gated by an opt-out so players can ignore the depth layer
+        // entirely and play the cozy slice as before.
+
+        [Header("Depth Layer (Phase 48 → 54)")]
+        [Tooltip("Phase 48 — true once the player has finished (or skipped) " +
+                 "the Cold Open cinematic on this save. Re-boots fast-path " +
+                 "straight to MainMenu when true. Cleared by the Pause menu's " +
+                 "'Replay Cold Open' toggle.")]
+        public bool seenColdOpen = false;
+        [Tooltip("Phase 48 — 'Begin' | 'Continue' | ''. The choice the player " +
+                 "made at the cold-open BEGIN/CONTINUE gate. Drives the " +
+                 "Day-1 narrator preface tone in Phase 50.")]
+        public string coldOpenLastVariant = "";
+
+        [Tooltip("Phase 49 — true once the player has heard the first Echo " +
+                 "Hologram recording in the Hollow (Marin's 17-second message). " +
+                 "Sets predecessorTrailWarmth to at least 12.")]
+        public bool echoHologramHeard = false;
+        [Tooltip("Phase 49 — count of Echo Hologram recordings discovered. " +
+                 "M1-2 ships 1 (Marin Welcome). Future missions will add more.")]
+        public int echoHologramsFound = 0;
+
+        [Tooltip("Phase 50 — true after the Tone-Personalized Preface Beat " +
+                 "played at the start of the Lane scene (or was skipped). " +
+                 "Per-save so re-loads of the Lane don't replay it.")]
+        public bool prefaceBeatPlayed = false;
+        [Tooltip("Phase 50 — narrator-line bucket the player heard. " +
+                 "'Gentle' | 'Standard' | 'Deep' | '' (skipped).")]
+        public string prefaceToneBucket = "";
+
+        [Tooltip("Phase 51 — count of Memory Web cross-references the player " +
+                 "has uncovered (memory facets, echo connections). M1-2 ships " +
+                 "up to 4 (Doris's First Loaves: 2; Gerrold's Wife: 2).")]
+        public int memoryWebConnectionsFound = 0;
+
+        [Tooltip("Phase 52 — true after the player has interacted with the " +
+                 "Hollow's Reading Nook armchair at least once. Unlocks the " +
+                 "second Marin letter from the locked drawer (gate by " +
+                 "Pickle: echoHologramHeard==true required).")]
+        public bool readingNookVisited = false;
+        [Tooltip("Phase 52 — count of Marin's letters read from the Reading Nook.")]
+        public int letterFragmentsRead = 0;
+
         // ───── Operations ────────────────────────────────────────────────
 
         /// <summary>Reset every field to a fresh-play default.</summary>
@@ -228,6 +281,17 @@ namespace HearthboundHollow.Core
             lastAmbienceId = string.Empty;
             playedDreamVariants ??= new List<string>();
             playedDreamVariants.Clear();
+
+            // Phase 48 → 54 — Depth Layer defaults.
+            seenColdOpen = false;
+            coldOpenLastVariant = string.Empty;
+            echoHologramHeard = false;
+            echoHologramsFound = 0;
+            prefaceBeatPlayed = false;
+            prefaceToneBucket = string.Empty;
+            memoryWebConnectionsFound = 0;
+            readingNookVisited = false;
+            letterFragmentsRead = 0;
         }
 
         /// <summary>Clamp a trust/integrity delta safely.</summary>
