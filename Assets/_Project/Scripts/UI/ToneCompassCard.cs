@@ -79,10 +79,12 @@ namespace HearthboundHollow.UI
             if (gentleModeToggle != null)
                 gentleModeToggle.onValueChanged.AddListener(OnGentleToggleChanged);
 
-            // Phase 29 — defensive autofit so the 6-paragraph tone primer
-            // never overflows on smaller canvases. Critical for accessibility.
-            UIAutoFitText.ApplyToLabel(bodyText, minSize: 14, maxSize: 24);
-            UIAutoFitText.ApplyToLabel(gentleModeLabel, minSize: 12, maxSize: 20);
+            // Phase 32.19 — readability pass for the 6-paragraph tone primer:
+            // ink-dark on cream with a soft dark wash so the prose never
+            // washes out against the parchment background.
+            UIReadabilityHelper.ApplyBody       (bodyText,        min: 22, max: 34);
+            UIReadabilityHelper.ApplyButtonLabel(gentleModeLabel, min: 18, max: 26);
+            if (bodyText != null) UIReadabilityHelper.AddDarkWash(bodyText.rectTransform, padding: 16f);
         }
 
         public void Show()
