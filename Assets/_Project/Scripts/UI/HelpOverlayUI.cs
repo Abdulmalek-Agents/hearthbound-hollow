@@ -120,10 +120,13 @@ namespace HearthboundHollow.UI
 
         private void ApplyContent()
         {
+            // Phase 32.20 — friendly emoji glyphs on the title/subtitle so
+            // the card feels warm before the player has even read a word.
+            // (Existing user-set inspector text is preserved.)
             if (titleLabel != null && string.IsNullOrEmpty(titleLabel.text))
-                titleLabel.text = "Welcome to the Hollow";
+                titleLabel.text = "🪔  Welcome to the Hollow  🪔";
             if (subtitleLabel != null && string.IsNullOrEmpty(subtitleLabel.text))
-                subtitleLabel.text = "A quick word from Marin's notes …";
+                subtitleLabel.text = "✒  A quick word from Marin's notes …";
 
             // Always re-build the body so toggling Gentle Mode at runtime is
             // immediately reflected on the next H-open.
@@ -136,26 +139,41 @@ namespace HearthboundHollow.UI
             var s = ServiceLocator.Get<SettingsService>();
             if (s != null) gentle = s.GentleMode;
 
+            // Phase 32.20 — readability + warmth pass on the controls card.
+            // Each action gets a cozy emoji glyph (a torch instead of a
+            // generic dot) and the verb is wrapped in a warm gold colour
+            // so the eye snaps to the verb before reading the input. The
+            // closing quote is hand-spaced for centre-alignment under the
+            // signature line.
+            const string ink   = "<color=#221208>";
+            const string gold  = "<color=#7a4f10>";
+            const string brown = "<color=#5a3a18>";
+            const string dim   = "<color=#705a3a>";
+            const string end   = "</color>";
+
+            string Row(string emoji, string verb, string binding)
+                => $"{gold}{emoji}{end}  {brown}<b>{verb}</b>{end}   {ink}{binding}{end}";
+
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("<b>Move</b>      WASD / Arrow Keys / Left Stick");
+            sb.AppendLine(Row("🚶", "Move",     "WASD / Arrow Keys / Left Stick"));
             if (!gentle)
             {
-                sb.AppendLine("<b>Sprint</b>    Left Shift / Left-stick click");
-                sb.AppendLine("<b>Jump</b>      Space / Gamepad south");
+                sb.AppendLine(Row("🏃", "Sprint",   "Left Shift / Left-stick click"));
+                sb.AppendLine(Row("⤴",  "Jump",     "Space / Gamepad south"));
             }
-            sb.AppendLine("<b>Interact</b>  E / Gamepad ▢");
-            sb.AppendLine("<b>Advance</b>   Click / Space / Enter");
-            sb.AppendLine("<b>Polish</b>    Hold left mouse, draw slow circles");
-            sb.AppendLine("                — cover all sides of the orb");
-            sb.AppendLine("                — slower is better");
-            sb.AppendLine("<b>Look</b>      Hold Right Mouse + drag (or Right Stick)");
-            sb.AppendLine("<b>Zoom</b>      Mouse scroll / Gamepad LB-RB");
-            sb.AppendLine("<b>Help</b>      H to toggle this card");
-            sb.AppendLine("<b>Pause</b>     Esc");
+            sb.AppendLine(Row("✋", "Interact", "E / Gamepad □"));
+            sb.AppendLine(Row("▶",  "Advance",  "Click / Space / Enter"));
+            sb.AppendLine(Row("✨", "Polish",   "Hold left mouse, draw slow circles"));
+            sb.AppendLine($"      {dim}— cover all sides of the orb{end}");
+            sb.AppendLine($"      {dim}— slower is better{end}");
+            sb.AppendLine(Row("👁", "Look",     "Hold Right Mouse + drag (or Right Stick)"));
+            sb.AppendLine(Row("🔍", "Zoom",     "Mouse scroll / Gamepad LB-RB"));
+            sb.AppendLine(Row("❓", "Help",     "H to toggle this card"));
+            sb.AppendLine(Row("⏸",  "Pause",    "Esc"));
             sb.AppendLine();
-            sb.AppendLine("<i>\"There is no wrong way to keep a memory.</i>");
-            sb.AppendLine("<i>There is only the gentle way, and the others.\"</i>");
-            sb.Append("                                                — M.");
+            sb.AppendLine($"{brown}<i>“There is no wrong way to keep a memory.</i>{end}");
+            sb.AppendLine($"{brown}<i>There is only the gentle way, and the others.”</i>{end}");
+            sb.Append($"                                                {gold}— M.{end}");
             return sb.ToString();
         }
     }

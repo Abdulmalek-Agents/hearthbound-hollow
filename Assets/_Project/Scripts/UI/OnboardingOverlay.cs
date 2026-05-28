@@ -289,10 +289,15 @@ namespace HearthboundHollow.UI
 
         // ───── Default step content ──────────────────────────────
 
+        // Phase 32.20 — emoji-decorated headlines for the onboarding cards so
+        // the steps feel warm and inviting before the player has read the
+        // copy. Each emoji ties to its step's verb (lantern for welcome,
+        // walking figure for movement, hand for interaction, sparkle for
+        // polish, candle for comfort, leaf for goodbye).
         private static Step[] DefaultSteps() => new[]
         {
             new Step {
-                headline = "Welcome to the Hollow",
+                headline = "🪔  Welcome to the Hollow",
                 body = "You inherit a memory-brokerage shop in a small autumnal village.\n\n" +
                        "Some memories want to be sold. Some don't.\n" +
                        "There is no combat. There are no failure screens. Only choices.",
@@ -301,7 +306,7 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
-                headline = "Move with WASD",
+                headline = "🚶  Move with WASD",
                 body = "Walk through the village. Take your time — the lanterns hush, " +
                        "the leaves rustle, and someone is waiting for you at the door of the Hollow.",
                 keyChip = "WASD",
@@ -309,7 +314,7 @@ namespace HearthboundHollow.UI
                 expects = "press_wasd"
             },
             new Step {
-                headline = "Interact with E",
+                headline = "✋  Interact with E",
                 body = "Look for soft golden prompts above doorways, workbenches, and " +
                        "the orbs villagers entrust to you. Press E (or the gamepad south button) " +
                        "to act on what you see.",
@@ -318,7 +323,7 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
-                headline = "Polish memories with slow circles",
+                headline = "✨  Polish memories with slow circles",
                 body = "When a villager hands you a memory orb, hold the left mouse button " +
                        "and draw slow circles across its surface. Slower is better. " +
                        "Cover every side — there are four faces, like a kindness with four corners.",
@@ -327,7 +332,7 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
-                headline = "Comfort tools",
+                headline = "🕯  Comfort tools",
                 body = "Press <b>Esc</b> to pause any time. From there you can open Settings — " +
                        "Gentle Mode softens the harder moments, and any mini-game can be " +
                        "auto-completed if you'd rather skip the tactile beat.\n\n" +
@@ -337,7 +342,7 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
-                headline = "You're ready",
+                headline = "🍂  You're ready",
                 body = "Walk to the door of the Hollow when you're ready.\n\n" +
                        "There is no wrong way to keep a memory.\nThere is only the gentle way, " +
                        "and the others.\n\n— Marin",

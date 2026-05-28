@@ -96,12 +96,15 @@ namespace HearthboundHollow.Mission
             UIAutoFitText.ApplyToButtonLabel(chipHelpLabel,        minSize: 14, maxSize: 26);
             UIAutoFitText.ApplyToLabel(chipHelpCaption,             minSize: 10, maxSize: 16);
 
+            // Phase 32.20 — cozy emoji captions under each key chip so the
+            // hint reads warmer than a plain word. The key letter stays
+            // bold + uppercase so the binding is unmistakable.
             if (chipMoveLabel != null)     chipMoveLabel.text = "WASD";
-            if (chipMoveCaption != null)   chipMoveCaption.text = "Move";
+            if (chipMoveCaption != null)   chipMoveCaption.text = "🚶 Move";
             if (chipInteractLabel != null) chipInteractLabel.text = "E";
-            if (chipInteractCaption != null) chipInteractCaption.text = "Interact";
+            if (chipInteractCaption != null) chipInteractCaption.text = "✋ Interact";
             if (chipHelpLabel != null)     chipHelpLabel.text = "H";
-            if (chipHelpCaption != null)   chipHelpCaption.text = "Help";
+            if (chipHelpCaption != null)   chipHelpCaption.text = "❓ Help";
 
             _currentAlpha = idleAlpha;
             if (canvasGroup != null) canvasGroup.alpha = _currentAlpha;
