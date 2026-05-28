@@ -154,6 +154,24 @@ namespace HearthboundHollow.Player
             if (allowLookAction != null && allowLookAction.action != null) allowLookAction.action.Enable();
         }
 
+        private void Awake()
+        {
+            // Phase 32.12 — auto-spawn the DialogueCameraDirector if no other
+            // instance exists. The director subscribes to DialogueLineStartedEvent
+            // and takes over the camera during dialogue so we never end up
+            // staring at the back of the player's torso while Doris speaks.
+            // Safe-by-default: a scene that already has a director will skip
+            // the spawn (Instance is checked first).
+            if (DialogueCameraDirector.Instance == null)
+            {
+                var go = new GameObject("_DialogueCameraDirector");
+                go.transform.SetParent(transform, false);
+                var dir = go.AddComponent<DialogueCameraDirector>();
+                dir.cameraTransform = transform;
+                dir.follow = this;
+            }
+        }
+
         private void Start()
         {
             if (target != null) _smoothedTargetPos = target.position + lookOffset;
