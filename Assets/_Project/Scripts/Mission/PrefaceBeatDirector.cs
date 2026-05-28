@@ -15,6 +15,11 @@
 //
 // Decoupled from Mission01Director: the preface is purely cinematic. The
 // mission director still handles the Doris approach trigger.
+//
+// ── Hotfix 2026-05-28 ──────────────────────────────────────────────
+// Replaced `ServiceLocator.Resolve<T>()` with `ServiceLocator.Get<T>()`
+// (the canonical Core API). 1 call site corrected. See
+// MemoryWebOverlay.cs commit for the full audit summary.
 
 using UnityEngine;
 using HearthboundHollow.Core;
@@ -38,7 +43,7 @@ namespace HearthboundHollow.Mission
 
         private void Start()
         {
-            _state = ServiceLocator.Resolve<VillageState>();
+            _state = ServiceLocator.Get<VillageState>();
             if (prefaceBeat == null)
             {
                 prefaceBeat = FindFirstObjectByType<PrefaceBeatUI>();
