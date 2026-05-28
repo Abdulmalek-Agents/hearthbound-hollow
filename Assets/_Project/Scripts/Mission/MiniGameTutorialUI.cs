@@ -96,7 +96,11 @@ namespace HearthboundHollow.Mission
         [Header("Instruction strings")]
         public string polishHeadline      = "Polish the memory";
         [TextArea(2, 4)]
-        public string polishInstructions  = "Hold <b>Left Mouse</b> · Draw <b>slow circles</b> · Cover every side of the orb";
+        // Phase 32.14: clearer copy. The PolishOrbHighlighter pulses a ring
+        // around the orb so the player knows WHERE to draw; this line tells
+        // them WHAT to do.
+        public string polishInstructions  =
+            "Hold <b>Left Mouse</b> and draw <b>slow circles</b> around the <b>glowing orb</b>.";
         public string cleanseHeadline     = "Cleanse the orb";
         [TextArea(2, 4)]
         public string cleanseInstructions = "Hold <b>Left Mouse</b> · Trace the cracks · <b>Don't cross the core</b>";
@@ -376,57 +380,59 @@ namespace HearthboundHollow.Mission
             hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
             hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
 
-            // Visual panel — anchored top-centre.
+            // Visual panel — anchored top-centre. Phase 32.14: wider + taller
+            // so the bigger headline / instruction text never clips.
             var panel = new GameObject("Visual", typeof(RectTransform), typeof(Image));
             panel.transform.SetParent(host.transform, false);
             var panelImg = panel.GetComponent<Image>();
             panelImg.color = panelBg;
             var pRT = panel.GetComponent<RectTransform>();
-            pRT.anchorMin = new Vector2(0.18f, 0.78f);
-            pRT.anchorMax = new Vector2(0.82f, 0.96f);
+            pRT.anchorMin = new Vector2(0.10f, 0.70f);
+            pRT.anchorMax = new Vector2(0.90f, 0.97f);
             pRT.offsetMin = Vector2.zero; pRT.offsetMax = Vector2.zero;
             panelRoot = panel;
 
-            // Headline (top)
+            // Headline (top) — Phase 32.14: 28 → 52, drop-shadow via outline.
             headlineLabel = MakeLabel(panel.transform, "Headline",
-                new Vector2(0.02f, 0.70f), new Vector2(0.98f, 0.98f),
-                fontSize: 28, color: goldHeadline, bold: true,
+                new Vector2(0.02f, 0.74f), new Vector2(0.98f, 0.98f),
+                fontSize: 52, color: goldHeadline, bold: true,
                 align: TextAlignmentOptions.Center);
 
-            // Instructions (middle)
+            // Instructions (middle) — 18 → 32.
             instructionsLabel = MakeLabel(panel.transform, "Instructions",
-                new Vector2(0.04f, 0.36f), new Vector2(0.96f, 0.70f),
-                fontSize: 18, color: creamBody, bold: false,
+                new Vector2(0.04f, 0.42f), new Vector2(0.96f, 0.72f),
+                fontSize: 32, color: creamBody, bold: false,
                 align: TextAlignmentOptions.Center);
             instructionsLabel.enableWordWrapping = true;
 
-            // Hint (between instructions and bar) — also used for friction warnings
+            // Hint (between instructions and bar) — also used for friction warnings — 14 → 22.
             hintLabel = MakeLabel(panel.transform, "Hint",
-                new Vector2(0.04f, 0.20f), new Vector2(0.96f, 0.36f),
-                fontSize: 14, color: creamBody, bold: false,
+                new Vector2(0.04f, 0.28f), new Vector2(0.96f, 0.42f),
+                fontSize: 22, color: creamBody, bold: false,
                 align: TextAlignmentOptions.Center);
             hintLabel.fontStyle = FontStyles.Italic;
 
-            // Progress bar
+            // Progress bar — Phase 32.14: thicker (0.18→0.26 height range)
+            // and shorter width to make room for a BIG percent readout.
             var barGO = new GameObject("ProgressBar", typeof(RectTransform), typeof(Slider));
             barGO.transform.SetParent(panel.transform, false);
             var barRT = barGO.GetComponent<RectTransform>();
-            barRT.anchorMin = new Vector2(0.08f, 0.08f);
-            barRT.anchorMax = new Vector2(0.74f, 0.18f);
+            barRT.anchorMin = new Vector2(0.06f, 0.06f);
+            barRT.anchorMax = new Vector2(0.72f, 0.26f);
             barRT.offsetMin = Vector2.zero; barRT.offsetMax = Vector2.zero;
             progressBar = barGO.GetComponent<Slider>();
             progressBar.minValue = 0; progressBar.maxValue = 1; progressBar.value = 0;
             BuildSliderVisuals(progressBar);
 
-            // % label (next to bar)
+            // % label (next to bar) — 16 → 48, big bold gold readout.
             percentLabel = MakeLabel(panel.transform, "Percent",
-                new Vector2(0.76f, 0.06f), new Vector2(0.94f, 0.20f),
-                fontSize: 16, color: goldHeadline, bold: true,
+                new Vector2(0.74f, 0.02f), new Vector2(0.97f, 0.28f),
+                fontSize: 48, color: goldHeadline, bold: true,
                 align: TextAlignmentOptions.MidlineRight);
 
-            // Auto-complete button
+            // Auto-complete button — pushed down so it sits below the wider panel.
             autoCompleteButton = MakeButton(panel.transform, "Btn_AutoComplete", "Skip · Auto-Complete",
-                new Vector2(0.30f, -0.16f), new Vector2(0.70f, -0.04f));
+                new Vector2(0.30f, -0.14f), new Vector2(0.70f, -0.02f));
             autoCompleteButtonLabel = autoCompleteButton.GetComponentInChildren<TextMeshProUGUI>(true);
             autoCompleteButton.onClick.AddListener(OnAutoCompleteClicked);
 
