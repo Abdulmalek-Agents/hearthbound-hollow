@@ -321,24 +321,72 @@ done
 # ──────────────────────────────────────────────────────────────────
 clean_for_tts() {
   local s="$1"
-  # 5. Strip Markdown emphasis. Done first because the asterisks might
-  #    sit at the line head and we'd strip them as "leading punctuation"
-  #    losing the wrapped word.
+  # 5. Strip Markdown emphasis first (asterisks at the head would
+  #    otherwise be treated as leading punctuation and the wrapped
+  #    word would be lost).
   s=$(printf '%s' "$s" | sed -E 's/\*+([^*]+)\*+/\1/g')
-  # 3. Replace internal multi-dot ellipses with a comma (prosody pause).
-  s=$(printf '%s' "$s" | sed -E 's/\.{2,}/, /g')
-  # 4. Replace em-dash and en-dash with comma + space.
-  s=$(printf '%s' "$s" | sed 's/—/, /g; s/–/, /g')
-  # 1+2. Trim leading and trailing punctuation / whitespace.
+
+  # Phase 32.21 — strip parenthetical stage directions like
+  # "(stands back and watches)". Piper otherwise voices the brackets
+  # AND the contents, producing a robotic narrated stage direction.
+  s=$(printf '%s' "$s" | sed -E 's/\([^)]*\)//g')
+
+  # 3. Replace internal multi-dot ellipses with a comma. Phase 32.21
+  #    also strips the surrounding whitespace so we don't end up
+  #    with "X , Y" (extra space before the comma).
+  s=$(printf '%s' "$s" | sed -E 's/[[:space:]]*\.{2,}[[:space:]]*/, /g')
+
+  # 4. Replace em-dash + en-dash with a comma. Phase 32.21 — strip
+  #    the surrounding whitespace too, so "me — I" becomes "me, I"
+  #    (natural prosody) instead of "me ,  I" (robotic).
+  s=$(printf '%s' "$s" | sed -E 's/[[:space:]]*—[[:space:]]*/, /g; s/[[:space:]]*–[[:space:]]*/, /g')
+
+  # Phase 32.21 — collide-cleanup. After substitutions we can get:
+  #   ".," from "X. — Y" → "X., Y"     → collapse to ".  " (drop comma)
+  #   ",," from "X, — Y" → "X,, Y"     → collapse to ", "
+  #   "?," from "X? — Y" → "X?, Y"     → collapse to "? " (drop comma)
+  #   "!," from "X! — Y" → "X!, Y"     → collapse to "! " (drop comma)
+  s=$(printf '%s' "$s" | sed -E 's/([.!?]),/\1/g; s/,+/,/g')
+
+  # 1+2. Trim leading and trailing punctuation + whitespace.
   s=$(printf '%s' "$s" | sed -E 's/^[[:space:],.;:!?\-]+//; s/[[:space:],;:\-]+$//')
-  # 6. Collapse runs of whitespace.
+
+  # 6. Collapse runs of whitespace to a single space.
   s=$(printf '%s' "$s" | tr -s '[:space:]' ' ')
+
   # 7. If everything got stripped, return the silent-stub sentinel.
   if [[ -z "${s// }" ]]; then
     printf '[[silent]]'
   else
     printf '%s' "$s"
   fi
+}
+
+# ──────────────────────────────────────────────────────────────────
+# Phase 32.21 — "is this line dirty?" detector.
+#
+# Returns 0 (true) if the raw source line carries any pattern the
+# cleaner rewrites (leading punctuation runs, ellipses, em-dash,
+# Markdown asterisks, parenthetical stage directions). Used by the
+# main loop to PURGE any pre-existing .wav for a dirty line on every
+# script run so a stale clip from before the cleaner existed cannot
+# survive.
+# ──────────────────────────────────────────────────────────────────
+is_dirty_source() {
+  local s="$1"
+  # Leading run of punctuation / whitespace.
+  if [[ "$s" =~ ^[[:space:],.\;:!?\-]+ ]]; then return 0; fi
+  # Internal ellipsis (2+ dots).
+  if [[ "$s" =~ \.{2,} ]]; then return 0; fi
+  # Em-dash / en-dash.
+  case "$s" in
+    *—*|*–*) return 0 ;;
+  esac
+  # Markdown emphasis.
+  if [[ "$s" =~ \*[^*]+\* ]]; then return 0; fi
+  # Parenthetical stage direction.
+  if [[ "$s" =~ \([^\)]*\) ]]; then return 0; fi
+  return 1
 }
 
 # ──────────────────────────────────────────────────────────────────
@@ -413,11 +461,22 @@ for entry in "${LINES[@]}"; do
 
   # Phase 32.13 — auto-detect stale clips. If cleaning CHANGES the text,
   # then any pre-existing wav was generated from the raw (buggy) text and
-  # MUST be regenerated even without --force. This guarantees that after
-  # pulling Phase 32.13 the first run of the script self-heals every
-  # affected clip — no manual `--force` or wav-deletion needed.
+  # MUST be regenerated. The text-comparison heuristic catches most cases.
   needs_regen=0
   if [[ "$spoken" != "$text" ]]; then needs_regen=1; fi
+
+  # Phase 32.21 — belt-and-braces purge. Even if `clean_for_tts` and the
+  # cleaner output happen to coincidentally match the cached clip's text
+  # (e.g. a previous script run on a slightly different cleaner version
+  # produced the same string), we DELETE any existing wav whose source
+  # line is "dirty" — carries punctuation the cleaner addresses — so the
+  # clip is guaranteed-fresh on every run. Defensive against the regression
+  # the user reported: stale clips from before the cleaner existed that
+  # survive auto-detect because of string-equality edge cases.
+  if [[ -f "$out_wav" ]] && is_dirty_source "$text"; then
+    rm -f "$out_wav"
+    needs_regen=1
+  fi
 
   # Skip only if the file exists AND --force wasn't set AND the cleaning
   # didn't change anything (so the cached clip is still correct).
