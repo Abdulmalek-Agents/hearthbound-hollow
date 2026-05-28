@@ -89,6 +89,20 @@ namespace HearthboundHollow.Core
             // round — avoiding a cycle).
             if (autoSpawnVoicePlayer) TryAutoSpawnVoicePlayer();
 
+            // Phase 32.18 — auto-spawn the URP material healer. Scans every
+            // Renderer on Awake + every sceneLoaded and substitutes URP/Lit
+            // for any material whose shader is null / Hidden/InternalErrorShader
+            // / not-supported under the current pipeline. Kills the magenta
+            // placeholder cubes that ship with packs whose Built-In shaders
+            // didn't survive the URP migration. Same pattern as VoicePlayer
+            // (Core asmdef hosts the type — no asmdef ref required).
+            if (UrpMaterialHealer.Instance == null)
+            {
+                var go = new GameObject("_UrpMaterialHealer",
+                                        typeof(UrpMaterialHealer));
+                go.transform.SetParent(transform, false);
+            }
+
             Hh.Log(LogCategory.Boot, $"GameManager bootstrapped. Day {villageState.currentDayIndex}, Coin {villageState.coin}.");
         }
 
