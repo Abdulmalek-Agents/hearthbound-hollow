@@ -269,6 +269,97 @@ ensure_sample_rate() {
 }
 
 # ──────────────────────────────────────────────────────────────────
+# CLI flags
+#
+#   --force          Regenerate every clip, even if the .wav already
+#                    exists. Use after changing clean_for_tts() rules
+#                    or after editing any line text.
+#
+#   --only=<glob>    Regenerate only clips whose line_id matches the
+#                    glob (e.g. --only=doris_m1_offer_*). Useful for
+#                    targeted re-roll after the script's been tuned.
+# ──────────────────────────────────────────────────────────────────
+FORCE=0
+ONLY_GLOB="*"
+for arg in "$@"; do
+  case "$arg" in
+    --force) FORCE=1 ;;
+    --only=*) ONLY_GLOB="${arg#--only=}" ;;
+    *) echo "[warn] unknown arg: $arg" >&2 ;;
+  esac
+done
+
+# ──────────────────────────────────────────────────────────────────
+# Phase 32.13 — TTS text sanitiser
+#
+# User report: Piper was speaking the punctuation literally — Doris's
+# "... I have something for you. Before you go in." came out as a
+# verbalised "dot-dot-dot" pause at the head of the clip, breaking
+# the cozy human-actor illusion and giving away that it's TTS.
+#
+# clean_for_tts() runs every line through these rules BEFORE handing
+# the string to Piper:
+#
+#   1. Strip leading punctuation runs.   "... Mm."        → "Mm."
+#                                        ". . . Aye."     → "Aye."
+#                                        "— Aye."         → "Aye."
+#                                        ", well."        → "well."
+#   2. Strip trailing junk (whitespace, ellipses) — Piper's
+#      `--sentence_silence` already gives a natural breath.
+#   3. Replace internal ellipses ".." or "..." with ", " so Piper
+#      pauses naturally (the comma triggers a prosody pause) instead
+#      of pronouncing them. "... Mm." → "Mm."   "I — , the thing"
+#   4. Replace em-dash "—" with ", " for the same prosody-pause
+#      effect (Piper otherwise reads "em dash" or skips uneasily).
+#   5. Strip Markdown emphasis "*word*" or "**word**" → "word".
+#   6. Collapse runs of whitespace to a single space.
+#   7. If the line ends up empty (was just punctuation like "..."),
+#      emit a 0.4 s silent stub via the special "[[silent]]" sentinel
+#      that the main loop handles by writing an empty 22 kHz PCM16
+#      file directly instead of calling Piper. Keeps the lineId →
+#      AudioClip mapping intact so DialogueUI's pacing still works.
+# ──────────────────────────────────────────────────────────────────
+clean_for_tts() {
+  local s="$1"
+  # 5. Strip Markdown emphasis. Done first because the asterisks might
+  #    sit at the line head and we'd strip them as "leading punctuation"
+  #    losing the wrapped word.
+  s=$(printf '%s' "$s" | sed -E 's/\*+([^*]+)\*+/\1/g')
+  # 3. Replace internal multi-dot ellipses with a comma (prosody pause).
+  s=$(printf '%s' "$s" | sed -E 's/\.{2,}/, /g')
+  # 4. Replace em-dash and en-dash with comma + space.
+  s=$(printf '%s' "$s" | sed 's/—/, /g; s/–/, /g')
+  # 1+2. Trim leading and trailing punctuation / whitespace.
+  s=$(printf '%s' "$s" | sed -E 's/^[[:space:],.;:!?\-]+//; s/[[:space:],;:\-]+$//')
+  # 6. Collapse runs of whitespace.
+  s=$(printf '%s' "$s" | tr -s '[:space:]' ' ')
+  # 7. If everything got stripped, return the silent-stub sentinel.
+  if [[ -z "${s// }" ]]; then
+    printf '[[silent]]'
+  else
+    printf '%s' "$s"
+  fi
+}
+
+# ──────────────────────────────────────────────────────────────────
+# Silent-stub helper — writes a 0.4 s silent 22 kHz mono PCM16 WAV.
+# Used for lines that are pure punctuation (e.g. "..." or "...").
+# Requires `ffmpeg` (everywhere) or falls back to Piper with a real
+# space character (which makes Piper emit silence).
+# ──────────────────────────────────────────────────────────────────
+write_silent_wav() {
+  local out="$1"
+  local dur="${2:-0.4}"
+  if command -v ffmpeg >/dev/null 2>&1; then
+    ffmpeg -y -f lavfi -i "anullsrc=r=${TARGET_SR}:cl=mono" -t "$dur" \
+           -acodec pcm_s16le "$out" </dev/null >/dev/null 2>&1
+  else
+    # Fallback: ask Piper to speak a single space — comes out as silence.
+    printf ' \n' | piper --model "$2" --config "$3" --output_file "$out" 2>/dev/null
+  fi
+}
+
+# ──────────────────────────────────────────────────────────────────
 # Main loop
 # ──────────────────────────────────────────────────────────────────
 mkdir -p "$OUT_BASE"
@@ -284,6 +375,12 @@ for entry in "${LINES[@]}"; do
   rest="${entry#*|}"
   line_id="${rest%%|*}"
   text="${rest#*|}"
+
+  # Phase 32.13 — honour --only glob (default "*" matches every id).
+  # Uses bash's built-in [[ ... == glob ]] match.
+  if [[ "$line_id" != $ONLY_GLOB ]]; then
+    continue
+  fi
 
   if ! model_name=$(get_voice_field "$character" 2); then
     echo "[skip] $line_id — no voice configured for '$character'"
@@ -308,23 +405,47 @@ for entry in "${LINES[@]}"; do
   mkdir -p "$out_dir"
   out_wav="${out_dir}/${line_id}.wav"
 
-  if [[ -f "$out_wav" ]]; then
+  # Phase 32.13 — sanitise the text BEFORE Piper sees it. Strips leading
+  # ellipses, replaces internal "..." / em-dash with comma prosody-pauses,
+  # strips Markdown emphasis. Without this the TTS verbalised the
+  # punctuation and the lines sounded robotic.
+  spoken=$(clean_for_tts "$text")
+
+  # Phase 32.13 — auto-detect stale clips. If cleaning CHANGES the text,
+  # then any pre-existing wav was generated from the raw (buggy) text and
+  # MUST be regenerated even without --force. This guarantees that after
+  # pulling Phase 32.13 the first run of the script self-heals every
+  # affected clip — no manual `--force` or wav-deletion needed.
+  needs_regen=0
+  if [[ "$spoken" != "$text" ]]; then needs_regen=1; fi
+
+  # Skip only if the file exists AND --force wasn't set AND the cleaning
+  # didn't change anything (so the cached clip is still correct).
+  if [[ -f "$out_wav" && $FORCE -eq 0 && $needs_regen -eq 0 ]]; then
     printf "[%3d/%3d] skip  %s/%s\n" "$i" "$total_lines" "$character" "$line_id"
     skip_count[$character]=$(( ${skip_count[$character]:-0} + 1 ))
     continue
   fi
 
   printf "[%3d/%3d] gen   %s/%s\n" "$i" "$total_lines" "$character" "$line_id"
-  # Piper reads text from stdin; --output_file writes a WAV directly.
-  # --sentence_silence 0.12 gives a small breath at the end so the clip
-  # has a graceful tail (no clipping artefacts).
-  printf '%s\n' "$text" | piper \
-      --model "$model_file" \
-      --config "$config_file" \
-      --output_file "$out_wav" \
-      --length_scale "$length_scale" \
-      --sentence_silence 0.12 \
-      2>/dev/null
+
+  if [[ "$spoken" == "[[silent]]" ]]; then
+    # Line was pure punctuation (e.g. "..."). Write a brief silent stub
+    # so the lineId → AudioClip mapping survives and DialogueUI's pacing
+    # still works on it. Default 0.4 s.
+    write_silent_wav "$out_wav" 0.4
+  else
+    # Piper reads text from stdin; --output_file writes a WAV directly.
+    # --sentence_silence 0.12 gives a small breath at the end so the clip
+    # has a graceful tail (no clipping artefacts).
+    printf '%s\n' "$spoken" | piper \
+        --model "$model_file" \
+        --config "$config_file" \
+        --output_file "$out_wav" \
+        --length_scale "$length_scale" \
+        --sentence_silence 0.12 \
+        2>/dev/null
+  fi
 
   ensure_sample_rate "$out_wav"
   gen_count[$character]=$(( ${gen_count[$character]:-0} + 1 ))
