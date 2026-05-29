@@ -242,6 +242,16 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 51 — Memory Web Overlay (Tab)",
                           "HearthboundHollow.EditorTools.Phase51_MemoryWebBuilder", "Build")) ran++; else skipped++;
 
+                // Step 15: Phase 47 — "One More Day" goodnight beat (the cozy
+                // "press continue WANTING tomorrow" retention hook). Builds the
+                // two TomorrowTeaseSO assets + OneMoreDayCard.prefab, then wires
+                // the EndOfDaySequencer (Ledger → Dream → Goodnight Card → load)
+                // into the Hollow + Cottage scenes. Idempotent; opt-in at runtime
+                // (directors fall back to the legacy path when unwired — D-064).
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 47 (One More Day Hook) …", 0.988f);
+                if (TryRun("Phase 47 — One More Day Hook",
+                          "HearthboundHollow.EditorTools.Phase47_OneMoreDayBuilder", "Build")) ran++; else skipped++;
+
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
                 if (System.IO.File.Exists(SceneBootstrap))
@@ -350,6 +360,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 49 — Echo Hologram of Marin on the Hollow workbench (3-line monologue)");
             sb.AppendLine("  • Phase 50 — Tone-Personalized Preface Beat on Lane scene (3 narrator lines, skippable)");
             sb.AppendLine("  • Phase 51 — Memory Web overlay (Tab opens it, 4 canonical Echo connections)");
+            sb.AppendLine("  • Phase 47 — One More Day goodnight card on Hollow + Cottage (Ledger → Dream → card → next day)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();

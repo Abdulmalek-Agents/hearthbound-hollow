@@ -26,6 +26,12 @@ namespace HearthboundHollow.Mission
         [Header("Routing")]
         public string nextMissionScene;
 
+        [Header("Phase 47 — One More Day (optional)")]
+        [Tooltip("When wired, the Goodnight card shows after the Evening " +
+                 "Ledger confirm. MissionRunner has no dream rig, so no dream " +
+                 "plays — just the card. Unwired = legacy path (D-064).")]
+        public EndOfDaySequencer endOfDaySequencer;
+
         private void Awake()
         {
             saveService ??= new HearthboundHollow.Save.SaveService();
@@ -83,10 +89,18 @@ namespace HearthboundHollow.Mission
 
         private void OnEndOfDayConfirmed()
         {
-            var gm = GameManager.Instance;
-            if (gm != null) gm.EndDay();
-            if (!string.IsNullOrEmpty(nextMissionScene) && gm != null)
-                gm.LoadScene(nextMissionScene);
+            System.Action transition = () =>
+            {
+                var gm = GameManager.Instance;
+                if (gm != null) gm.EndDay();
+                if (!string.IsNullOrEmpty(nextMissionScene) && gm != null)
+                    gm.LoadScene(nextMissionScene);
+            };
+
+            if (endOfDaySequencer != null)
+                endOfDaySequencer.BeginNightSequence(false, null, transition);  // no dream rig
+            else
+                transition();
         }
 
         private void OnMissionCompleted(MissionCompletedEvent evt)
