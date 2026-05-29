@@ -29,6 +29,18 @@ namespace HearthboundHollow.UI
         public ComfortToolsMenu comfortToolsMenu;
         public ToneCompassCard toneCompass;
 
+        [Header("Phase 53 — Polish Menu Layer (optional)")]
+        [Tooltip("System settings panel (language / customize / reset). Shown from Settings.")]
+        public SystemMenuUI systemMenu;
+
+        /// <summary>
+        /// Phase 53 — optional New-Game gate. A Mission-asmdef coordinator assigns
+        /// this; if it returns true the gate took over (e.g. opened the character
+        /// creator) and BeginGame stops, letting the coordinator load the first
+        /// scene once the player presses Begin. Null = start immediately.
+        /// </summary>
+        public System.Func<bool> NewGameGate;
+
         [Header("Scene routing")]
         public string firstMissionScene = "02_Mission01_Lane";
 
@@ -103,6 +115,11 @@ namespace HearthboundHollow.UI
         private void BeginGame()
         {
             if (toneCompass != null) toneCompass.OnAcknowledged -= BeginGame;
+
+            // Phase 53 — give the New-Game gate (character creator) a chance to
+            // run first. If it handles the start, it loads the scene itself.
+            if (NewGameGate != null && NewGameGate.Invoke()) return;
+
             var gm = GameManager.Instance;
             if (gm == null) { Hh.Err(LogCategory.UI, "GameManager missing — cannot start new game."); return; }
             gm.LoadScene(firstMissionScene);
@@ -124,6 +141,7 @@ namespace HearthboundHollow.UI
             Hh.Log(LogCategory.UI, "Main Menu — Settings clicked.");
             if (settingsPanel != null) settingsPanel.SetActive(true);
             if (comfortToolsMenu != null) comfortToolsMenu.Show();
+            if (systemMenu != null) systemMenu.Show();   // Phase 53 — language / customize / reset
             OnSettingsRequested?.Invoke();
         }
 
