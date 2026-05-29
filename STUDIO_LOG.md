@@ -15,6 +15,77 @@
 
 ---
 
+## 🎥 Phase 54 — QA Video Review: End-of-Day Freeze, Emoji & Camera 🟢 (2026-05-29)
+
+**User request:** Assign 20+ senior specialists, read every doc + the `Docs/` folder
+on `feat/mission-1-2-architecture`, watch `Docs/Gameplay video testing .mp4`, compare
+**design docs vs. the actual build**, raise it to global-hit quality, **fix the
+end-of-video freeze** (game stuck, won't advance to the next phase), add onboarding
+**emoji in TextMesh Pro**, make the **tutorial cleaner** to PC-hit standards, enrich
+the environment from available assets with accurate placement, and push every phase to
+this branch — then a second review pass.
+
+### Specialists convened (24)
+Lead Unity Architect · 4× Senior Unity Devs · 3× C# Scripters · Build/DevOps ·
+Package/asmdef Expert · UX/UI Designer · 2× 2D/UI Artists · Cutscene Director ·
+2× Camera Experts · Lighting Expert · 2× Game Designers · 2× Writers · Narrative
+Director · 4× Senior QA · Technical Artist · 2× 3D Modelers · 3× Market Critics.
+
+Full write-up: **`Docs/Phase54_QA_VideoReview_and_Fixes.md`** (frame-by-frame timeline,
+root-cause proof, full docs-vs-build gap table).
+
+### Root cause of the freeze (confirmed against serialized data) — D-069
+After "Sleep — End Day" the game froze: the Evening Ledger never closed, the night
+beats (Dream 1 + goodnight card) played behind it, and the on-top panel ate every
+click. **`EveningLedgerUI.Hide()` was a silent no-op** because in
+`UI_EveningLedger_Bamao.prefab` `root` IS the component's own GameObject, so the old
+guard `root != gameObject` skipped the deactivate. The Mission-01 title card reading
+"Opening the Hollow" at 3:30 proves the scene never advanced (Mission 2 = "The
+Widower's Request").
+
+### What shipped (pushed to the branch)
+
+| Phase | Item | Decision | Status |
+|---|---|---|---|
+| **A** | `EveningLedgerUI.Hide()` closes in every layout (CanvasGroup + self-deactivate); single-fire confirm guard | D-069 | 🟢 |
+| **A** | `EndOfDaySequencer` dream **watchdog** + guarded transition (menu fallback) | D-069 | 🟢 |
+| **A** | `GameManager.LoadScene` validates the scene + falls back to menu (never stranded) | D-069 | 🟢 |
+| **A** | `MissionRunner` + `Mission01Director` single-fire end-of-day guards; lock player through the night; lock movement while ledger open | D-069 | 🟢 |
+| **B** | `HollowGlyphs` (UI) — emoji → TMP `<sprite>` tags when installed, clean text otherwise (no tofu) | D-070 | 🟢 |
+| **B** | `Phase54_HollowGlyphsBuilder` (Editor) — bakes a gold glyph TMP Sprite Asset + registers it (default + emoji fallback); auto-installs on load; fully defensive | D-070 | 🟢 |
+| **B** | Cleaner, action-first onboarding copy + glyph-routed `ControlHintsHUD` captions | D-070 | 🟢 |
+| **C** | `DialogueCameraDirector` speaker **registry**; `Mission01Director` registers Doris so dialogue frames her instead of a wall | D-071 | 🟢 |
+
+### Decisions (see ARCHITECTURE)
+- **D-069** — End-of-day soft-lock fix: the modal Evening Ledger must always be able to
+  fully hide (CanvasGroup + self-deactivate) regardless of `root==gameObject`; the night
+  chain is watchdog-bounded and the transition guarded; `LoadScene` validates + falls
+  back. Single-fire guards prevent re-entrancy. The day always advances.
+- **D-070** — Onboarding/hint emoji render via a baked on-brand gold glyph TMP Sprite
+  Asset (procedural, no committed binary) registered as the TMP default + emoji fallback;
+  a runtime helper degrades to clean text so a tofu box can never ship.
+- **D-071** — Dialogue camera resolves speakers via a registry that directors populate by
+  name, so renamed/non-eponymous NPC objects still get a framed over-the-shoulder shot.
+
+### QA acceptance (verify after pull + recompile / Build Everything)
+1. Finish Day 1 → "Sleep — End Day": the ledger closes, Dream → goodnight card → next
+   day runs, **no freeze**; pressing it twice does nothing extra.
+2. Onboarding/hint emoji render as gold glyphs (or clean text before the glyph asset
+   builds) — **never a tofu box**.
+3. Doris dialogue frames Doris (over-the-shoulder), not a wall.
+4. `🔍 Diagnose Build` clean; zero NRE boot → menu → Day 1 → next day.
+
+### Next steps (Phase D — tracked)
+- **HH-54-ENV** — Environment enrichment + asset-placement accuracy pass for the Hollow
+  interior (retire the red placeholder floor quads to diegetic prompts, clamp the
+  oversized fire VFX + ground the floating note, dress the sparse interior from packs
+  already in the project) via an idempotent Editor builder + joint QA/Tech-Artist pass.
+- **HH-54-AVATAR** — Replace/curate the bald placeholder player look (cozy villager) via
+  `CharacterAppearance` so the protagonist doesn't read as a test dummy.
+- **Round 2** — re-review every phase against `Docs/Phase54_QA_VideoReview_and_Fixes.md`.
+
+---
+
 ## 🎙️🎭 Phase 53 + Voice Fix — Human Speech, Language, Reset & Character Creator 🟢 (2026-05-29)
 
 **User request:** (1) dialogue voices pronounced the ellipsis "…" as "full stop"/"dot
