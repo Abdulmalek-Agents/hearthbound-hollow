@@ -83,6 +83,7 @@ namespace HearthboundHollow.Mission
 
         private PlayerController _player;
         private float _currentAlpha;
+        private string _interactDefault = "Interact";
 
         // ───── Lifecycle ─────────────────────────────────────────
 
@@ -96,15 +97,16 @@ namespace HearthboundHollow.Mission
             UIAutoFitText.ApplyToButtonLabel(chipHelpLabel,        minSize: 14, maxSize: 26);
             UIAutoFitText.ApplyToLabel(chipHelpCaption,             minSize: 10, maxSize: 16);
 
-            // Phase 32.20 — cozy emoji captions under each key chip so the
-            // hint reads warmer than a plain word. The key letter stays
-            // bold + uppercase so the binding is unmistakable.
+            // Phase 32.20 / Phase 54 — cozy glyph captions under each key chip.
+            // Glyphs route through HollowGlyphs.Format so they render as on-brand
+            // gold icons in TMP (and degrade to clean text — never a tofu box).
+            _interactDefault = HollowGlyphs.Format("✋ Interact");
             if (chipMoveLabel != null)     chipMoveLabel.text = "WASD";
-            if (chipMoveCaption != null)   chipMoveCaption.text = "🚶 Move";
+            if (chipMoveCaption != null)   chipMoveCaption.text = HollowGlyphs.Format("🚶 Move");
             if (chipInteractLabel != null) chipInteractLabel.text = "E";
-            if (chipInteractCaption != null) chipInteractCaption.text = "✋ Interact";
+            if (chipInteractCaption != null) chipInteractCaption.text = _interactDefault;
             if (chipHelpLabel != null)     chipHelpLabel.text = "H";
-            if (chipHelpCaption != null)   chipHelpCaption.text = "❓ Help";
+            if (chipHelpCaption != null)   chipHelpCaption.text = HollowGlyphs.Format("❓ Help");
 
             _currentAlpha = idleAlpha;
             if (canvasGroup != null) canvasGroup.alpha = _currentAlpha;
@@ -138,9 +140,9 @@ namespace HearthboundHollow.Mission
                     if (chipInteractCaption != null && _player.CurrentFocus.PromptText != null)
                         chipInteractCaption.text = _player.CurrentFocus.PromptText;
                 }
-                else if (chipInteractCaption != null && chipInteractCaption.text != "Interact")
+                else if (chipInteractCaption != null && chipInteractCaption.text != _interactDefault)
                 {
-                    chipInteractCaption.text = "Interact";
+                    chipInteractCaption.text = _interactDefault;
                 }
             }
 
