@@ -98,7 +98,13 @@ namespace HearthboundHollow.UI
             // Then activate the visual panel (might be the same GameObject).
             if (root != null && !root.activeSelf) root.SetActive(true);
 
-            if (bodyText != null) bodyText.text = defaultBody;
+            // Phase 56 (D-073) — Arabic pulls the shaped primer from the
+            // localization table; English keeps the inspector-overridable
+            // canonical Pell Doyne copy in `defaultBody`.
+            if (bodyText != null)
+                bodyText.text = LocalizationService.IsRightToLeft
+                    ? LocalizationService.GetShaped("tone.body")
+                    : defaultBody;
 
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null && gentleModeToggle != null)
@@ -133,7 +139,8 @@ namespace HearthboundHollow.UI
         {
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null) vs.gentleModeEnabled = isOn;
-            if (gentleModeLabel != null) gentleModeLabel.text = isOn ? "Gentle Mode: ON" : "Gentle Mode: off";
+            if (gentleModeLabel != null)
+                gentleModeLabel.text = LocalizationService.GetShaped(isOn ? "comfort.gentle_on" : "comfort.gentle_off");
         }
 
         private void Acknowledge()

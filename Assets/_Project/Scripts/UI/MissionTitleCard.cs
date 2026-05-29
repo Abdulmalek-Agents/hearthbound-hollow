@@ -167,7 +167,7 @@ namespace HearthboundHollow.UI
         {
             var vs = ServiceLocator.Get<VillageState>();
             if (dayLabel != null)
-                dayLabel.text = vs != null ? $"Day {vs.currentDayIndex + 1}" : fallbackDayText;
+                dayLabel.text = LocalizationService.GetShaped("hud.day", vs != null ? vs.currentDayIndex + 1 : 1);
             if (titleLabel != null)
                 titleLabel.text = mission != null && !string.IsNullOrEmpty(mission.displayName) ? mission.displayName : fallbackTitleText;
             if (toneLabel != null)

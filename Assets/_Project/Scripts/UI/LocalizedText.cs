@@ -62,11 +62,11 @@ namespace HearthboundHollow.UI
 
                 // Phase 56 (D-073): Arabic needs contextual letter-joining + RTL
                 // ordering before TMP can show "real words" (TMP's classic path
-                // does neither). ArabicShaper returns a display-ready, visually
-                // ordered string, so we keep TMP's native RTL OFF to avoid a
-                // double reversal. Non-Arabic text is returned untouched.
-                if (LocalizationService.IsRightToLeft)
-                    resolved = ArabicShaper.Shape(resolved);
+                // does neither). LocalizationService.Shape returns a display-ready,
+                // visually ordered string (multi-line safe — shaped per line), so
+                // we keep TMP's native RTL OFF to avoid a double reversal.
+                // Non-Arabic text is returned untouched.
+                resolved = LocalizationService.Shape(resolved);
 
                 _tmp.isRightToLeftText = false;
                 _tmp.text = resolved;

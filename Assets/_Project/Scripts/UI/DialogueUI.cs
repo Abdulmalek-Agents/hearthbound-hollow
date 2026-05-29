@@ -212,7 +212,7 @@ namespace HearthboundHollow.UI
             // meaning. If you need the fancier glyph, add a font fallback
             // (Window → TextMeshPro → Font Asset Creator) to a font that
             // has U+25B8 such as Noto Sans Symbols.
-            advancePrompt.text = "Click or [Space] >";
+            advancePrompt.text = LocalizationService.GetShaped("dialogue.advance");
             advancePrompt.fontSize = 18;
             advancePrompt.fontStyle = FontStyles.Italic;
             advancePrompt.alignment = TextAlignmentOptions.MidlineRight;

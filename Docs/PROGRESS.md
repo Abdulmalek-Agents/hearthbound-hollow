@@ -10,6 +10,59 @@
 
 ---
 
+## 🆕 Phase 56.1 — Arabic UI-chrome localization coverage  🟢 (2026-05-29)
+
+**User request (with QA screenshots):**
+
+> *"Arabic only appears in the settings menu, but the next menus and dialogue are
+> still English. Fix them all — and voices should be Arabic when Arabic is selected."*
+
+### Problem in one sentence
+
+Phase 56 (D-073) already fixed Arabic *rendering* (the `ArabicShaper` joins + RTL-orders;
+`Phase56_ArabicFontInstaller` supplies the fallback font), so the system/settings menu
+shows correct Arabic — but most UI panels (Comfort Tools, Pause, HUD, dialogue prompt,
+Help, Tone Compass) build their labels as **hardcoded English literals** that never call
+`LocalizationService`, so there was no Arabic for them to show.
+
+### Scope decision (player = project owner)
+
+- **In:** all *functional* UI chrome + short instructional overlays (the explicit ask).
+- **Out (deferred, by the player's choice):** hand-written **dialogue** (Yarn) + **voice
+  clips**, per **Pillar 1 / D-065** (AI-translated dialogue is forbidden; dialogue + VO are
+  a dedicated *human* translation/recording pass). Narrative prose (Codex, Evening Ledger
+  summary, Dreams, mission display-names) stays with that writer pass.
+
+### What changed
+
+- **`LocalizationService`** — added display helpers: `Shape(raw)` (multi-line-safe — shapes
+  per line so block text doesn't reverse line order), `GetShaped(key)`, `GetShaped(key,args)`.
+  Added ~40 EN/AR keys (comfort tools, pause, help header, HUD day/coins, dialogue prompt,
+  subtitle-size tiers, Tone Compass primer).
+- **`LocalizedText`** — now routes through `LocalizationService.Shape` (multi-line safe).
+- **`Phase23_Mission1PolishCapstone`** (scene builder) — `MakeButton`/`BuildToggle`/`BuildSlider`
+  gained an optional `locKey`; added a `Localize()` helper that attaches `LocalizedText` to a
+  baked label. Wired: **Comfort Tools** panel (title, 3 toggles, subtitle-size, Close),
+  **Pause** (title, hint, 4 buttons), **Help** (title, subtitle, Close).
+- **Runtime components** — `ComfortToolsMenu` (subtitle-size readout), `ToneCompassCard`
+  (primer body + gentle-mode label), `HUDController` / `EveningLedgerUI` / `MissionTitleCard`
+  (Day / coins), `DialogueUI` (advance prompt) now resolve text via `GetShaped`.
+
+### Constraints found & honored
+- `ArabicShaper` would **corrupt TMP rich-text tags** (`<b>`, `<color>`) and **reverse across
+  newlines** → all AR strings are **plain text**; `Shape` is now per-line. Any emphasis must be
+  applied *outside* shaped content.
+
+### Apply
+Re-run **Hearthbound → 🚀 Build Everything** (rebakes scenes 00–05 so the baked labels get the
+`LocalizedText` binders), then toggle Arabic in Settings.
+
+### Remaining (offered as follow-ups)
+Onboarding overlay steps; mini-game tutorial hints; Help **controls-card body** (rich-text);
+control-hint chips (WASD/E/H are universal); + the deferred dialogue/VO human pass.
+
+---
+
 ## 🆕 Phase 32 — Voice Acting MVP  🟢 (2026-05-27)
 
 **User request:**

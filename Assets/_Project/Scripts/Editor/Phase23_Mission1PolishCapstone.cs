@@ -320,6 +320,7 @@ namespace HearthboundHollow.EditorTools
             title.rectTransform.anchorMin = new Vector2(0, 0.82f); title.rectTransform.anchorMax = new Vector2(1, 0.95f);
             title.text = "Paused";
             UIAutoFitText.ApplyToButtonLabel(title, minSize: 28, maxSize: 56);
+            Localize(title, "pause.title");
 
             var hint = new GameObject("Hint").AddComponent<TextMeshProUGUI>();
             hint.transform.SetParent(panel.transform, false);
@@ -328,15 +329,16 @@ namespace HearthboundHollow.EditorTools
             hint.rectTransform.anchorMin = new Vector2(0, 0.72f); hint.rectTransform.anchorMax = new Vector2(1, 0.81f);
             hint.text = "Take a breath. The Hollow will wait.";
             UIAutoFitText.ApplyToLabel(hint, minSize: 14, maxSize: 22);
+            Localize(hint, "pause.hint");
 
             var resume = MakeButton(panel.transform, "Btn_Resume",          "Resume",
-                new Vector2(0.10f, 0.56f), new Vector2(0.90f, 0.66f));
+                new Vector2(0.10f, 0.56f), new Vector2(0.90f, 0.66f), "common.resume");
             var settings = MakeButton(panel.transform, "Btn_Settings",      "Settings",
-                new Vector2(0.10f, 0.43f), new Vector2(0.90f, 0.53f));
+                new Vector2(0.10f, 0.43f), new Vector2(0.90f, 0.53f), "menu.settings");
             var saveQuit = MakeButton(panel.transform, "Btn_SaveAndQuit",   "Save & Quit to Main Menu",
-                new Vector2(0.10f, 0.30f), new Vector2(0.90f, 0.40f));
+                new Vector2(0.10f, 0.30f), new Vector2(0.90f, 0.40f), "pause.save_quit_menu");
             var quit = MakeButton(panel.transform, "Btn_QuitToDesktop",     "Quit to Desktop",
-                new Vector2(0.10f, 0.17f), new Vector2(0.90f, 0.27f));
+                new Vector2(0.10f, 0.17f), new Vector2(0.90f, 0.27f), "pause.quit_desktop");
 
             // Script lives on the HOST (always active). Wire `root` → visual child.
             var pause = hostGO.AddComponent<PauseMenuUI>();
@@ -387,6 +389,7 @@ namespace HearthboundHollow.EditorTools
             title.rectTransform.anchorMin = new Vector2(0, 0.85f); title.rectTransform.anchorMax = new Vector2(1, 0.95f);
             title.text = "Welcome to the Hollow";
             UIAutoFitText.ApplyToButtonLabel(title, minSize: 22, maxSize: 40);
+            Localize(title, "help.title");
 
             var subtitle = new GameObject("Subtitle").AddComponent<TextMeshProUGUI>();
             subtitle.transform.SetParent(panel.transform, false);
@@ -395,6 +398,7 @@ namespace HearthboundHollow.EditorTools
             subtitle.rectTransform.anchorMin = new Vector2(0, 0.78f); subtitle.rectTransform.anchorMax = new Vector2(1, 0.84f);
             subtitle.text = "A quick word from Marin's notes …";
             UIAutoFitText.ApplyToLabel(subtitle, minSize: 14, maxSize: 22);
+            Localize(subtitle, "help.subtitle");
 
             var body = new GameObject("Body").AddComponent<TextMeshProUGUI>();
             body.transform.SetParent(panel.transform, false);
@@ -403,7 +407,7 @@ namespace HearthboundHollow.EditorTools
             UIAutoFitText.ApplyToLabel(body, minSize: 14, maxSize: 24);
 
             var close = MakeButton(panel.transform, "Btn_Close", "Close (H)",
-                new Vector2(0.35f, 0.06f), new Vector2(0.65f, 0.14f));
+                new Vector2(0.35f, 0.06f), new Vector2(0.65f, 0.14f), "help.close");
 
             var help = hostGO.AddComponent<HelpOverlayUI>();
             help.root = visualGO;
@@ -448,28 +452,29 @@ namespace HearthboundHollow.EditorTools
             title.fontSize = 44; title.alignment = TextAlignmentOptions.Center; title.color = new Color(0.97f, 0.85f, 0.62f);
             title.rectTransform.anchorMin = new Vector2(0, 0.88f); title.rectTransform.anchorMax = new Vector2(1, 0.96f);
             title.text = "Settings · Comfort Tools";
+            Localize(title, "comfort.title");
 
             // Gentle mode toggle
             var gentleToggle = BuildToggle(panel.transform, "Gentle Mode (longer timers, no fail states)",
-                new Vector2(0.08f, 0.78f), new Vector2(0.92f, 0.84f));
+                new Vector2(0.08f, 0.78f), new Vector2(0.92f, 0.84f), "comfort.gentle");
 
             // Auto-complete polish toggle
             var autoPolish = BuildToggle(panel.transform, "Auto-Complete Polish mini-game",
-                new Vector2(0.08f, 0.70f), new Vector2(0.92f, 0.76f));
+                new Vector2(0.08f, 0.70f), new Vector2(0.92f, 0.76f), "comfort.autocomplete_polish");
 
             // Auto-complete cleanse toggle
             var autoCleanse = BuildToggle(panel.transform, "Auto-Complete Cleanse mini-game",
-                new Vector2(0.08f, 0.62f), new Vector2(0.92f, 0.68f));
+                new Vector2(0.08f, 0.62f), new Vector2(0.92f, 0.68f), "comfort.autocomplete_cleanse");
 
             // Subtitle size slider
             var subtitleSlider = BuildSlider(panel.transform, "Subtitle size",
                 new Vector2(0.08f, 0.50f), new Vector2(0.92f, 0.58f),
-                min: 0, max: 3, value: 1, out var subtitleLabel);
+                min: 0, max: 3, value: 1, out var subtitleLabel, locKey: "comfort.subtitle_size");
 
             // Close button — hides only the visual child; the script-host
             // stays active so the next Show() call can light it back up.
             var close = MakeButton(panel.transform, "Btn_CloseSettings", "Close",
-                new Vector2(0.35f, 0.05f), new Vector2(0.65f, 0.13f));
+                new Vector2(0.35f, 0.05f), new Vector2(0.65f, 0.13f), "common.close");
             close.onClick.AddListener(() => visualGO.SetActive(false));
 
             comfort = hostGO.AddComponent<ComfortToolsMenu>();
@@ -485,7 +490,7 @@ namespace HearthboundHollow.EditorTools
             return hostGO;
         }
 
-        private static Toggle BuildToggle(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax)
+        private static Toggle BuildToggle(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax, string locKey = null)
         {
             var go = new GameObject(label, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -515,6 +520,7 @@ namespace HearthboundHollow.EditorTools
             labelGO.rectTransform.anchorMin = new Vector2(0.10f, 0); labelGO.rectTransform.anchorMax = new Vector2(1, 1);
             labelGO.text = label;
             UIAutoFitText.ApplyToLabel(labelGO, minSize: 13, maxSize: 22);
+            Localize(labelGO, locKey);
 
             var toggle = go.AddComponent<Toggle>();
             toggle.targetGraphic = bgImg;
@@ -524,7 +530,7 @@ namespace HearthboundHollow.EditorTools
         }
 
         private static Slider BuildSlider(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax,
-            float min, float max, float value, out TextMeshProUGUI valueLabel)
+            float min, float max, float value, out TextMeshProUGUI valueLabel, string locKey = null)
         {
             var go = new GameObject(label, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -538,6 +544,7 @@ namespace HearthboundHollow.EditorTools
             labelGO.rectTransform.anchorMin = new Vector2(0, 0.5f); labelGO.rectTransform.anchorMax = new Vector2(0.40f, 1);
             labelGO.text = label;
             UIAutoFitText.ApplyToLabel(labelGO, minSize: 13, maxSize: 22);
+            Localize(labelGO, locKey);
 
             var sliderGO = new GameObject("Slider", typeof(Slider), typeof(Image));
             sliderGO.transform.SetParent(go.transform, false);
@@ -656,7 +663,7 @@ namespace HearthboundHollow.EditorTools
 
         // ─── Generic UI helpers ──────────────────────────────────
 
-        private static Button MakeButton(Transform parent, string name, string label, Vector2 anchorMin, Vector2 anchorMax)
+        private static Button MakeButton(Transform parent, string name, string label, Vector2 anchorMin, Vector2 anchorMax, string locKey = null)
         {
             var btnGO = new GameObject(name, typeof(Image), typeof(Button));
             btnGO.transform.SetParent(parent, false);
@@ -673,7 +680,22 @@ namespace HearthboundHollow.EditorTools
             lRT.anchorMin = Vector2.zero; lRT.anchorMax = Vector2.one;
             lRT.offsetMin = new Vector2(12, 4); lRT.offsetMax = new Vector2(-12, -4);
             UIAutoFitText.ApplyToButtonLabel(labelGO, minSize: 14, maxSize: 24);
+            Localize(labelGO, locKey);
             return btnGO.GetComponent<Button>();
+        }
+
+        // Phase 56 (D-073) — bind a baked label to the localization table so it
+        // renders Arabic (joined + RTL, via LocalizedText) at runtime. The build-
+        // time .text is set to the current language for editor preview; the
+        // LocalizedText component re-pulls + shapes on enable and on language
+        // change. No-op when key is null (call sites that aren't localized yet).
+        private static void Localize(TextMeshProUGUI label, string key)
+        {
+            if (label == null || string.IsNullOrEmpty(key)) return;
+            label.text = LocalizationService.Get(key);
+            var loc = label.GetComponent<LocalizedText>();
+            if (loc == null) loc = label.gameObject.AddComponent<LocalizedText>();
+            loc.key = key;
         }
 
         private static void EnsureEventSystem()

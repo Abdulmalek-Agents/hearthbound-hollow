@@ -92,6 +92,30 @@ namespace HearthboundHollow.Core
             return key;
         }
 
+        // ───── Display shaping (Arabic) ────────────────────────────
+        // Arabic must be contextually joined + RTL-ordered before a classic TMP
+        // label can show real words (see ArabicShaper). These helpers centralise
+        // that so any runtime code can localise a label in one call. Multi-line
+        // strings are shaped LINE-BY-LINE — shaping reverses to visual order, so
+        // shaping a whole block would flip the line order too. Non-RTL languages
+        // (and tag-free Latin) pass straight through untouched.
+
+        /// <summary>Display-shape an already-localized string for the current language.</summary>
+        public static string Shape(string raw)
+        {
+            if (!IsRightToLeft || string.IsNullOrEmpty(raw)) return raw;
+            if (raw.IndexOf('\n') < 0) return ArabicShaper.Shape(raw);
+            var lines = raw.Split('\n');
+            for (int i = 0; i < lines.Length; i++) lines[i] = ArabicShaper.Shape(lines[i]);
+            return string.Join("\n", lines);
+        }
+
+        /// <summary>Localized + display-shaped string for the current language.</summary>
+        public static string GetShaped(string key) => Shape(Get(key));
+
+        /// <summary>Localized format string with <paramref name="args"/> substituted, then shaped.</summary>
+        public static string GetShaped(string key, params object[] args) => Shape(string.Format(Get(key), args));
+
         // ───── String table (UI chrome) ───────────────────────────
         // key → (English, Arabic). Add freely — this is the canonical UI
         // translation table for Mission 1-2. Dialogue prose is NOT here.
@@ -140,6 +164,118 @@ namespace HearthboundHollow.Core
             // Pause
             ["pause.title"]        = ("Paused", "إيقاف مؤقت"),
             ["pause.save_quit"]    = ("Save & Quit to Title", "حفظ والخروج للرئيسية"),
+            ["pause.hint"]         = ("Take a breath. The Hollow will wait.", "خُذ نفسًا. سينتظر الجوف."),
+            ["pause.save_quit_menu"] = ("Save & Quit to Main Menu", "حفظ والخروج للقائمة الرئيسية"),
+            ["pause.quit_desktop"] = ("Quit to Desktop", "الخروج إلى سطح المكتب"),
+
+            // Comfort Tools (accessibility) panel
+            ["comfort.title"]      = ("Settings · Comfort Tools", "الإعدادات · أدوات الراحة"),
+            ["comfort.gentle"]     = ("Gentle Mode (longer timers, no fail states)",
+                                      "الوضع اللطيف (مؤقّتات أطول، بلا شاشات إخفاق)"),
+            ["comfort.autocomplete_polish"]  = ("Auto-Complete Polish mini-game", "إكمال تلقائي للعبة التلميع"),
+            ["comfort.autocomplete_cleanse"] = ("Auto-Complete Cleanse mini-game", "إكمال تلقائي للعبة التطهير"),
+            ["comfort.subtitle_size"] = ("Subtitle size", "حجم الترجمة"),
+            ["comfort.gentle_on"]  = ("Gentle Mode: ON", "الوضع اللطيف: مُفعّل"),
+            ["comfort.gentle_off"] = ("Gentle Mode: off", "الوضع اللطيف: مُعطّل"),
+
+            // Subtitle-size tiers (also reusable as generic size words)
+            ["size.small"]         = ("Small", "صغير"),
+            ["size.medium"]        = ("Medium", "متوسط"),
+            ["size.large"]         = ("Large", "كبير"),
+            ["size.huge"]          = ("Huge", "ضخم"),
+
+            // Help overlay (header chrome; the controls body stays EN this pass)
+            ["help.title"]         = ("Welcome to the Hollow", "أهلًا بك في الجوف"),
+            ["help.subtitle"]      = ("A quick word from Marin's notes …", "كلمة وجيزة من ملاحظات مارين …"),
+            ["help.close"]         = ("Close (H)", "إغلاق"),
+
+            // HUD / Evening Ledger chrome (format: {0} = number)
+            ["hud.day"]            = ("Day {0}", "اليوم {0}"),
+            ["hud.coins"]          = ("{0} c", "{0} ع"),
+
+            // Dialogue chrome
+            ["dialogue.advance"]   = ("Click or [Space] >", "انقر أو اضغط مسافة"),
+
+            // Tone Compass — first-launch 90-second tone/content primer (Focus 07 §7.1).
+            // Plain text only (shaped line-by-line). EN is the canonical Pell Doyne copy.
+            ["tone.body"]          = (
+                "This game will make you feel things. Some of those feelings are heavy.\n\n" +
+                "This first hour contains: the opening of a shop, a first transaction, a late-night brewing.\n\n" +
+                "The second hour contains: a widower's grief, a choice about memory, a short illustrated dream.\n\n" +
+                "At any point, you can take a Soft Day, enable Gentle Mode, or adjust any settings.\n\n" +
+                "There is no combat. There are no failure screens. There are only choices.\n\n" +
+                "The cat will be there.",
+                "ستجعلك هذه اللعبة تشعر بأشياء. بعض تلك المشاعر ثقيلة.\n\n" +
+                "تحتوي هذه الساعة الأولى على: افتتاح متجر، وأول معاملة، وتحضير شاي في وقت متأخّر من الليل.\n\n" +
+                "تحتوي الساعة الثانية على: حزن أرمل، وخيار حول ذكرى، وحلم قصير مرسوم.\n\n" +
+                "في أيّ لحظة، يمكنك أخذ يوم هادئ، أو تفعيل الوضع اللطيف، أو تعديل أيّ إعدادات.\n\n" +
+                "لا قتال. لا شاشات إخفاق. هناك فقط خيارات.\n\n" +
+                "القطة ستكون هناك."),
+
+            // ── Onboarding walkthrough steps (OnboardingOverlay.DefaultSteps) ──
+            // EN values MUST match the code copy verbatim (incl. \n and <b> tags);
+            // AR values are plain text (shaped per line at display).
+            ["onboard.welcome.headline"] = ("Welcome to the Hollow", "أهلًا بك في الجوف"),
+            ["onboard.welcome.body"]     = (
+                "You've inherited a little memory-shop in a quiet autumn village.\n" +
+                "No combat. No fail screens. Just people — and the memories they trust you to keep.",
+                "لقد ورثتَ متجرًا صغيرًا للذكريات في قرية خريفية هادئة.\n" +
+                "لا قتال. لا شاشات إخفاق. فقط أناس — والذكريات التي يأتمنونك عليها."),
+            ["onboard.move.headline"]    = ("Move", "تحرّك"),
+            ["onboard.move.body"]        = (
+                "Wander at your own pace. Someone is waiting at the door of the Hollow.",
+                "تجوّل على راحتك. هناك من ينتظر عند باب الجوف."),
+            ["onboard.move.caption"]     = ("Move  ·  Arrows / Left Stick", "تحرّك  ·  الأسهم / العصا اليسرى"),
+            ["onboard.interact.headline"] = ("Interact", "تفاعل"),
+            ["onboard.interact.body"]    = (
+                "A soft golden prompt means you can act — open a door, take a memory, pour the tea.",
+                "الإشارة الذهبية اللطيفة تعني أنه يمكنك التصرّف — افتح بابًا، خذ ذكرى، اسكب الشاي."),
+            ["onboard.interact.caption"] = ("Interact", "تفاعل"),
+            ["onboard.polish.headline"]  = ("Polish a memory", "لمّع ذكرى"),
+            ["onboard.polish.body"]      = (
+                "Hold the left mouse button and trace slow circles over the glowing orb.\n" +
+                "Slower is kinder. Cover all four sides — like a kindness with four corners.",
+                "اضغط مع الاستمرار على زر الفأرة الأيسر وارسم دوائر بطيئة فوق الجوهرة المتوهّجة.\n" +
+                "الأبطأ ألطف. غطِّ الجوانب الأربعة كلها — كلطفٍ بأربعة أركان."),
+            ["onboard.polish.caption"]   = ("Draw slow circles", "ارسم دوائر بطيئة"),
+            ["onboard.easy.headline"]    = ("Take it easy", "خُذ الأمور برويّة"),
+            ["onboard.easy.body"]        = (
+                "Press <b>Esc</b> any time for Settings — Gentle Mode, Auto-Complete, and language.\n" +
+                "Press <b>H</b> for the full controls whenever you need them.",
+                "اضغط Esc في أي وقت للإعدادات — الوضع اللطيف، الإكمال التلقائي، واللغة.\n" +
+                "اضغط H لكل أدوات التحكم وقتما تحتاجها."),
+            ["onboard.easy.caption"]     = ("Pause  ·  Settings  ·  Comfort", "إيقاف  ·  إعدادات  ·  راحة"),
+            ["onboard.ready.headline"]   = ("You're ready", "أنت جاهز"),
+            ["onboard.ready.body"]       = (
+                "Walk to the door of the Hollow when you're ready.\n\n" +
+                "There is no wrong way to keep a memory.\nThere is only the gentle way, and the others.\n\n— Marin",
+                "امشِ إلى باب الجوف عندما تكون مستعدًّا.\n\n" +
+                "لا توجد طريقة خاطئة لحفظ ذكرى.\nهناك فقط الطريقة اللطيفة، والطرق الأخرى.\n\n— مارين"),
+
+            // ── Mini-game tutorial (MiniGameTutorialUI) ──
+            // EN keeps inline <b> tags (English appearance unchanged); AR is plain.
+            ["minigame.generic.headline"]     = ("Work the orb", "اشتغل على الجوهرة"),
+            ["minigame.generic.instructions"] = ("Hold <b>Left Mouse</b> and move slowly across the orb.",
+                                                 "اضغط مع الاستمرار على زر الفأرة الأيسر وتحرّك ببطء عبر الجوهرة."),
+            ["minigame.generic.hint"]         = ("Take your time — the orb cannot break from gentleness.",
+                                                 "خُذ وقتك — لا يمكن للجوهرة أن تنكسر من اللطف."),
+            ["minigame.polish.headline"]      = ("Polish the memory", "لمّع الذكرى"),
+            ["minigame.polish.instructions"]  = ("Hold <b>Left Mouse</b> and draw <b>slow circles</b> around the <b>glowing orb</b>.",
+                                                 "اضغط مع الاستمرار على زر الفأرة الأيسر وارسم دوائر بطيئة حول الجوهرة المتوهّجة."),
+            ["minigame.polish.hint"]          = ("Slower is better. Cover all four corners.",
+                                                 "الأبطأ أفضل. غطِّ الأركان الأربعة كلها."),
+            ["minigame.polish.milestone"]     = ("<b>Halfway</b> — the orb is warming.", "في منتصف الطريق — الجوهرة تدفأ."),
+            ["minigame.polish.reveal"]        = ("<b>Nearly there</b> — keep the circles gentle.", "اقتربت — أبقِ الدوائر لطيفة."),
+            ["minigame.polish.friction"]      = ("<b>Slower</b> — let the orb hear you.", "أبطأ — دع الجوهرة تسمعك."),
+            ["minigame.cleanse.headline"]     = ("Cleanse the orb", "طهّر الجوهرة"),
+            ["minigame.cleanse.instructions"] = ("Hold <b>Left Mouse</b> · Trace the cracks · <b>Don't cross the core</b>",
+                                                 "اضغط مع الاستمرار على زر الفأرة الأيسر · تتبّع الشقوق · لا تعبر القلب"),
+            ["minigame.cleanse.hint"]         = ("Trace each crack from end to end. Avoid the warm centre.",
+                                                 "تتبّع كل شق من طرفه إلى طرفه. تجنّب المركز الدافئ."),
+            ["minigame.cleanse.sealed"]       = ("<b>{0} of 4</b> cracks sealed.", "تم ختم {0} من 4 شقوق."),
+            ["minigame.cleanse.friction"]     = ("<b>Pull back</b> — that is the warm centre.", "تراجع — ذلك هو المركز الدافئ."),
+            ["minigame.autocomplete_suffix"]  = ("  (Auto-Complete is available below.)", "  (الإكمال التلقائي متاح بالأسفل.)"),
+            ["minigame.skip_autocomplete"]    = ("Skip · Auto-Complete", "تخطٍّ · إكمال تلقائي"),
         };
     }
 }

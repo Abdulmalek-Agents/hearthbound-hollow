@@ -260,34 +260,53 @@ namespace HearthboundHollow.Mission
             }
         }
 
+        // ───── Localization helpers (Phase 56 / D-073) ───────────
+
+        // English uses the inspector-overridable field; Arabic uses the table
+        // value. Returns RAW (un-shaped) text — caller shapes via Shape()/SetHint.
+        private static string LocOrField(string key, string englishField)
+            => LocalizationService.IsRightToLeft ? LocalizationService.Get(key) : englishField;
+
+        // Assign a hint, Arabic-shaped (joined + RTL). Safe when hintLabel is null.
+        private void SetHint(string raw)
+        {
+            if (hintLabel != null) hintLabel.text = LocalizationService.Shape(raw);
+        }
+
         // ───── Event handlers ────────────────────────────────────
 
         private void OnGameStarted(MiniGameBase game)
         {
             _active = game;
 
-            // Configure the labels per game type.
-            string headline = genericHeadline;
-            string instructions = genericInstructions;
-            _baseHintText = "Take your time — the orb cannot break from gentleness.";
+            // Configure the labels per game type. Phase 56 (D-073): headline +
+            // instructions are inspector-overridable, so English uses the field and
+            // Arabic pulls the shaped table value; the hint copy is code-owned, so it
+            // resolves straight from the table. _baseHintText is kept RAW (un-shaped)
+            // so a suffix can be composed before a single Shape() at display.
+            string headline     = LocOrField("minigame.generic.headline",     genericHeadline);
+            string instructions = LocOrField("minigame.generic.instructions", genericInstructions);
+            _baseHintText       = LocalizationService.Get("minigame.generic.hint");
 
             if (game is PolishMiniGame)
             {
-                headline = polishHeadline;
-                instructions = polishInstructions;
-                _baseHintText = "Slower is better. Cover all four corners.";
+                headline      = LocOrField("minigame.polish.headline",     polishHeadline);
+                instructions  = LocOrField("minigame.polish.instructions", polishInstructions);
+                _baseHintText = LocalizationService.Get("minigame.polish.hint");
             }
             else if (game is CleanseMiniGame)
             {
-                headline = cleanseHeadline;
-                instructions = cleanseInstructions;
-                _baseHintText = "Trace each crack from end to end. Avoid the warm centre.";
+                headline      = LocOrField("minigame.cleanse.headline",     cleanseHeadline);
+                instructions  = LocOrField("minigame.cleanse.instructions", cleanseInstructions);
+                _baseHintText = LocalizationService.Get("minigame.cleanse.hint");
             }
 
-            if (headlineLabel != null)     headlineLabel.text     = headline;
-            if (instructionsLabel != null) instructionsLabel.text = instructions;
-            if (hintLabel != null)         hintLabel.text         = _baseHintText;
+            if (headlineLabel != null)     headlineLabel.text     = LocalizationService.Shape(headline);
+            if (instructionsLabel != null) instructionsLabel.text = LocalizationService.Shape(instructions);
+            SetHint(_baseHintText);
             if (percentLabel != null)      percentLabel.text      = "0%";
+            if (autoCompleteButtonLabel != null)
+                autoCompleteButtonLabel.text = LocalizationService.GetShaped("minigame.skip_autocomplete");
             if (progressBar != null)
             {
                 progressBar.minValue = 0;
@@ -328,12 +347,12 @@ namespace HearthboundHollow.Mission
 
         private void OnPolishMilestone()
         {
-            if (hintLabel != null) hintLabel.text = "<b>Halfway</b> — the orb is warming.";
+            SetHint(LocalizationService.Get("minigame.polish.milestone"));
         }
 
         private void OnPolishReveal()
         {
-            if (hintLabel != null) hintLabel.text = "<b>Nearly there</b> — keep the circles gentle.";
+            SetHint(LocalizationService.Get("minigame.polish.reveal"));
         }
 
         private void OnPolishFrictionWarning()
@@ -345,7 +364,7 @@ namespace HearthboundHollow.Mission
 
         private void OnCleanseCrackSealed(int sealedCount)
         {
-            if (hintLabel != null) hintLabel.text = $"<b>{sealedCount} of 4</b> cracks sealed.";
+            SetHint(string.Format(LocalizationService.Get("minigame.cleanse.sealed"), sealedCount));
             if (progressBar != null) progressBar.value = Mathf.Clamp01(sealedCount / 4f);
             if (percentLabel != null) percentLabel.text = $"{Mathf.Clamp(sealedCount, 0, 4)} / 4";
         }
@@ -386,8 +405,8 @@ namespace HearthboundHollow.Mission
         {
             yield return new WaitForSecondsRealtime(autoCompleteUnlockDelay);
             if (autoCompleteButton != null) autoCompleteButton.gameObject.SetActive(true);
-            if (hintLabel != null && !string.IsNullOrEmpty(_baseHintText))
-                hintLabel.text = _baseHintText + "  (Auto-Complete is available below.)";
+            if (!string.IsNullOrEmpty(_baseHintText))
+                SetHint(_baseHintText + LocalizationService.Get("minigame.autocomplete_suffix"));
         }
 
         private IEnumerator FlashFrictionWarning()
@@ -395,10 +414,10 @@ namespace HearthboundHollow.Mission
             if (hintLabel == null) yield break;
             var orig = hintLabel.color;
             hintLabel.color = frictionColor;
-            hintLabel.text = "<b>Slower</b> — let the orb hear you.";
+            SetHint(LocalizationService.Get("minigame.polish.friction"));
             yield return new WaitForSecondsRealtime(frictionWarningDuration);
             hintLabel.color = orig;
-            if (!string.IsNullOrEmpty(_baseHintText)) hintLabel.text = _baseHintText;
+            if (!string.IsNullOrEmpty(_baseHintText)) SetHint(_baseHintText);
         }
 
         private IEnumerator FlashCoreWarning()
@@ -406,10 +425,10 @@ namespace HearthboundHollow.Mission
             if (hintLabel == null) yield break;
             var orig = hintLabel.color;
             hintLabel.color = frictionColor;
-            hintLabel.text = "<b>Pull back</b> — that is the warm centre.";
+            SetHint(LocalizationService.Get("minigame.cleanse.friction"));
             yield return new WaitForSecondsRealtime(frictionWarningDuration);
             hintLabel.color = orig;
-            if (!string.IsNullOrEmpty(_baseHintText)) hintLabel.text = _baseHintText;
+            if (!string.IsNullOrEmpty(_baseHintText)) SetHint(_baseHintText);
         }
 
         private static bool IsAutoCompletePreferenceOn()
