@@ -405,7 +405,12 @@ namespace HearthboundHollow.Player
             if (MovementLocked)
             {
                 ApplyMovementLockedFrame();
-                ScanForInteractable();
+                // Phase 54 (D-072): while locked (dialogue / Evening Ledger / cards)
+                // we must NOT keep a live interaction focus — otherwise the world
+                // interaction prompt ("□ a note in Marin's hand") and the [E] hint
+                // chip bleed through the modal UI, exactly as seen in the QA video.
+                // Clearing focus hides those prompts for the duration of the lock.
+                if (CurrentFocus != null) CurrentFocus = null;
                 return;
             }
 
