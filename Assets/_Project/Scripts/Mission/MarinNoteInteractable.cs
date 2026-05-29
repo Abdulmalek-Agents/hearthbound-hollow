@@ -11,18 +11,11 @@
 // villager lines — keeping the cozy tactile feel. Speaker is "Marin's Note"
 // (italicised) and no portrait is set (the predecessor has no face yet).
 //
-// Phase 26 narrative hook — Marin's Note. Surfaces the predecessor's
-// presence on Day 1 without a full backstory infodump. The note is signed
-// "— M." matching the Help overlay quote.
-//
-// ── ASMDEF NOTE (Phase 26.1 hotfix, per D-035) ────────────────────
-// This script lives in the HearthboundHollow.Mission asmdef — NOT
-// HearthboundHollow.Player — because it bridges Player's Interactable
-// base class with UI's DialogueUI. Per D-005 the Player asmdef does
-// NOT reference UI on purpose, so cross-cutting interaction+UI logic
-// belongs in Mission (which references both). The original Phase 26
-// commit placed this file in Player/ and the build failed with
-// CS0234 / CS0246. Moved here in 4d68926a..HEAD.
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// New `passageLineIds` array carries per-passage stable lineIds that
+// DialogueUI uses for Arabic dialogue-table lookup + future voice clip
+// resolution. Prompt text ("Read the note (E)") + speaker name come
+// through LocalizationService when the locale has registered keys.
 
 using System.Collections;
 using UnityEngine;
@@ -71,6 +64,14 @@ namespace HearthboundHollow.Mission
             "                                                                                — M."
         };
 
+        [Header("Per-passage line IDs (Phase 60 — Localization)")]
+        [Tooltip("Optional lineIds passed to DialogueUI for per-passage " +
+                 "Arabic translation lookup AND voice clip resolution. " +
+                 "When the active locale is Arabic, the dialogue table " +
+                 "translation overrides the English `passages[i]` for the " +
+                 "matching index. Empty entries fall back to passages[i].")]
+        public string[] passageLineIds;
+
         [Header("State")]
         [Tooltip("If true, the note becomes inactive after the player reads all passages.")]
         public bool retireAfterReading = true;
@@ -81,9 +82,16 @@ namespace HearthboundHollow.Mission
 
         public override string GetDynamicPromptText()
         {
-            if (_reading) return "Continue … (E)";
-            if (_passageIndex == 0) return "Read the note (E)";
-            return "Re-read the note (E)";
+            var loc = ServiceLocator.Get<LocalizationService>();
+            // Phase 60 — Localized note prompts.
+            string keyContinue = "marin.note.prompt.continue";
+            string keyRead     = "marin.note.prompt.read";
+            string keyReRead   = "marin.note.prompt.reread";
+            if (_reading)
+                return loc != null && loc.HasKey(keyContinue) ? loc.Get(keyContinue) : "Continue … (E)";
+            if (_passageIndex == 0)
+                return loc != null && loc.HasKey(keyRead)     ? loc.Get(keyRead)     : "Read the note (E)";
+            return loc != null && loc.HasKey(keyReRead)       ? loc.Get(keyReRead)   : "Re-read the note (E)";
         }
 
         public override void Activate(GameObject player)
@@ -103,8 +111,18 @@ namespace HearthboundHollow.Mission
                 _passageIndex = 0;
             }
 
-            // Show the current passage via the dialogue presenter.
-            dialogueUI.PresentLine(speakerLabel, GetCurrentPassage(), portrait: null);
+            // Phase 60 — Pass the per-passage lineId through to DialogueUI
+            // so the localized translation + voice clip are resolved
+            // automatically. Falls back to no-lineId if not configured.
+            string lineId = (passageLineIds != null && _passageIndex < passageLineIds.Length)
+                ? passageLineIds[_passageIndex]
+                : null;
+            // Also localize the speaker label.
+            var loc = ServiceLocator.Get<LocalizationService>();
+            string speaker = loc != null
+                ? loc.GetSpeakerName(speakerLabel)
+                : speakerLabel;
+            dialogueUI.PresentLine(speaker, GetCurrentPassage(), portrait: null, lineId);
             AdvancePassage();
         }
 
@@ -136,7 +154,6 @@ namespace HearthboundHollow.Mission
                 if (retireAfterReading)
                 {
                     SetInteractable(false);
-                    // Schedule a Hide() after a short delay so the player can finish reading.
                     if (gameObject.activeInHierarchy && isActiveAndEnabled)
                         StartCoroutine(HideAfterDelay(2.5f));
                     else
