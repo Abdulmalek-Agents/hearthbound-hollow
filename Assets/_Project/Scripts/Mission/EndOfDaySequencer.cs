@@ -25,10 +25,15 @@
 //     the card as `instant` so the fade is skipped (identical content, zero
 //     stress) — keeps OneMoreDayCard free of any game-state dependency.
 //
-// ── Phase 54 (D-069) — never strand the player ─────────────────────────────
+// ── Phase 54 (D-069) — never strand the player ──────────────────────────
 //   • The dream wait is bounded by a watchdog so a paused/looping/never-stopping
 //     Timeline cannot freeze the night chain.
 //   • The transition body is guarded; if it throws we fall back to the menu.
+//
+// ── Phase 59 (D-078) — the same guarantee for the Goodnight card ────────────
+//   • The card wait was the last UNBOUNDED await in the chain. It is now
+//     watchdog-capped too (no time pressure — a last-resort anti-strand only),
+//     and breaks immediately if the card object is destroyed.
 
 using System;
 using System.Collections;
@@ -69,6 +74,16 @@ namespace HearthboundHollow.Mission
                  "strand the player on a frozen screen — the day always advances.")]
         public float dreamWatchdogSeconds = 30f;
 
+        [Header("Phase 59 — safety (D-078)")]
+        [Tooltip("Last-resort anti-strand cap on the Goodnight card. The card is a " +
+                 "'press to continue' beat with NO time pressure — the player can " +
+                 "take as long as they like. This watchdog ONLY exists so a card " +
+                 "that can never receive input (destroyed/mis-wired/raycast-blocked) " +
+                 "can't hang the night chain forever: after this many UNSCALED " +
+                 "seconds with no advance, the day proceeds anyway. Set 0 to wait " +
+                 "indefinitely. 120s is far longer than any human pause.")]
+        public float cardWatchdogSeconds = 120f;
+
         private IEnumerator RunSequence(bool playDream, Action dreamTrigger, Action onComplete)
         {
             // 1) Dream (await its natural finish, with a watchdog so a stalled
@@ -105,8 +120,25 @@ namespace HearthboundHollow.Mission
                 card.OnContinue += handler;
                 card.Show(ResolveForwardLook(tease), tease.pickleSignOffText, GentleModeOn());
                 Hh.Log(LogCategory.Mission, $"EndOfDaySequencer → goodnight card '{tease.sourceNode}'.");
-                while (!advanced) yield return null;
-                card.OnContinue -= handler;
+
+                // Phase 59 (D-078) — wait for the player's Goodnight press, but with
+                // an anti-strand watchdog so a card that can NEVER advance (destroyed,
+                // mis-wired, or raycast-blocked) can't hang the night chain forever.
+                // No time pressure: the cap is a last resort, not a gameplay timer.
+                float cardWaited = 0f;
+                float cardMax = cardWatchdogSeconds <= 0f ? float.PositiveInfinity : cardWatchdogSeconds;
+                while (!advanced && cardWaited < cardMax)
+                {
+                    // If the card object vanished without firing OnContinue, stop.
+                    if (card == null) break;
+                    cardWaited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                if (card != null) card.OnContinue -= handler;
+                if (!advanced)
+                    Hh.Warn(LogCategory.Mission,
+                        $"EndOfDaySequencer: goodnight card never advanced within {cardMax:F0}s " +
+                        "(or was destroyed) — continuing so the day still advances.");
             }
             else
             {
