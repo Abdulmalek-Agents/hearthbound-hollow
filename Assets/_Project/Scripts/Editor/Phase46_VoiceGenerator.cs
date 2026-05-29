@@ -30,6 +30,17 @@
 // polish-quality × 3) are included so this pipeline stays in lockstep
 // with Mission01Director.cs and Tools/generate_voices.sh.
 //
+// ── Phase 46.2 (2026-05-29) — human-speech sanitiser ────────────
+// User report: "the voices pronounce the dot ... as full stop which makes
+// speaking not human." Root cause: this espeak-ng path fed RAW line text to
+// the engine, which verbalises punctuation literally ("..." → "dot dot dot",
+// "—" → "dash"). Fixed: every line now runs through CleanForTts() (parity with
+// generate_voices.sh's clean_for_tts) before synthesis — ellipses/dashes become
+// natural comma pauses, stage directions + emphasis are stripped, pure-
+// punctuation lines stay voiceless. Stale pre-sanitiser clips are auto-purged
+// and regenerated on the next 🚀 Build Everything. For fully native-sounding
+// neural voices, prefer the Piper pipeline (D-059): Tools/generate_voices.sh.
+//
 // USE: Menu → Hearthbound → ⚙️ Advanced → 🎙️ Phase 46 — Generate Voices (cross-platform)
 //
 // Chained from `🚀 Build Everything` so the canonical one-click workflow
@@ -41,6 +52,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -261,14 +273,38 @@ namespace HearthboundHollow.EditorTools
 
                     string wavPath = $"{VoiceRoot}/{character}/{id}.wav";
 
-                    // Idempotent — keep existing files. Delete + re-run to refresh.
-                    if (File.Exists(wavPath))
+                    // Phase 46.2 — TTS text sanitiser (mirrors generate_voices.sh's
+                    // clean_for_tts). espeak-ng reads punctuation LITERALLY: "..."
+                    // came out as a spoken "dot dot dot" / "full stop" and em-dashes
+                    // as "dash", which broke the human-actor illusion (user report).
+                    // We now clean the text BEFORE synthesis and purge any stale clip
+                    // built from a "dirty" source line so old robotic audio is replaced.
+                    bool exists = File.Exists(wavPath);
+                    bool dirty  = IsDirtySource(text);
+
+                    if (exists && !dirty)
                     {
+                        skipped[character]++;     // clean line already voiced → keep
+                        continue;
+                    }
+                    if (exists && dirty)
+                    {
+                        // Replace the pre-sanitiser clip on this run.
+                        AssetDatabase.DeleteAsset(wavPath);
+                    }
+
+                    string spoken = CleanForTts(text);
+                    if (string.IsNullOrEmpty(spoken))
+                    {
+                        // Pure-punctuation line (e.g. "...") — speaking it would only
+                        // produce a robotic "dot dot dot". Leave it voiceless; the
+                        // typewriter carries the beat. No clip, no NRE (VoicePlayer
+                        // degrades to typewriter-only for a missing lineId).
                         skipped[character]++;
                         continue;
                     }
 
-                    if (Synthesize(tool, cfg, text, wavPath))
+                    if (Synthesize(tool, cfg, spoken, wavPath))
                         generated[character]++;
                     else
                         failed[character]++;
@@ -447,10 +483,65 @@ namespace HearthboundHollow.EditorTools
 
         private static string EscapeForShell(string s)
         {
-            // espeak-ng + macOS say both accept the text as a single positional argument.
-            // We use ProcessStartInfo (not bash), so we only need to escape internal
-            // double-quotes inside the line. The em-dash and ellipses are fine UTF-8.
+            // espeak-ng + macOS say both accept the text as a single positional
+            // argument. We use ProcessStartInfo (not bash), so we only need to
+            // escape internal double-quotes. Text has already passed through
+            // CleanForTts() (Phase 46.2), so there are no ellipses / em-dashes /
+            // stage directions left for the engine to verbalise.
             return s.Replace("\"", "\\\"");
+        }
+
+        // ─── Phase 46.2 — TTS text sanitiser (parity with generate_voices.sh) ───
+
+        /// <summary>
+        /// Returns true if the raw source line carries any pattern espeak-ng would
+        /// verbalise wrongly (leading punctuation run, ellipsis, em/en-dash,
+        /// Markdown emphasis, parenthetical stage direction). Used to purge stale
+        /// pre-sanitiser clips so they are regenerated clean.
+        /// </summary>
+        public static bool IsDirtySource(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return true;
+            if (Regex.IsMatch(s, @"^[\s,.;:!?\-]+")) return true;   // leading punctuation
+            if (Regex.IsMatch(s, @"\.{2,}")) return true;          // ellipsis
+            if (s.IndexOf('—') >= 0 || s.IndexOf('–') >= 0) return true; // em / en dash
+            if (Regex.IsMatch(s, @"\*[^*]+\*")) return true;       // *emphasis*
+            if (Regex.IsMatch(s, @"\([^)]*\)")) return true;       // (stage direction)
+            return false;
+        }
+
+        /// <summary>
+        /// Normalise a written dialogue line into something a TTS engine speaks like
+        /// a human: ellipses + dashes become natural comma pauses, stage directions
+        /// and emphasis markers are stripped, leading/trailing junk is trimmed.
+        /// Returns null/empty for pure-punctuation lines (the caller leaves those
+        /// voiceless). Mirrors clean_for_tts() in Tools/generate_voices.sh.
+        /// </summary>
+        public static string CleanForTts(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return null;
+            string s = raw;
+
+            // 1. Strip Markdown emphasis: *word* / **word** → word.
+            s = Regex.Replace(s, @"\*+([^*]+)\*+", "$1");
+            // 2. Strip parenthetical stage directions: "(stands back)" → "".
+            s = Regex.Replace(s, @"\([^)]*\)", "");
+            // 3. Internal ellipses (2+ dots) → a single comma pause.
+            s = Regex.Replace(s, @"\s*\.{2,}\s*", ", ");
+            // 4. Em-dash / en-dash → comma pause.
+            s = Regex.Replace(s, @"\s*[—–]\s*", ", ");
+            // 5. Collapse punctuation collisions: ".," / "?," / "!," drop the comma;
+            //    runs of commas collapse to one.
+            s = Regex.Replace(s, @"([.!?]),", "$1");
+            s = Regex.Replace(s, @",+", ",");
+            // 6. Trim leading punctuation+space; trim trailing space/comma/;/:/dash
+            //    (keep a terminal . ! ? so the sentence cadence reads naturally).
+            s = Regex.Replace(s, @"^[\s,.;:!?\-]+", "");
+            s = Regex.Replace(s, @"[\s,;:\-]+$", "");
+            // 7. Collapse whitespace runs.
+            s = Regex.Replace(s, @"\s+", " ").Trim();
+
+            return string.IsNullOrWhiteSpace(s) ? null : s;
         }
 
         // ─── Folder helper ────────────────────────────────────────
