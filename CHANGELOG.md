@@ -4,6 +4,41 @@ All notable changes to this project will be documented here. Entries follow the 
 
 > **Older releases (v0.1.0 → v0.7.3)** are preserved in [`Docs/CHANGELOG_HISTORY.md`](Docs/CHANGELOG_HISTORY.md). The active CHANGELOG.md focuses on the most recent release for fast scanning. For verbose per-release detail older than v0.8.0, inspect git history of CHANGELOG.md prior to commit `8677f511`.
 
+## [0.8.1-one-more-day] — 2026-05-29
+
+**Branch:** `feat/mission-1-2-architecture` (on top of 0.8.0-depth-layer)
+**Theme:** The **"One More Day" goodnight beat** — the cozy retention hook that makes
+the player press *continue* *wanting* tomorrow (Stardew's sleep-transition, at our
+memory register). Implements `Docs/Phase47_OneMoreDay_Implementation.md`. Tier 1.
+
+### Added
+
+- **`Assets/_Project/Scripts/UI/OneMoreDayCard.cs`** — presentational parchment goodnight overlay: headline ("Tomorrow"), forward-look prose, optional italic Pickle sign-off, single Goodnight button. Soft fade-in, self-heals on `Show()`. Advances on the button **or** Space/Return/E/Esc/click (accessibility). Gentle-Mode `instant` fade. UI asmdef — no Mission/Cutscene dependency (no asmdef cycle).
+- **`Assets/_Project/Scripts/Mission/TomorrowTeaseSO.cs`** — per-day data (forward-look + optional branch variant + Pickle line). Prose mirrored from Yarn; `sourceNode` recorded for traceability. Tier 2 fields reserved.
+- **`Assets/_Project/Scripts/Mission/EndOfDaySequencer.cs`** — single owner of the night chain `Evening Ledger → Dream (if any) → Goodnight Card → transition`. Opt-in; graceful degradation (missing card/tease/Yarn ⇒ skip beat, no NRE).
+- **`Assets/_Project/Scripts/Editor/Phase47_OneMoreDayBuilder.cs`** — idempotent installer: heals the two `TomorrowTeaseSO` assets, builds `OneMoreDayCard.prefab` from built-in UI sprites, wires the Hollow + Cottage scenes (card + sequencer + director refs), clears `DreamHook.ledger` so the sequencer owns Dream 1. Menu: `Hearthbound → ⚙️ Advanced → 🌙 Phase 47 — Build One More Day Hook`. Chained into `🚀 Build Everything` (final step).
+- **ScriptableObjects** `Tomorrow_M1_Day1.asset` (+ refusal variant) and `Tomorrow_M2_Day2.asset`.
+- **Yarn** forward-look nodes (`Tomorrow_M1_Day1`, `_Refused`, `Tomorrow_M2_Day2`) in `EveningLedger.yarn`; goodnight sign-offs (`Pickle_Goodnight_M1/M2`) in `Pickle.yarn`.
+- **`STUDIO_LOG.md`** — living studio log (team assignments, decisions, blockers, asset-placement notes).
+
+### Changed
+
+- `Mission01Director` / `Mission02Director` / `MissionRunner` — `OnEndOfDayConfirmed()` now delegates to the `EndOfDaySequencer` **when wired**, else runs the byte-for-byte legacy path. M2 wires `playDream:false` (Dream 2 already plays during the cleanse outro).
+- `Phase27_BuildEverything` — adds the Phase 47 OMD step + summary line.
+- `Docs/ARCHITECTURE.md` — **D-064** (night-sequencer ownership), plus D-060→D-063 cross-reference. Bumped to v1.7.
+- `Docs/PROGRESS_Phase47_OneMoreDay.md` — Phase 47 One More Day entry (supplement, mirrors the canonical PROGRESS.md format).
+
+### Fixed (vs. the implementation guide, against the real codebase)
+
+- **Day-index off-by-one** — tease now resolves on `currentDayIndex + 1` (0-based index is only bumped by `EndDay()` after the card resolves); single-tease scenes always resolve. (As written, the card would never have appeared.)
+- **Branch-flag name** — uses the real `VillageState.refusedDorisOrb` (the guide's `dorisRefused` doesn't exist), so the refusal path shows `Tomorrow_M1_Day1_Refused`.
+- **Mission 2 double-dream avoided** — M2 passes `playDream:false` so Dream 2 is never replayed at day-end.
+- **Decision-ID collision** — the guide's proposed `D-060` collided with the Depth Layer; renumbered to **D-064**.
+
+### Cozy Contract
+
+No player-visible numbers, no fail/score language, fully skippable, gentle fade only (no shake/flash), Gentle-Mode safe, refusal path gets its own goodnight. Zero new external dependencies; all card visuals are Unity built-in UI primitives.
+
 ## [0.8.0-depth-layer] — 2026-05-28
 
 **Branch:** `feat/mission-1-2-architecture` (accumulating on top of 0.7.3-voice-acting-piper)
