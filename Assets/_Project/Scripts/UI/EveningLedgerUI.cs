@@ -7,6 +7,25 @@
 // ── Phase 25 hotfix ─────────────────────────────────────────────
 // Show() now self-heals (activates own GameObject if dormant) — matches
 // the rest of the UI hotfix family.
+//
+// ── Phase 54 hotfix (D-069) — SHIP BLOCKER: end-of-day soft-lock ──
+// QA video review ("Gameplay video testing.mp4", ~3:24) found the game
+// freezes after pressing "Sleep — End Day": the ledger never disappears,
+// the night beats (dream + goodnight card) play *behind* it, and the
+// still-on-top panel keeps eating clicks so the player is stranded.
+//
+// ROOT CAUSE: in UI_EveningLedger_Bamao.prefab the `root` field points at
+// the SAME GameObject the component lives on (root == gameObject). The old
+// Hide() guard `root != null && root != gameObject` therefore made Hide() a
+// silent no-op — the panel could be shown but never closed.
+//
+// FIX:
+//   • Hide() now closes the panel even when root == gameObject (via a
+//     CanvasGroup + self-deactivate fallback) and drops raycast-blocking so
+//     it can never eat clicks while invisible.
+//   • A single-fire `_confirmed` guard stops the "Sleep — End Day" button
+//     re-entering the night chain if it is clicked again before the panel
+//     tears down.
 
 using System.Collections.Generic;
 using TMPro;
@@ -41,12 +60,29 @@ namespace HearthboundHollow.UI
         [Header("Close")]
         public Button confirmEndOfDayButton;
 
+        [Header("Phase 54 — hide safety (D-069)")]
+        [Tooltip("Optional CanvasGroup used to guarantee the panel can be fully " +
+                 "hidden + made non-blocking even when 'root' is this same " +
+                 "GameObject. Auto-found in Awake if left empty.")]
+        public CanvasGroup canvasGroup;
+
         public event System.Action<int> OnSaveSlotChosen;     // -1 = autosave
         public event System.Action OnEndOfDayConfirmed;
 
+        // Single-fire guard: once the player confirms end-of-day, the button
+        // must not be able to re-enter the night chain (D-069).
+        private bool _confirmed;
+
         private void Awake()
         {
+            // Auto-discover a CanvasGroup so Hide() always has a way to fully
+            // suppress the panel — even in the prefab's root==gameObject layout.
+            if (canvasGroup == null) canvasGroup = GetComponent<CanvasGroup>();
+            if (canvasGroup == null && root != null) canvasGroup = root.GetComponent<CanvasGroup>();
+            if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
             if (root != null && root != gameObject) root.SetActive(false);
+            else if (canvasGroup != null) { canvasGroup.alpha = 0f; canvasGroup.blocksRaycasts = false; canvasGroup.interactable = false; }
             WireButtons();
 
             // Phase 32.19 — high-contrast typography across the parchment.
@@ -77,6 +113,9 @@ namespace HearthboundHollow.UI
             if (autosaveButton != null) autosaveButton.onClick.AddListener(() => SaveSlotPressed(-1));
             if (confirmEndOfDayButton != null) confirmEndOfDayButton.onClick.AddListener(() =>
             {
+                if (_confirmed) return;          // single-fire guard (D-069)
+                _confirmed = true;
+                SetButtonsInteractable(false);   // freeze the panel's own buttons
                 Hide();
                 OnEndOfDayConfirmed?.Invoke();
             });
@@ -84,8 +123,13 @@ namespace HearthboundHollow.UI
 
         public void Show(string summary, IReadOnlyList<string> heldMemoryTitles)
         {
+            // Re-arm for a fresh end-of-day (e.g. a later in-mission day).
+            _confirmed = false;
+            SetButtonsInteractable(true);
+
             // Self-heal.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
+            if (canvasGroup != null) { canvasGroup.alpha = 1f; canvasGroup.blocksRaycasts = true; canvasGroup.interactable = true; }
 
             var vs = ServiceLocator.Get<VillageState>();
             if (root != null) root.SetActive(true);
@@ -110,9 +154,41 @@ namespace HearthboundHollow.UI
             }
         }
 
+        /// <summary>
+        /// Fully close the ledger. Works in every wiring layout, including the
+        /// shipped prefab where <see cref="root"/> IS this GameObject (the
+        /// D-069 soft-lock root cause). Always drops raycast-blocking so a
+        /// hidden panel can never eat clicks intended for the night beats.
+        /// </summary>
         public void Hide()
         {
-            if (root != null && root != gameObject) root.SetActive(false);
+            // 1) Never let an invisible panel block input.
+            if (canvasGroup != null)
+            {
+                canvasGroup.alpha = 0f;
+                canvasGroup.blocksRaycasts = false;
+                canvasGroup.interactable = false;
+            }
+
+            // 2) Deactivate the visual root. If root is a *separate* child we
+            //    deactivate it (keeps this component alive to be re-Shown). If
+            //    root IS this GameObject (prefab layout) we deactivate self —
+            //    Show() self-heals by re-activating. If there is no root at all,
+            //    the CanvasGroup above has already suppressed the panel.
+            if (root != null)
+            {
+                if (root != gameObject) root.SetActive(false);
+                else gameObject.SetActive(false);
+            }
+        }
+
+        private void SetButtonsInteractable(bool on)
+        {
+            if (saveSlot1 != null)            saveSlot1.interactable = on;
+            if (saveSlot2 != null)            saveSlot2.interactable = on;
+            if (saveSlot3 != null)            saveSlot3.interactable = on;
+            if (autosaveButton != null)       autosaveButton.interactable = on;
+            if (confirmEndOfDayButton != null) confirmEndOfDayButton.interactable = on;
         }
 
         private void SaveSlotPressed(int slot)
