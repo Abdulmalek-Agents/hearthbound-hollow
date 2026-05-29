@@ -30,6 +30,12 @@
 // the Lane scene (3 narrator lines), and a Tab-key Memory Web overlay with 4
 // canonical Echo connections. Phase 27 chains them all — single click, ~115 s.
 //
+// Phase 53 builds the Polish Menu (language EN/العربية, reset, character creator).
+// Phase 54 bakes the HollowGlyphs emoji TMP sprite asset. Phase 56 installs the
+// Arabic TMP font fallback. Phase 60 enriches the Hollow interior + retires the
+// red trigger-zone quads. As of Phase 57 these are all chained here, and the
+// Hearthbound menu shows a single entry — 🚀 Build Everything.
+//
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
 //
@@ -51,13 +57,14 @@ namespace HearthboundHollow.EditorTools
     {
         private const string SceneBootstrap = "Assets/_Project/Scenes/00_Bootstrap.unity";
 
-        // ─── Master menu ──────────────────────────────────────────
+        // ─── Master menu ──────────────────────────
         //
         // Promoted in Phase 32 to the single top-level user entry point.
         // Priority -100 puts it above every other Hearthbound menu item.
         // The legacy `✨ Build EVERYTHING (Phase 27 — one click)` label has
         // been retired; the same method now backs `🚀 Build Everything`.
-        // (D-051 — only three top-level entries are allowed.)
+        // (D-051 / D-074 — this is now the ONLY Hearthbound menu entry; the
+        // Phase 57 consolidator prunes Diagnose + Advanced at editor load.)
 
         [MenuItem("Hearthbound/🚀 Build Everything", priority = -100)]
         public static void Build()
@@ -72,7 +79,10 @@ namespace HearthboundHollow.EditorTools
             // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 51 chain (~115 s).\n" +
+                "This runs the full Phase 13 → 60 chain (~120 s) — scenes, player +\n" +
+                "NPC rigs, audio, cutscenes, level polish, the Depth Layer, the One\n" +
+                "More Day hook, the Polish Menu, emoji glyphs, the Arabic font, and\n" +
+                "the environment-enrichment pass.\n\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -261,6 +271,30 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 53 — Polish Menu Layer",
                           "HearthboundHollow.EditorTools.Phase53_PolishMenuBuilder", "Build")) ran++; else skipped++;
 
+                // Step 17: Phase 54 — Hollow Glyphs. Bakes the on-brand gold emoji
+                // TMP Sprite Asset + registers it as the TMP default sprite asset /
+                // emoji fallback so onboarding/help/hint emoji render as glyphs
+                // (never a tofu box). Idempotent; also auto-installs on editor load.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 54 (Hollow Glyphs) …", 0.992f);
+                if (TryRun("Phase 54 — Hollow Glyphs (emoji → TMP sprites)",
+                          "HearthboundHollow.EditorTools.Phase54_HollowGlyphsBuilder", "Build")) ran++; else skipped++;
+
+                // Step 18: Phase 56 — Arabic Font Installer. Builds an Arabic-capable
+                // dynamic TMP font + registers it as a fallback so العربية renders
+                // real connected glyphs (no tofu). Idempotent; also auto-installs.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 56 (Arabic Font) …", 0.994f);
+                if (TryRun("Phase 56 — Arabic Font Installer (fix tofu)",
+                          "HearthboundHollow.EditorTools.Phase56_ArabicFontInstaller", "Install")) ran++; else skipped++;
+
+                // Step 19: Phase 60 — Environment enrichment + placement accuracy.
+                // Silently hides the red trigger-zone quads across the gameplay
+                // scenes and dresses the Hollow interior with a grounded, collider'd
+                // "baker's corner" from packs already in the project. Idempotent
+                // (managed root rebuilt each run); saves the touched scenes.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 60 (Environment Enrichment) …", 0.996f);
+                if (TryRun("Phase 60 — Hollow Dressing Enrichment + quad fix",
+                          "HearthboundHollow.EditorTools.Phase60_HollowDressingEnrichment", "Build")) ran++; else skipped++;
+
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
                 if (System.IO.File.Exists(SceneBootstrap))
@@ -277,7 +311,7 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ─── Reflection runner ────────────────────────────────────
+        // ─── Reflection runner ────────────────────────
 
         /// <summary>
         /// Invokes the named static method on the named type via reflection.
@@ -329,7 +363,7 @@ namespace HearthboundHollow.EditorTools
             return null;
         }
 
-        // ─── Summary builder ────────────────────────────────────
+        // ─── Summary builder ───────────────────────
 
         private static string BuildSummary(int ran, int skipped)
         {
@@ -371,6 +405,11 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 51 — Memory Web overlay (Tab opens it, 4 canonical Echo connections)");
             sb.AppendLine("  • Phase 47 — One More Day goodnight card on Hollow + Cottage (Ledger → Dream → card → next day)");
             sb.AppendLine("  • Phase 53 — Polish Menu: Language (EN/العربية), Reset Game → title, Character Creator (skin/outfit/accessory/name)");
+            sb.AppendLine("  • Phase 54 — HollowGlyphs TMP sprite asset baked + registered (onboarding/help/hint emoji never tofu)");
+            sb.AppendLine("  • Phase 56 — Arabic TMP font installed + registered as fallback (العربية renders real connected glyphs)");
+            sb.AppendLine("  • Phase 60 — Red trigger-zone quads hidden; Hollow interior dressed with a grounded baker's corner (packs already in-project)");
+            sb.AppendLine();
+            sb.AppendLine("The Hearthbound menu now shows a single entry — 🚀 Build Everything (Phase 57).");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
