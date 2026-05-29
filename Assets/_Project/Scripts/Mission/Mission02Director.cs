@@ -111,6 +111,13 @@ namespace HearthboundHollow.Mission
         [Header("Routing")]
         public string sceneAfterEndOfDay = "01_MainMenu";
 
+        [Header("Phase 47 — One More Day (optional)")]
+        [Tooltip("When wired (by Phase47_OneMoreDayBuilder), the Goodnight card " +
+                 "shows after the Evening Ledger confirm. Note: Dream 2 already " +
+                 "plays during the cleanse outro (before the ledger), so the " +
+                 "card is wired playDream:false here — no double dream (D-064).")]
+        public EndOfDaySequencer endOfDaySequencer;
+
         // ───── Runtime state ──────────────────────────────────────
 
         private bool _gardenIntroPlayed;
@@ -866,10 +873,25 @@ namespace HearthboundHollow.Mission
         {
             var gm = GameManager.Instance;
             if (gm == null) return;
-            gm.EndDay();
-            EventBus.Publish(new MissionCompletedEvent(null, "Mission02",
-                $"Day {ServiceLocator.Get<VillageState>()?.currentDayIndex ?? 0} — Gerrold's choice."));
-            gm.LoadScene(sceneAfterEndOfDay);
+
+            // Original day-end behaviour, captured so the optional
+            // EndOfDaySequencer can show the Goodnight card first.
+            System.Action transition = () =>
+            {
+                gm.EndDay();
+                EventBus.Publish(new MissionCompletedEvent(null, "Mission02",
+                    $"Day {ServiceLocator.Get<VillageState>()?.currentDayIndex ?? 0} — Gerrold's choice."));
+                gm.LoadScene(sceneAfterEndOfDay);
+            };
+
+            if (endOfDaySequencer != null)
+                // playDream:false — Dream 2 already played during the cleanse
+                // outro (PostCleanseFlow / OpenLedgerListen / OpenLedgerDefer),
+                // before this ledger was shown. Replaying it here would show
+                // Dream 2 twice. The card alone is the night beat for M2.
+                endOfDaySequencer.BeginNightSequence(false, null, transition);
+            else
+                transition();   // unchanged legacy path
         }
 
         // ───── Helpers ────────────────────────────────────────────
