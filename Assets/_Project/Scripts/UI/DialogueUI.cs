@@ -6,54 +6,15 @@
 // abstract `IDialoguePresenter` — the YarnVillageStateBridge in the Dialogue
 // asmdef adapts Yarn calls onto this presenter.
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────
-// PresentLine() now self-activates the script-host before running the
-// typewriter coroutine. Same defensive pattern applied across all UI
-// overlays in this release.
-//
-// ── Playtest pass fix (commit 5/6) ───────────────────────────────
-// QA simulated-playthrough audit found Pickle's 13 lines (4 canonical +
-// 4 conditional + 3 contextual + 2 hints) were being rendered IDENTICALLY
-// to Doris and Gerrold — same Bamao parchment box, same regular font.
-// Per:
-//   - Yarn STYLE_GUIDE.md § 2.5 (Dual-mode dialogue rendering)
-//   - Mission 2 Guide § 14.2 (Pickle's pre-choice commentary)
-//   - Codex 07 § 3.1 rule 7 (Pickle's lines are INTERNAL — only the
-//     player hears her)
-// Pickle's lines should render:
-//   • Italic font
-//   • Lower opacity (~75%)
-//   • NO portrait
-//   • Speaker name dimmed to amber
-//   • Subtle leitmotif tag visible
-//
-// FIX: PresentLine now detects speakerName == "Pickle" and routes through
-// the italic-mode visual. All other speakers (Doris, Gerrold, etc.)
-// render in the default Bamao parchment style — UNCHANGED.
-//
-// ── Phase 38 (2026-05-26) ────────────────────────────────────
-// PresentLine now publishes a DialogueLineStartedEvent to the EventBus
-// so MumbleVoicePlayer (Audio asmdef, no UI dep) can sync per-character
-// syllable playback to the typewriter reveal. Speaker is lower-cased to
-// match the canonical character id in MumbleVoiceLibrarySO.banks.
-//
-// ── Phase 32 — Voice Acting MVP (2026-05-27) ────────────────────
-// PresentLine now has an overload taking a `lineId`. When that lineId
-// resolves in `VoicePlayer.Instance` → `VoiceLibrarySO`, the matching
-// 22 kHz mono PCM16 voice clip plays in sync with the typewriter. The
-// per-line `charsPerSecond` is locked to `clip.length / text.Length`
-// so the last visible character lands exactly as the voice ends — a
-// real lip-sync feel. Skipping a line (Space / click) ALSO stops the
-// voice (DialogueUI.Hide / SkipTypewriter / PresentChoices). Zero
-// regression: the parameterless overload still exists; missing voice
-// data is a silent no-op and the old typewriter-only path runs.
-//
-// ── Phase 32.10 (2026-05-27) ──────────────────────────────────
-// DialogueLineStartedEvent now carries a HasVoiceClip flag, set true
-// when VoicePlayer.Play returned a non-zero clip length. MumbleVoicePlayer
-// reads this and suppresses its syllable bank for THIS line so we don't
-// stack the procedural mumble on top of a real voice (which would sound
-// muddy and double-tracked). Backward-compat: defaults to false.
+// ── Phase 60 — Arabic Localization MVP ────────────────────────────
+// PresentLine now routes through LocalizationService:
+//   1. Speaker name → GetSpeakerName("Doris") → "دوريس" in Arabic.
+//   2. Line text   → GetDialogue(lineId, englishOriginal) → ar translation.
+//   3. RTL locales → text shaped through ArabicTextShaper for TMP.
+//   4. lineText + speakerName alignment + isRightToLeftText switch direction.
+// Choices list shaped + index prefix mirrored for RTL.
+// Advance prompt ("Click or [Space] >" / "انقر أو [Space] >") localized via
+// `hud.advance_prompt` key. See Docs/LOCALIZATION_GUIDE.md § 5.
 
 using System;
 using System.Collections;
@@ -69,14 +30,7 @@ namespace HearthboundHollow.UI
     public interface IDialoguePresenter
     {
         void PresentLine(string speakerName, string lineText, Sprite portrait);
-
-        /// <summary>
-        /// Phase 32 overload — additionally accepts a stable lineId looked up
-        /// in <see cref="VoiceLibrarySO"/> via <see cref="VoicePlayer"/>. A
-        /// null/empty lineId behaves identically to the no-lineId overload.
-        /// </summary>
         void PresentLine(string speakerName, string lineText, Sprite portrait, string lineId);
-
         void PresentChoices(IReadOnlyList<string> choices, Action<int> onChoiceSelected);
         void Hide();
         bool IsBusy { get; }
@@ -103,20 +57,11 @@ namespace HearthboundHollow.UI
         [Range(0f, 1f)] public float postLineLinger = 0.5f;
 
         [Header("Advance prompt (auto-created if null)")]
-        [Tooltip("Pulsing 'Click or [Space] >' label that appears " +
-                 "in the dialogue box's lower-right when the line is fully " +
-                 "rendered and no choices are showing. Uses ASCII '>' so the " +
-                 "default LiberationSans SDF font can render it (the previous " +
-                 "U+25B8 ▸ glyph was not in the font and spammed warnings).")]
         public TextMeshProUGUI advancePrompt;
 
         [Header("Pickle styling (playtest pass commit 5/6)")]
-        [Tooltip("Speaker name that triggers Pickle's italic / no-portrait / " +
-                 "lower-opacity rendering mode. Case-insensitive match.")]
         public string pickleSpeakerName = "Pickle";
-        [Tooltip("Color the speaker-name label tints to in Pickle mode. Warm amber.")]
         public Color pickleSpeakerColor = new Color(0.69f, 0.49f, 0.21f, 1f);
-        [Tooltip("Color the line-text label tints to in Pickle mode. Dim amber.")]
         public Color pickleLineColor = new Color(0.54f, 0.36f, 0.12f, 0.78f);
 
         private Coroutine _typeCoroutine;
@@ -124,24 +69,15 @@ namespace HearthboundHollow.UI
         private readonly List<GameObject> _spawnedButtons = new();
         private string _fullLineText;
         private bool _pickleStyleActive;
-        // Cache the default colors so we can restore them when a non-Pickle
-        // line follows a Pickle line.
         private Color _defaultSpeakerColor = Color.white;
         private Color _defaultLineColor = Color.white;
         private FontStyles _defaultLineFontStyle = FontStyles.Normal;
         private FontStyles _defaultSpeakerFontStyle = FontStyles.Normal;
         private bool _defaultColorsCached;
-
-        // Phase 38 — last-spoken character id, so DialogueLineEndedEvent can
-        // carry the right speaker when the typewriter coroutine finishes.
         private string _lastSpeakerId;
 
         public bool IsBusy { get; private set; }
 
-        /// <summary>
-        /// True while the dialogue box is visible, the typewriter is idle,
-        /// and no choices are showing.
-        /// </summary>
         public bool IsWaitingForAdvance =>
             (root == null || root.activeSelf) &&
             !IsBusy &&
@@ -160,17 +96,11 @@ namespace HearthboundHollow.UI
             EnsureAdvancePromptExists();
             if (advancePrompt != null)
             {
-                // Phase 32.11 — if the prefab baked the old ▸ glyph (not in
-                // LiberationSans SDF), overwrite with ">" at runtime so the
-                // missing-character spam stops on installs that haven't
-                // re-run Phase 31's editor capstone yet.
                 if (!string.IsNullOrEmpty(advancePrompt.text) && advancePrompt.text.Contains("▸"))
                     advancePrompt.text = advancePrompt.text.Replace("▸", ">");
                 advancePrompt.gameObject.SetActive(false);
             }
 
-            // Cache the inspector-set default colors + font styles so we can
-            // restore them when a non-Pickle line follows a Pickle line.
             CacheDefaultStyles();
         }
 
@@ -202,16 +132,6 @@ namespace HearthboundHollow.UI
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             advancePrompt = go.AddComponent<TextMeshProUGUI>();
-            // Phase 32.11 — use ">" instead of "▸" (U+25B8 BLACK RIGHT-POINTING
-            // SMALL TRIANGLE). LiberationSans SDF (the default TMP font that
-            // ships with Unity 6) does NOT include U+25B8, so it was being
-            // substituted with U+25A1 WHITE SQUARE □ and spamming a warning
-            // every frame: "The character with Unicode value ▸ was not
-            // found in [LiberationSans SDF] … replaced by □".
-            // ">" is in every font; the visual carries the same "continue"
-            // meaning. If you need the fancier glyph, add a font fallback
-            // (Window → TextMeshPro → Font Asset Creator) to a font that
-            // has U+25B8 such as Noto Sans Symbols.
             advancePrompt.text = "Click or [Space] >";
             advancePrompt.fontSize = 18;
             advancePrompt.fontStyle = FontStyles.Italic;
@@ -225,30 +145,42 @@ namespace HearthboundHollow.UI
             => PresentLine(speaker, text, portrait, null);
 
         /// <summary>
-        /// Phase 32 — Voice Acting MVP overload. <paramref name="lineId"/> is
-        /// looked up in <see cref="VoicePlayer.Instance"/>'s VoiceLibrarySO;
-        /// if it resolves the clip plays in sync with the typewriter, and the
-        /// per-line typewriter speed is locked to <c>text.Length / clipLen</c>
-        /// so the last character lands as the voice ends (lip-sync feel).
-        /// A null/empty lineId, missing entry, or null clip is a silent no-op
-        /// and the old typewriter-only behaviour runs.
+        /// Phase 32 — Voice Acting MVP overload.
+        ///
+        /// Phase 60 — Arabic Localization MVP. Before rendering, the line is
+        /// run through the LocalizationService:
+        ///   1. Speaker → GetSpeakerName ("Doris" → "دوريس").
+        ///   2. Line text → GetDialogue(lineId, englishOriginal).
+        ///   3. RTL shape via ArabicTextShaper.
+        ///   4. TMP isRightToLeftText + alignment switched per locale.
+        /// VoicePlayer.Play(lineId) is locale-aware on the audio side
+        /// (Arabic clipAr → English clip fallback).
         /// </summary>
         public void PresentLine(string speaker, string text, Sprite portrait, string lineId)
         {
+            // Phase 60 — Resolve the active locale once per line. The service
+            // is registered before any scene Awake (LocalizationBootstrap) so
+            // this is effectively never null at runtime; we still guard for
+            // the EditMode test case.
+            var loc = ServiceLocator.Get<LocalizationService>();
+            if (loc != null)
+            {
+                text = loc.GetDialogue(lineId, text);
+                speaker = loc.GetSpeakerName(speaker);
+                if (loc.IsRightToLeft && !string.IsNullOrEmpty(text))
+                    text = ArabicTextShaper.Shape(text);
+                if (loc.IsRightToLeft && !string.IsNullOrEmpty(speaker))
+                    speaker = ArabicTextShaper.Shape(speaker);
+                ApplyTextDirection(loc.IsRightToLeft);
+            }
+
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             if (root != null) root.SetActive(true);
-            // Phase 32.16 — restore CanvasGroup visibility (it may have been
-            // hidden by a previous Hide() call). Mirror of the ApplyVisibility
-            // call in Hide().
             ApplyVisibility(true);
 
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
 
-            // ── Playtest pass commit 5/6 — Pickle's italic / no-portrait mode ──
-            // Detect Pickle speaker case-insensitively. When she speaks the
-            // line renders italic + dim amber, with no portrait. Codex 07 §
-            // 3.1 rule 7: her lines are internal; only the player hears her.
             CacheDefaultStyles();
             bool isPickleLine = !string.IsNullOrEmpty(speaker) &&
                 speaker.Trim().Equals(pickleSpeakerName, StringComparison.OrdinalIgnoreCase);
@@ -259,10 +191,7 @@ namespace HearthboundHollow.UI
             if (portraitImage != null)
             {
                 if (isPickleLine)
-                {
-                    // Hide portrait entirely for Pickle (Style Guide § 2.5).
                     portraitImage.color = new Color(1, 1, 1, 0);
-                }
                 else
                 {
                     portraitImage.sprite = portrait;
@@ -276,26 +205,11 @@ namespace HearthboundHollow.UI
 
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
 
-            // ── Phase 32 — Voice Acting MVP ──────────────────────────────
-            // Play the voice clip (if any) for this line. The typewriter
-            // charsPerSecond is then locked to the clip duration so the last
-            // character lands as the voice ends — gives a real lip-sync feel.
-            // VoicePlayer.Play returns 0f when there's no clip, in which case
-            // we fall through to the legacy fixed charsPerSecond path.
             float clipLen = VoicePlayer.Instance != null ? VoicePlayer.Instance.Play(lineId) : 0f;
             int targetCps = charsPerSecond;
             if (clipLen > 0.4f && !string.IsNullOrEmpty(text))
                 targetCps = Mathf.Clamp(Mathf.RoundToInt(text.Length / clipLen), 18, 90);
 
-            // Phase 38 — publish DialogueLineStartedEvent so MumbleVoicePlayer
-            // (Audio asmdef, no direct UI reference) can sync syllable
-            // playback to this line. Speaker is lower-cased to match the
-            // canonical character id used by MumbleVoiceLibrarySO.banks.
-            //
-            // Phase 32.10 — pass HasVoiceClip = (clipLen > 0) so
-            // MumbleVoicePlayer suppresses its syllable bank for THIS
-            // line when a real voice clip is already playing. Stops the
-            // procedural mumble + real voice from stacking.
             float estimatedDur = clipLen > 0.4f
                 ? clipLen + postLineLinger
                 : ComputeTypewriterDuration(_fullLineText, targetCps);
@@ -320,20 +234,8 @@ namespace HearthboundHollow.UI
             }
         }
 
-        /// <summary>
-        /// Estimated typewriter duration in seconds for `text`, matching the
-        /// per-character interval used by `TypeCoroutine`. Exposed so the
-        /// `DialogueLineStartedEvent` payload can carry an accurate duration
-        /// for the mumble VO to pace its syllable count against.
-        /// </summary>
         private float ComputeTypewriterDuration(string text) => ComputeTypewriterDuration(text, charsPerSecond);
 
-        /// <summary>
-        /// Phase 32 overload — when a voice clip is playing, the typewriter
-        /// speed is locked to the clip duration; this overload lets callers
-        /// pass the resulting <paramref name="cps"/> so the predicted
-        /// duration matches the actual coroutine timing.
-        /// </summary>
         private float ComputeTypewriterDuration(string text, int cps)
         {
             if (string.IsNullOrEmpty(text)) return 0.3f;
@@ -341,10 +243,6 @@ namespace HearthboundHollow.UI
             return text.Length / (float)useCps + postLineLinger;
         }
 
-        /// <summary>
-        /// Apply (or revert) the Pickle italic / dim-amber / no-portrait visual.
-        /// Idempotent — safe to call every PresentLine.
-        /// </summary>
         private void ApplyPickleStyle(bool pickle)
         {
             if (pickle == _pickleStyleActive) return;
@@ -362,18 +260,30 @@ namespace HearthboundHollow.UI
         }
 
         /// <summary>
-        /// Immediately complete the running typewriter without advancing past it.
+        /// Phase 60 — Apply RTL text direction + alignment to the dialogue
+        /// labels. Idempotent; restores LTR when flipping back to English.
         /// </summary>
+        private void ApplyTextDirection(bool rtl)
+        {
+            if (lineText != null)
+            {
+                lineText.isRightToLeftText = rtl;
+                lineText.alignment = rtl ? TextAlignmentOptions.TopRight : TextAlignmentOptions.TopLeft;
+            }
+            if (speakerName != null)
+            {
+                speakerName.isRightToLeftText = rtl;
+                speakerName.alignment = rtl ? TextAlignmentOptions.TopRight : TextAlignmentOptions.TopLeft;
+            }
+        }
+
         public void SkipTypewriter()
         {
             if (!IsBusy || _fullLineText == null) return;
             if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
             if (lineText != null) lineText.text = _fullLineText;
             IsBusy = false;
-            // Phase 32 — stop the voice clip immediately on skip so the
-            // audio doesn't keep speaking after the player advances.
             VoicePlayer.Instance?.Stop();
-            // Phase 38 — tell MumbleVoicePlayer the line is done early.
             EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
         }
 
@@ -382,15 +292,11 @@ namespace HearthboundHollow.UI
             _choiceCallback = onChoiceSelected;
             ClearChoices();
 
-            // Phase 32 — stop any in-progress voice clip when choices appear,
-            // so a lingering line doesn't bleed into the player's decision moment.
             VoicePlayer.Instance?.Stop();
 
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             if (root != null && !root.activeSelf) root.SetActive(true);
 
-            // Choices always render in the DEFAULT style (never Pickle italic)
-            // because the player is the one choosing, not Pickle.
             ApplyPickleStyle(false);
 
             if (lineText != null) lineText.gameObject.SetActive(false);
@@ -401,13 +307,29 @@ namespace HearthboundHollow.UI
 
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
 
+            // Phase 60 — Resolve once per choice batch.
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
+
             for (int i = 0; i < choices.Count; i++)
             {
                 int idx = i;
                 var go = Instantiate(choiceButtonPrefab, choiceContainer);
                 go.SetActive(true);
                 var label = go.GetComponentInChildren<TextMeshProUGUI>();
-                if (label != null) label.text = $"<b><color=#7a5314>[{idx + 1}]</color></b>  {choices[i]}";
+                if (label != null)
+                {
+                    // Phase 60 — Choices come pre-localized from the Director;
+                    // we just shape Arabic glyphs + flip the [N] prefix to
+                    // the right side on RTL.
+                    string choiceText = choices[i] ?? string.Empty;
+                    if (rtl) choiceText = ArabicTextShaper.Shape(choiceText);
+                    label.isRightToLeftText = rtl;
+                    label.alignment = rtl ? TextAlignmentOptions.TopRight : TextAlignmentOptions.TopLeft;
+                    label.text = rtl
+                        ? $"{choiceText}  <b><color=#7a5314>[{idx + 1}]</color></b>"
+                        : $"<b><color=#7a5314>[{idx + 1}]</color></b>  {choiceText}";
+                }
                 var btn = go.GetComponent<Button>();
                 if (btn != null)
                 {
@@ -424,36 +346,17 @@ namespace HearthboundHollow.UI
         {
             if (_typeCoroutine != null) { StopCoroutine(_typeCoroutine); _typeCoroutine = null; }
             ClearChoices();
-            // Restore default colors so subsequent shows don't inherit
-            // Pickle's dim amber from a stale state.
             ApplyPickleStyle(false);
             if (lineText != null && !lineText.gameObject.activeSelf)
                 lineText.gameObject.SetActive(true);
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
             _fullLineText = null;
-            // Phase 32 — stop voice playback when the dialogue UI hides so a
-            // voice clip doesn't keep playing after the conversation ends.
             VoicePlayer.Instance?.Stop();
-            // Phase 38 — stop mumble playback when the dialogue UI hides.
             EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
-            // Phase 32.16 — drive a CanvasGroup on the root for invisibility
-            // (alpha = 0 + blocksRaycasts = false). The original
-            // `if (root != gameObject) root.SetActive(false)` guard was a
-            // NO-OP under the Phase 14 builder's wiring (`root = gameObject`)
-            // — the dialogue panel never actually hid, so "I'll wait. Take
-            // your time, Keeper." stayed on screen for the entire polish
-            // mini-game. CanvasGroup hides reliably regardless of root
-            // wiring while keeping the script host alive (Phase 25 invariant).
             ApplyVisibility(false);
             IsBusy = false;
         }
 
-        /// <summary>
-        /// Phase 32.16 — visibility toggle that works whether `root` is the
-        /// host GameObject (Phase 14 builder default) or a separate panel
-        /// child (the recommended two-layer pattern). Uses a CanvasGroup on
-        /// the root so the script host stays Active either way.
-        /// </summary>
         private void ApplyVisibility(bool visible)
         {
             var target = root != null ? root : gameObject;
@@ -462,9 +365,6 @@ namespace HearthboundHollow.UI
             cg.alpha = visible ? 1f : 0f;
             cg.blocksRaycasts = visible;
             cg.interactable = visible;
-            // Belt-and-braces: if the recommended two-layer pattern IS in
-            // play (root is a child distinct from gameObject), also toggle
-            // its active state as the legacy code did.
             if (root != null && root != gameObject && root.activeSelf != visible)
                 root.SetActive(visible);
         }
@@ -489,11 +389,6 @@ namespace HearthboundHollow.UI
 
         private IEnumerator TypeCoroutine(string text) => TypeCoroutine(text, charsPerSecond);
 
-        /// <summary>
-        /// Phase 32 overload — accepts an explicit chars-per-second so the
-        /// voice-locked typewriter pace from <see cref="PresentLine(string,string,Sprite,string)"/>
-        /// is honoured. Falls back to <see cref="charsPerSecond"/> if not given.
-        /// </summary>
         private IEnumerator TypeCoroutine(string text, int cps)
         {
             IsBusy = true;
@@ -507,9 +402,6 @@ namespace HearthboundHollow.UI
             }
             yield return new WaitForSeconds(postLineLinger);
             IsBusy = false;
-            // Phase 38 — mumble VO cuts off at the natural end of the line
-            // (the mumble player already self-times to estimatedDur but this
-            // belt-and-braces ensures a runaway syllable bank can't bleed).
             EventBus.Publish(new DialogueLineEndedEvent(_lastSpeakerId ?? string.Empty));
         }
 
@@ -519,7 +411,26 @@ namespace HearthboundHollow.UI
             {
                 bool waiting = IsWaitingForAdvance;
                 if (waiting != advancePrompt.gameObject.activeSelf)
+                {
                     advancePrompt.gameObject.SetActive(waiting);
+                    // Phase 60 — when the prompt becomes visible, refresh
+                    // its text from the LocalizationService so the
+                    // "Click or [Space] >" hint reads in Arabic too.
+                    if (waiting)
+                    {
+                        var loc = ServiceLocator.Get<LocalizationService>();
+                        if (loc != null)
+                        {
+                            string txt = loc.Get("hud.advance_prompt");
+                            if (loc.IsRightToLeft) txt = ArabicTextShaper.Shape(txt);
+                            advancePrompt.text = txt;
+                            advancePrompt.isRightToLeftText = loc.IsRightToLeft;
+                            advancePrompt.alignment = loc.IsRightToLeft
+                                ? TextAlignmentOptions.MidlineLeft
+                                : TextAlignmentOptions.MidlineRight;
+                        }
+                    }
+                }
                 if (waiting)
                 {
                     float t = Mathf.PingPong(Time.unscaledTime * 1.4f, 1f);

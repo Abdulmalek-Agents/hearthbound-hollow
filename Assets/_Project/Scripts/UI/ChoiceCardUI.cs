@@ -4,11 +4,12 @@
 // The 4-option moral choice card (Focus 02 § 5): Erase / Cleanse / Listen /
 // Defer. Each option shows a tariff preview (coin + vow integrity arrows).
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────────
-// Show() now self-heals (activates own GameObject if dormant) and the
-// inactive-panel pattern is preserved. Tile prefab activation is also
-// defensive — Instantiate of an inactive template should produce an
-// active clone for display.
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Prompt + memory title + per-tile label + cost preview look up
+// LocalizationService.HasKey on each string — if the string matches a
+// registered key (e.g. "choice.option_a.label") it's resolved to the
+// localized form; otherwise the English source falls through unchanged.
+// Tile alignment mirrors on RTL.
 
 using System;
 using System.Collections.Generic;
@@ -42,40 +43,50 @@ namespace HearthboundHollow.UI
         {
             if (root != null && root != gameObject) root.SetActive(false);
 
-            // Phase 29 — force word-wrap + auto-size on header labels so the
-            // moral-choice card never clips long memory titles or the prompt.
             UIAutoFitText.ApplyToLabel(promptLine, minSize: 14, maxSize: 24);
             UIAutoFitText.ApplyToButtonLabel(memoryTitle, minSize: 18, maxSize: 32);
 
-            // Phase 31 — fix the choice-tile container's VerticalLayoutGroup
-            // so tariff tiles render full-width (same root cause as the
-            // DialogueUI choice cards — see DialogueChoiceLayoutHealer).
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
         }
 
         public void Show(MemoryNodeSO memory, string promptText, IReadOnlyList<TariffSO> tariffs)
         {
-            // Self-heal — keep the host alive so coroutines (if any) and tile
-            // raycasts both work.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
 
             _currentMemory = memory;
+            // Phase 60 — Resolve loc once per Show. Caller may pass a raw
+            // English string or a localization key — we transparently look
+            // up the key form if it matches our table.
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
+
             if (root != null) root.SetActive(true);
-            if (promptLine != null) promptLine.text = promptText;
-            if (memoryTitle != null && memory != null) memoryTitle.text = memory.title;
+            if (promptLine != null)
+            {
+                string s = promptText ?? string.Empty;
+                if (loc != null && loc.HasKey(s)) s = loc.Get(s);
+                promptLine.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                promptLine.isRightToLeftText = rtl;
+                promptLine.alignment = rtl ? TextAlignmentOptions.TopRight : TextAlignmentOptions.TopLeft;
+            }
+            if (memoryTitle != null && memory != null)
+            {
+                string s = memory.title ?? string.Empty;
+                if (loc != null && loc.HasKey(s)) s = loc.Get(s);
+                memoryTitle.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                memoryTitle.isRightToLeftText = rtl;
+            }
 
             ClearTiles();
             if (choiceContainer == null || choiceTilePrefab == null) return;
 
-            // Phase 31 — re-heal in case the container was mutated between
-            // shows (Yarn runner, mission director, scene reload).
             DialogueChoiceLayoutHealer.HealContainer(choiceContainer);
 
             foreach (var tariff in tariffs)
             {
                 if (tariff == null) continue;
                 var go = Instantiate(choiceTilePrefab, choiceContainer);
-                go.SetActive(true); // template prefab may be inactive
+                go.SetActive(true);
                 _spawned.Add(go);
                 WireTile(go, tariff);
                 DialogueChoiceLayoutHealer.HealTile(go);
@@ -94,13 +105,33 @@ namespace HearthboundHollow.UI
             var cost = tile.transform.Find("CostPreview")?.GetComponent<TextMeshProUGUI>();
             var icon = tile.transform.Find("Icon")?.GetComponent<Image>();
             var btn = tile.GetComponent<Button>();
-            if (label != null) label.text = tariff.displayLabel;
-            if (cost != null) cost.text = tariff.costPreviewProse;
+
+            // Phase 60 — Localized tile labels.
+            // TariffSO authors register a stable localization key as
+            // `displayLabel` / `costPreviewProse` when they want translation;
+            // otherwise the English source string falls through unchanged.
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
+
+            if (label != null)
+            {
+                string s = tariff.displayLabel ?? string.Empty;
+                if (loc != null && loc.HasKey(s)) s = loc.Get(s);
+                label.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                label.isRightToLeftText = rtl;
+                label.alignment = rtl ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.MidlineLeft;
+            }
+            if (cost != null)
+            {
+                string s = tariff.costPreviewProse ?? string.Empty;
+                if (loc != null && loc.HasKey(s)) s = loc.Get(s);
+                cost.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                cost.isRightToLeftText = rtl;
+                cost.alignment = rtl ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.MidlineLeft;
+            }
             if (icon != null) { icon.sprite = tariff.choiceIcon; icon.color = tariff.choiceColor; }
             if (btn != null) btn.onClick.AddListener(() => Confirm(tariff.choice));
 
-            // Phase 29 — defensive autofit on instantiated tile labels so the
-            // tariff displayLabel + costPreviewProse can never overflow.
             UIAutoFitText.ApplyToLabel(label, minSize: 14, maxSize: 22);
             UIAutoFitText.ApplyToLabel(cost,  minSize: 12, maxSize: 18);
         }

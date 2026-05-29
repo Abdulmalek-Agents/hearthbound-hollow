@@ -10,19 +10,16 @@
 // interactable, the [E] chip becomes prominent. Otherwise it shows a generic
 // move / interact / help hint and dims to a non-distracting alpha.
 //
-// Cozy framing:
-//   • Default alpha is 0.45 — readable but not loud.
-//   • Highlight color matches the warm parchment palette (no jarring blue).
-//   • Tooltip text auto-shrinks via UIAutoFitText.
-//   • Players who find it noisy can disable it via Settings → "Show control hints".
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Chip captions ("🚶 Move", "✋ Interact", "❓ Help") come from
+// loc.<iso>.json so both English ("🚶 Move") and Arabic ("🚶 تحرّك")
+// see the same warm cozy-emoji visuals. Key glyphs (WASD / E / H)
+// stay Latin in both locales because they're physical keyboard keys.
+// Interactable PromptText is also routed through HasKey lookup.
 //
 // ASMDEF NOTE: lives in `HearthboundHollow.Mission` (not UI) because it
 // queries `HearthboundHollow.Player.PlayerController.CurrentFocus`. UI
 // asmdef cannot see Player; Mission can. (D-035 — asmdef-locality.)
-//
-// USAGE — drop on the same Canvas that hosts the Pause / Help overlays. The
-// Phase 30 capstone wires it onto every gameplay scene (Lane, Hollow,
-// Garden, Cottage).
 
 using TMPro;
 using UnityEngine;
@@ -49,46 +46,24 @@ namespace HearthboundHollow.Mission
         public TextMeshProUGUI chipHelpCaption;
 
         [Header("Behaviour")]
-        [Tooltip("Read alpha from this CanvasGroup. The HUD modulates it based " +
-                 "on context.")]
         public CanvasGroup canvasGroup;
-
-        [Tooltip("Resting alpha when no specific hint is active.")]
-        [Range(0f, 1f)]
-        public float idleAlpha = 0.45f;
-
-        [Tooltip("Alpha when a context-specific hint (interactable in range) " +
-                 "is being emphasised.")]
-        [Range(0f, 1f)]
-        public float emphasisAlpha = 1f;
-
-        [Tooltip("Lerp speed between idle and emphasis alphas.")]
-        [Range(2f, 20f)]
-        public float alphaLerp = 8f;
-
-        [Tooltip("Tint applied to the highlighted chip caption.")]
+        [Range(0f, 1f)] public float idleAlpha = 0.45f;
+        [Range(0f, 1f)] public float emphasisAlpha = 1f;
+        [Range(2f, 20f)] public float alphaLerp = 8f;
         public Color emphasisColor = new Color(0.97f, 0.85f, 0.62f, 1f);
-
-        [Tooltip("Tint applied to non-highlighted chip captions.")]
         public Color idleColor = new Color(0.78f, 0.72f, 0.62f, 1f);
-
-        // ───── Public API ────────────────────────────────────────
 
         public void SetVisible(bool visible)
         {
             if (root != null) root.SetActive(visible);
         }
 
-        // ───── Internals ─────────────────────────────────────────
-
         private PlayerController _player;
         private float _currentAlpha;
-
-        // ───── Lifecycle ─────────────────────────────────────────
+        private string _cachedInteractDefault = "✋ Interact";
 
         private void Awake()
         {
-            // Phase 29 — autofit every TMP label so chip text never clips.
             UIAutoFitText.ApplyToButtonLabel(chipMoveLabel,        minSize: 14, maxSize: 26);
             UIAutoFitText.ApplyToLabel(chipMoveCaption,             minSize: 10, maxSize: 16);
             UIAutoFitText.ApplyToButtonLabel(chipInteractLabel,    minSize: 14, maxSize: 26);
@@ -96,15 +71,12 @@ namespace HearthboundHollow.Mission
             UIAutoFitText.ApplyToButtonLabel(chipHelpLabel,        minSize: 14, maxSize: 26);
             UIAutoFitText.ApplyToLabel(chipHelpCaption,             minSize: 10, maxSize: 16);
 
-            // Phase 32.20 — cozy emoji captions under each key chip so the
-            // hint reads warmer than a plain word. The key letter stays
-            // bold + uppercase so the binding is unmistakable.
-            if (chipMoveLabel != null)     chipMoveLabel.text = "WASD";
-            if (chipMoveCaption != null)   chipMoveCaption.text = "🚶 Move";
-            if (chipInteractLabel != null) chipInteractLabel.text = "E";
-            if (chipInteractCaption != null) chipInteractCaption.text = "✋ Interact";
-            if (chipHelpLabel != null)     chipHelpLabel.text = "H";
-            if (chipHelpCaption != null)   chipHelpCaption.text = "❓ Help";
+            // Phase 60 — localized chip captions (cozy emoji captions from
+            // Phase 32.20 come through the loc.<iso>.json table now —
+            // 'hud.chip.move' = '🚶 Move' / '🚶 تحرّك', etc.). Refreshed
+            // on every locale change. The key glyphs (WASD / E / H) stay
+            // in Latin in both locales because they're physical keys.
+            ApplyLocalization();
 
             _currentAlpha = idleAlpha;
             if (canvasGroup != null) canvasGroup.alpha = _currentAlpha;
@@ -112,9 +84,53 @@ namespace HearthboundHollow.Mission
 
         private void OnEnable()
         {
-            // Re-resolve the player every time we're enabled; the Player
-            // GameObject is sometimes destroyed and re-spawned on scene change.
             _player = null;
+            EventBus.Subscribe<LocaleChangedEvent>(OnLocaleChanged);
+            ApplyLocalization();
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LocaleChangedEvent>(OnLocaleChanged);
+        }
+
+        private void OnLocaleChanged(LocaleChangedEvent _) => ApplyLocalization();
+
+        /// <summary>
+        /// Phase 60 — Pull localized text for each chip. The interact-caption
+        /// gets overwritten by Update() when a focused interactable's
+        /// PromptText is in range — we cache the idle default here so the
+        /// Update() restore-path lands the locale-correct string.
+        /// </summary>
+        private void ApplyLocalization()
+        {
+            var loc = ServiceLocator.Get<LocalizationService>();
+            // Latin key glyphs stay verbatim in both locales (keyboard keys).
+            if (chipMoveLabel != null)     chipMoveLabel.text = "WASD";
+            if (chipInteractLabel != null) chipInteractLabel.text = "E";
+            if (chipHelpLabel != null)     chipHelpLabel.text = "H";
+
+            string moveCap     = loc != null ? loc.Get("hud.chip.move")     : "🚶 Move";
+            string interactCap = loc != null ? loc.Get("hud.chip.interact") : "✋ Interact";
+            string helpCap     = loc != null ? loc.Get("hud.chip.help")     : "❓ Help";
+            bool rtl = loc != null && loc.IsRightToLeft;
+
+            if (chipMoveCaption != null)
+            {
+                chipMoveCaption.text = rtl ? ArabicTextShaper.Shape(moveCap) : moveCap;
+                chipMoveCaption.isRightToLeftText = rtl;
+            }
+            if (chipInteractCaption != null)
+            {
+                chipInteractCaption.text = rtl ? ArabicTextShaper.Shape(interactCap) : interactCap;
+                chipInteractCaption.isRightToLeftText = rtl;
+            }
+            if (chipHelpCaption != null)
+            {
+                chipHelpCaption.text = rtl ? ArabicTextShaper.Shape(helpCap) : helpCap;
+                chipHelpCaption.isRightToLeftText = rtl;
+            }
+            _cachedInteractDefault = chipInteractCaption != null ? chipInteractCaption.text : "✋ Interact";
         }
 
         private void Update()
@@ -136,11 +152,23 @@ namespace HearthboundHollow.Mission
                     emphasiseInteract = true;
                     emphasise = true;
                     if (chipInteractCaption != null && _player.CurrentFocus.PromptText != null)
-                        chipInteractCaption.text = _player.CurrentFocus.PromptText;
+                    {
+                        // Phase 60 — Translate + shape the interactable's
+                        // prompt for Arabic when the active locale is RTL.
+                        // Interactables wired in Phase 60+ pass localization
+                        // keys directly; legacy callers pass English source
+                        // which is preserved through HasKey-not-found path.
+                        var loc = ServiceLocator.Get<LocalizationService>();
+                        string prompt = _player.CurrentFocus.PromptText;
+                        if (loc != null && loc.HasKey(prompt)) prompt = loc.Get(prompt);
+                        if (loc != null && loc.IsRightToLeft)
+                            prompt = ArabicTextShaper.Shape(prompt);
+                        chipInteractCaption.text = prompt;
+                    }
                 }
-                else if (chipInteractCaption != null && chipInteractCaption.text != "Interact")
+                else if (chipInteractCaption != null && chipInteractCaption.text != _cachedInteractDefault)
                 {
-                    chipInteractCaption.text = "Interact";
+                    chipInteractCaption.text = _cachedInteractDefault;
                 }
             }
 

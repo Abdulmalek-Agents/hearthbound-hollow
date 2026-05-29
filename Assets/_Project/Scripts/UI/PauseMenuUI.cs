@@ -10,15 +10,10 @@
 // Cozy-by-default: does NOT block players — it's a soft pause with the option
 // to step away. Per Codex 06 (Cozy Comfort + Accessibility).
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────────
-// Phase 23's procedural builder previously deactivated the script-host
-// GameObject (rootGO.SetActive(false)). That made Update() stop running
-// → the Escape key never opened the pause menu in any gameplay scene.
-//
-// The script now keeps its own GameObject ACTIVE always, and only the
-// visual `root` child is toggled on/off. Pause() self-heals if the host
-// was ever deactivated externally. The Phase 23 builder has been
-// updated to wire `root` to a child Panel (see Phase23 patch).
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Every static label + button caption is pulled from loc.<iso>.json via
+// LocalizationService. Subscribes to LocaleChangedEvent for live language
+// flips (no scene reload needed).
 
 using System;
 using TMPro;
@@ -52,10 +47,7 @@ namespace HearthboundHollow.UI
         public bool pauseTimeScale = true;
         public string mainMenuSceneName = "01_MainMenu";
 
-        /// <summary>Fired when the player opens Settings from the pause menu.</summary>
         public event Action OnSettingsRequested;
-
-        /// <summary>Fired immediately before the menu starts the Save & Quit flow.</summary>
         public event Action OnSaveAndQuitRequested;
 
         public bool IsPaused { get; private set; }
@@ -64,14 +56,11 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            // Hide only the visual panel — keep the host GameObject active so
-            // Update() can listen for Escape.
             if (root != null && root != gameObject) root.SetActive(false);
 
-            if (titleLabel != null && string.IsNullOrEmpty(titleLabel.text))
-                titleLabel.text = "Paused";
-            if (hintLabel != null && string.IsNullOrEmpty(hintLabel.text))
-                hintLabel.text = "Take a breath. The Hollow will wait.";
+            // Phase 60 — Localized title + hint (fallback to English on
+            // missing key). Re-applied on LocaleChangedEvent in OnEnable.
+            ApplyLocalization();
 
             if (resumeButton != null)        resumeButton.onClick.AddListener(Resume);
             if (settingsButton != null)      settingsButton.onClick.AddListener(OnSettingsClicked);
@@ -92,7 +81,6 @@ namespace HearthboundHollow.UI
         {
             if (IsPaused) return;
 
-            // Defensive self-heal in case something deactivated us externally.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
 
             IsPaused = true;
@@ -127,7 +115,6 @@ namespace HearthboundHollow.UI
             Hh.Log(LogCategory.UI, "Pause → Save & Quit to Main Menu.");
             OnSaveAndQuitRequested?.Invoke();
 
-            // Restore time scale before scene transition so the new scene runs normally.
             if (pauseTimeScale) Time.timeScale = _savedTimeScale;
             AudioListener.pause = false;
             IsPaused = false;
@@ -148,9 +135,55 @@ namespace HearthboundHollow.UI
 
         private void OnDestroy()
         {
-            // Defensive: never leave the game paused if the menu is destroyed mid-pause.
             if (IsPaused && pauseTimeScale) Time.timeScale = _savedTimeScale;
             AudioListener.pause = false;
+        }
+
+        private void OnEnable()
+        {
+            EventBus.Subscribe<LocaleChangedEvent>(OnLocaleChanged);
+            ApplyLocalization();
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LocaleChangedEvent>(OnLocaleChanged);
+        }
+
+        private void OnLocaleChanged(LocaleChangedEvent _) => ApplyLocalization();
+
+        /// <summary>
+        /// Phase 60 — Pull localized strings for every static label + button.
+        /// Idempotent; called from Awake, on every locale change, and OnEnable.
+        /// </summary>
+        private void ApplyLocalization()
+        {
+            var loc = ServiceLocator.Get<LocalizationService>();
+            if (loc == null) return;
+            bool rtl = loc.IsRightToLeft;
+
+            SetLabel(titleLabel, loc.Get("pause.title"), rtl);
+            SetLabel(hintLabel, loc.Get("pause.hint"), rtl);
+            SetButtonLabel(resumeButton, loc.Get("pause.cta.resume"), rtl);
+            SetButtonLabel(settingsButton, loc.Get("pause.cta.settings"), rtl);
+            SetButtonLabel(saveAndQuitButton, loc.Get("pause.cta.save_and_quit"), rtl);
+            SetButtonLabel(quitToDesktopButton, loc.Get("pause.cta.quit_desktop"), rtl);
+        }
+
+        private static void SetLabel(TextMeshProUGUI t, string s, bool rtl)
+        {
+            if (t == null) return;
+            t.text = rtl ? ArabicTextShaper.Shape(s) : s;
+            t.isRightToLeftText = rtl;
+        }
+
+        private static void SetButtonLabel(Button b, string s, bool rtl)
+        {
+            if (b == null) return;
+            var t = b.GetComponentInChildren<TextMeshProUGUI>();
+            if (t == null) return;
+            t.text = rtl ? ArabicTextShaper.Shape(s) : s;
+            t.isRightToLeftText = rtl;
         }
     }
 }

@@ -5,6 +5,11 @@
 // GameManager scene transition; exposes events for Continue / Save / Settings
 // so a Mission-level coordinator can attach load/save behaviour without
 // pulling the Save asmdef into UI.
+//
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Every button label + rotating cozy tip is pulled from loc.<iso>.json
+// via LocalizationService. Subscribes to LocaleChangedEvent for live
+// language flips (no scene reload needed).
 
 using System;
 using UnityEngine;
@@ -45,17 +50,7 @@ namespace HearthboundHollow.UI
             "What you choose to remember is what you become.",
         };
 
-        /// <summary>
-        /// Fired when the player clicks Continue. A Save-aware coordinator
-        /// (spawned by Phase 23) listens to this and loads the autosave.
-        /// If no listener exists we simply log a warning.
-        /// </summary>
         public event Action OnContinueRequested;
-
-        /// <summary>
-        /// Fired when the player clicks Settings (after the Tone Compass).
-        /// Coordinator opens the settings panel + ComfortToolsMenu.
-        /// </summary>
         public event Action OnSettingsRequested;
 
         private void Awake()
@@ -66,18 +61,69 @@ namespace HearthboundHollow.UI
             if (creditsButton != null) creditsButton.onClick.AddListener(() => { if (creditsPanel != null) creditsPanel.SetActive(true); });
             if (quitButton != null) quitButton.onClick.AddListener(OnQuit);
 
-            if (tipLabel != null && tips != null && tips.Length > 0)
-                tipLabel.text = tips[UnityEngine.Random.Range(0, tips.Length)];
-
+            // Phase 60 — Localize button labels + cozy tip. Re-applied on
+            // locale change via OnEnable's subscription.
+            ApplyLocalization();
             // Continue button is dim until a coordinator confirms an autosave exists.
-            // The coordinator (Mission asmdef) will call SetContinueEnabled(true) on Start
-            // if SaveService finds a non-empty autosave slot.
             SetContinueEnabled(false);
         }
 
+        private void OnEnable()
+        {
+            EventBus.Subscribe<LocaleChangedEvent>(OnLocaleChanged);
+            ApplyLocalization();
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LocaleChangedEvent>(OnLocaleChanged);
+        }
+
+        private void OnLocaleChanged(LocaleChangedEvent _) => ApplyLocalization();
+
         /// <summary>
-        /// Coordinator calls this on Start once it has queried SaveService.
+        /// Phase 60 — Pull localized strings for every static label.
         /// </summary>
+        private void ApplyLocalization()
+        {
+            var loc = ServiceLocator.Get<LocalizationService>();
+            if (loc == null)
+            {
+                // Bootstrap not yet up — render the original English tip.
+                if (tipLabel != null && tips != null && tips.Length > 0)
+                    tipLabel.text = tips[UnityEngine.Random.Range(0, tips.Length)];
+                return;
+            }
+            bool rtl = loc.IsRightToLeft;
+
+            SetButtonLabel(openTheHollowButton, loc.Get("menu.main.cta.open_hollow"), rtl);
+            SetButtonLabel(continueButton,      loc.Get("menu.main.cta.continue"),    rtl);
+            SetButtonLabel(settingsButton,      loc.Get("menu.main.cta.settings"),    rtl);
+            SetButtonLabel(creditsButton,       loc.Get("menu.main.cta.credits"),     rtl);
+            SetButtonLabel(quitButton,          loc.Get("menu.main.cta.quit"),        rtl);
+
+            // Rotate the cozy tip from the localized table (7 tips).
+            if (tipLabel != null)
+            {
+                int idx = UnityEngine.Random.Range(0, 7);
+                string tip = loc.Get($"menu.main.tip.{idx}");
+                tipLabel.text = rtl ? ArabicTextShaper.Shape(tip) : tip;
+                tipLabel.isRightToLeftText = rtl;
+                tipLabel.alignment = rtl
+                    ? TMPro.TextAlignmentOptions.TopRight
+                    : TMPro.TextAlignmentOptions.TopLeft;
+            }
+        }
+
+        private static void SetButtonLabel(Button b, string s, bool rtl)
+        {
+            if (b == null) return;
+            var t = b.GetComponentInChildren<TextMeshProUGUI>();
+            if (t == null) return;
+            t.text = rtl ? ArabicTextShaper.Shape(s) : s;
+            t.isRightToLeftText = rtl;
+        }
+
         public void SetContinueEnabled(bool enabled)
         {
             if (continueButton == null) return;

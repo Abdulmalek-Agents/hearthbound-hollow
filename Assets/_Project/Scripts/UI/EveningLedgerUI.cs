@@ -4,9 +4,10 @@
 // The end-of-day summary panel. Shows accomplishments, memories held, coin
 // balance, and the 3 Save Slot rows + Autosave. Closing it advances the day.
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────────
-// Show() now self-heals (activates own GameObject if dormant) — matches
-// the rest of the UI hotfix family.
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Day title + coin balance use ledger.title_fmt / ledger.coin_fmt; bullet
+// list uses ledger.bullet_fmt; summary prose is shaped for RTL by the
+// caller (it's localized at the Mission director level).
 
 using System.Collections.Generic;
 using TMPro;
@@ -49,10 +50,6 @@ namespace HearthboundHollow.UI
             if (root != null && root != gameObject) root.SetActive(false);
             WireButtons();
 
-            // Phase 32.19 — high-contrast typography across the parchment.
-            // Title-sized day banner, prose body for the summary, gold coin
-            // count, bold cream-on-dark for buttons. Each helper internally
-            // bounds autosize so the layout still adapts to canvas size.
             UIReadabilityHelper.ApplyHeadline (dayLabel,        min: 56, max: 110);
             UIReadabilityHelper.ApplyMonetary (coinLabel,       min: 28, max: 56);
             UIReadabilityHelper.ApplyBody     (summaryProse,    min: 26, max: 38);
@@ -61,10 +58,6 @@ namespace HearthboundHollow.UI
             UIReadabilityHelper.ApplyButtonLabel(saveSlot2Label, min: 20, max: 30);
             UIReadabilityHelper.ApplyButtonLabel(saveSlot3Label, min: 20, max: 30);
 
-            // Drop a soft dark wash behind the two prose columns so the
-            // Bamao parchment-book background's decorative star + ornament
-            // never washes the text out (the user-reported readability
-            // issue).
             if (summaryProse != null)     UIReadabilityHelper.AddDarkWash(summaryProse.rectTransform, padding: 18f);
             if (heldMemoriesList != null) UIReadabilityHelper.AddDarkWash(heldMemoriesList.rectTransform, padding: 18f);
         }
@@ -88,15 +81,51 @@ namespace HearthboundHollow.UI
             if (!gameObject.activeSelf) gameObject.SetActive(true);
 
             var vs = ServiceLocator.Get<VillageState>();
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
             if (root != null) root.SetActive(true);
-            if (dayLabel != null && vs != null) dayLabel.text = $"Day {vs.currentDayIndex}";
-            if (coinLabel != null && vs != null) coinLabel.text = $"{vs.coin} c";
-            if (summaryProse != null) summaryProse.text = summary;
+
+            // Phase 60 — Localized labels. Falls back to English on missing
+            // service or missing key.
+            if (dayLabel != null && vs != null)
+            {
+                string s = loc != null
+                    ? loc.Format("ledger.title_fmt", vs.currentDayIndex)
+                    : $"Day {vs.currentDayIndex}";
+                dayLabel.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                dayLabel.isRightToLeftText = rtl;
+            }
+            if (coinLabel != null && vs != null)
+            {
+                string s = loc != null
+                    ? loc.Format("ledger.coin_fmt", vs.coin)
+                    : $"{vs.coin} c";
+                coinLabel.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                coinLabel.isRightToLeftText = rtl;
+            }
+            if (summaryProse != null)
+            {
+                // The summary string comes localized from the Mission director
+                // (or falls back to English) — we still shape it for RTL display.
+                summaryProse.text = rtl ? ArabicTextShaper.Shape(summary ?? string.Empty) : (summary ?? string.Empty);
+                summaryProse.isRightToLeftText = rtl;
+                summaryProse.alignment = rtl ? TMPro.TextAlignmentOptions.TopRight : TMPro.TextAlignmentOptions.TopLeft;
+            }
             if (heldMemoriesList != null)
             {
                 var sb = new System.Text.StringBuilder();
-                foreach (var t in heldMemoryTitles) sb.AppendLine($"• {t}");
-                heldMemoriesList.text = sb.ToString();
+                string bulletFmt = loc != null ? loc.Get("ledger.bullet_fmt") : "• {0}";
+                foreach (var t in heldMemoryTitles)
+                {
+                    string line;
+                    try { line = string.Format(bulletFmt, t); }
+                    catch { line = "• " + t; }
+                    sb.AppendLine(line);
+                }
+                string final = sb.ToString();
+                heldMemoriesList.text = rtl ? ArabicTextShaper.Shape(final) : final;
+                heldMemoriesList.isRightToLeftText = rtl;
+                heldMemoriesList.alignment = rtl ? TMPro.TextAlignmentOptions.TopRight : TMPro.TextAlignmentOptions.TopLeft;
             }
         }
 

@@ -52,6 +52,16 @@ declare -a MODELS=(
   "en_GB-alan-medium|en/en_GB/alan/medium/en_GB-alan-medium"
   "en_US-amy-medium|en/en_US/amy/medium/en_US-amy-medium"
   "en_GB-jenny_dioco-medium|en/en_GB/jenny_dioco/medium/en_GB-jenny_dioco-medium"
+  # ── Phase 60 — Arabic Localization MVP ──────────────────────────
+  # `ar_JL-medium` is the only Arabic medium-quality voice in the
+  # Piper roster as of 2026-05. It's a single female voice, clear
+  # Modern-Standard-Arabic delivery. We tune length_scale + pitch in
+  # generate_voices.sh to differentiate Doris / Marin / Narrator /
+  # Pickle in Arabic (same trick as the en_US-amy-medium re-use for
+  # English Marin + Pickle). Gerrold uses the same model with a
+  # lower pitch to approximate a male voice — the cleanest path
+  # while we wait for an Arabic male model upstream.
+  "ar_JL-medium|ar/ar_JL/medium/ar_JL-medium"
 )
 
 BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"

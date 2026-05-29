@@ -1,0 +1,254 @@
+{
+  // ─────────────────────────────────────────────────────────────────
+  // Hearthbound Hollow — UI string table (English source of truth)
+  // Phase 60 — Arabic Localization MVP.
+  //
+  // Format: flat { "key.path": "string" } map. Comments (// ...) are
+  // tolerated by the LocalizationService parser for translator notes.
+  //
+  // Conventions:
+  //   • Keys use dot.namespaces. Top level is the screen / subsystem.
+  //   • Format-string placeholders use {0}, {1} (C# string.Format).
+  //   • Speaker-name keys go under "speaker.<lowercase>" so dialogue UI
+  //     can localize the label above lines without changing the lineId.
+  // ─────────────────────────────────────────────────────────────────
+
+  // ── App / Splash ────────────────────────────────────────────────
+  "app.title":                          "Hearthbound Hollow",
+  "app.tagline":                        "Some memories want to be sold. Some don't.",
+
+  // ── Main Menu ──────────────────────────────────────────────────
+  "menu.main.title":                    "Hearthbound Hollow",
+  "menu.main.subtitle":                 "A cozy memory-broker tale.",
+  "menu.main.cta.open_hollow":          "Open The Hollow",
+  "menu.main.cta.continue":             "Continue",
+  "menu.main.cta.settings":             "Settings",
+  "menu.main.cta.credits":              "Credits",
+  "menu.main.cta.quit":                 "Quit",
+  "menu.main.cta.language":             "Language",
+
+  // Rotating cozy tips on the menu.
+  "menu.main.tip.0":                    "Some memories want to be sold. Some don't.",
+  "menu.main.tip.1":                    "Polish in slow circles.",
+  "menu.main.tip.2":                    "Cover all sides — the orb has four faces.",
+  "menu.main.tip.3":                    "The warm centre is the memory itself.",
+  "menu.main.tip.4":                    "Tea opens the way to talk.",
+  "menu.main.tip.5":                    "There is no wrong way to keep a memory.",
+  "menu.main.tip.6":                    "What you choose to remember is what you become.",
+
+  // ── Language selector ──────────────────────────────────────────
+  "language.choose.title":              "Choose your language",
+  "language.choose.subtitle":           "You can change this any time in Settings.",
+  "language.en.native":                 "English",
+  "language.ar.native":                 "العربية",
+  "language.label.current_fmt":         "Language: {0}",
+
+  // ── Pause Menu ─────────────────────────────────────────────────
+  "pause.title":                        "Paused",
+  "pause.hint":                         "Take a breath. The Hollow will wait.",
+  "pause.cta.resume":                   "Resume",
+  "pause.cta.settings":                 "Settings",
+  "pause.cta.save_and_quit":            "Save & Quit to Main Menu",
+  "pause.cta.quit_desktop":             "Quit to Desktop",
+
+  // ── Help Overlay ───────────────────────────────────────────────
+  "help.title":                         "🪔  Welcome to the Hollow  🪔",
+  "help.subtitle":                      "✒  A quick word from Marin's notes …",
+  "help.row.move":                      "<color=#7a4f10>🚶</color>  <color=#5a3a18><b>Move</b></color>   <color=#221208>WASD / Arrow Keys / Left Stick</color>",
+  "help.row.sprint":                    "<color=#7a4f10>🏃</color>  <color=#5a3a18><b>Sprint</b></color>   <color=#221208>Left Shift / Left-stick click</color>",
+  "help.row.jump":                      "<color=#7a4f10>⤴</color>  <color=#5a3a18><b>Jump</b></color>   <color=#221208>Space / Gamepad south</color>",
+  "help.row.interact":                  "<color=#7a4f10>✋</color>  <color=#5a3a18><b>Interact</b></color>   <color=#221208>E / Gamepad □</color>",
+  "help.row.advance":                   "<color=#7a4f10>▶</color>  <color=#5a3a18><b>Advance</b></color>   <color=#221208>Click / Space / Enter</color>",
+  "help.row.polish_1":                  "<color=#7a4f10>✨</color>  <color=#5a3a18><b>Polish</b></color>   <color=#221208>Hold left mouse, draw slow circles</color>",
+  "help.row.polish_2":                  "      <color=#705a3a>— cover all sides of the orb</color>",
+  "help.row.polish_3":                  "      <color=#705a3a>— slower is better</color>",
+  "help.row.look":                      "<color=#7a4f10>👁</color>  <color=#5a3a18><b>Look</b></color>   <color=#221208>Hold Right Mouse + drag (or Right Stick)</color>",
+  "help.row.zoom":                      "<color=#7a4f10>🔍</color>  <color=#5a3a18><b>Zoom</b></color>   <color=#221208>Mouse scroll / Gamepad LB-RB</color>",
+  "help.row.help":                      "<color=#7a4f10>❓</color>  <color=#5a3a18><b>Help</b></color>   <color=#221208>H to toggle this card</color>",
+  "help.row.pause":                     "<color=#7a4f10>⏸</color>  <color=#5a3a18><b>Pause</b></color>   <color=#221208>Esc</color>",
+  "help.row.signature":                 "<color=#5a3a18><i>\u201cThere is no wrong way to keep a memory.\nThere is only the gentle way, and the others.\u201d</i></color>\n                                                <color=#7a4f10>— M.</color>",
+
+  // ── HUD (in-mission) ───────────────────────────────────────────
+  "hud.day_label_fmt":                  "Day {0}",
+  "hud.coin_label_fmt":                 "{0} c",
+  "hud.held_memory.label":              "Holding",
+  "hud.chip.move":                      "🚶 Move",
+  "hud.chip.interact":                  "✋ Interact",
+  "hud.chip.help":                      "❓ Help",
+  "hud.chip.key.wasd":                  "WASD",
+  "hud.chip.key.e":                     "E",
+  "hud.chip.key.h":                     "H",
+  "hud.advance_prompt":                 "Click or [Space] >",
+
+  // ── Settings + Comfort Tools ───────────────────────────────────
+  "settings.title":                     "Settings · Comfort Tools",
+  "settings.section.audio":             "Audio",
+  "settings.section.text":              "Text & Dialogue",
+  "settings.section.comfort":           "Comfort",
+  "settings.section.language":          "Language",
+  "settings.section.video":             "Video",
+  "settings.volume.master":             "Master",
+  "settings.volume.music":              "Music",
+  "settings.volume.sfx":                "Sound Effects",
+  "settings.volume.ambient":            "Ambient",
+  "settings.volume.voice":              "Voice",
+  "settings.gentle_mode":               "Gentle Mode",
+  "settings.gentle_mode.on":            "Gentle Mode: ON",
+  "settings.gentle_mode.off":           "Gentle Mode: off",
+  "settings.auto_polish":               "Auto-Complete Polish",
+  "settings.auto_cleanse":              "Auto-Complete Cleanse",
+  "settings.one_hand":                  "One-Hand Mode",
+  "settings.content_warnings":          "Content Warnings",
+  "settings.subtitle_size":             "Subtitle Size",
+  "settings.subtitle_size.0":           "Small",
+  "settings.subtitle_size.1":           "Medium",
+  "settings.subtitle_size.2":           "Large",
+  "settings.subtitle_size.3":           "Huge",
+  "settings.palette.default":           "Default Palette",
+  "settings.palette.protanopia":        "Protanopia-friendly",
+  "settings.palette.deuteranopia":      "Deuteranopia-friendly",
+  "settings.palette.tritanopia":        "Tritanopia-friendly",
+  "settings.cta.reset":                 "Reset to defaults",
+  "settings.cta.back":                  "Back",
+
+  // ── Tone Compass (first-launch primer) ─────────────────────────
+  "tone_compass.body":                  "This game will make you feel things. Some of those feelings are heavy.\n\nThis first hour contains: the opening of a shop, a first transaction, a late-night brewing.\n\nThe second hour contains: a widower's grief, a choice about memory, a short illustrated dream.\n\nAt any point, you can take a Soft Day, enable Gentle Mode, or adjust any settings.\n\nThere is no combat. There are no failure screens. There are only choices.\n\nThe cat will be there.",
+  "tone_compass.cta.continue":          "Begin",
+  "tone_compass.gentle_label.on":       "Gentle Mode: ON",
+  "tone_compass.gentle_label.off":      "Gentle Mode: off",
+
+  // ── Onboarding Overlay (6-step walkthrough) ───────────────────
+  "onboarding.skip":                    "Skip Tutorial",
+  "onboarding.next":                    "Next",
+  "onboarding.progress_fmt":            "{0} / {1}",
+  "onboarding.step1.headline":          "🪔  Welcome to the Hollow",
+  "onboarding.step1.body":              "You inherit a memory-brokerage shop in a small autumnal village.\n\nSome memories want to be sold. Some don't.\nThere is no combat. There are no failure screens. Only choices.",
+  "onboarding.step2.headline":          "🚶  Move with WASD",
+  "onboarding.step2.body":              "Walk through the village. Take your time — the lanterns hush, the leaves rustle, and someone is waiting for you at the door of the Hollow.",
+  "onboarding.step2.caption":           "or Arrow Keys / Left Stick",
+  "onboarding.step3.headline":          "✋  Interact with E",
+  "onboarding.step3.body":              "Look for soft golden prompts above doorways, workbenches, and the orbs villagers entrust to you. Press E (or the gamepad south button) to act on what you see.",
+  "onboarding.step3.caption":           "Interact",
+  "onboarding.step4.headline":          "✨  Polish memories with slow circles",
+  "onboarding.step4.body":              "When a villager hands you a memory orb, hold the left mouse button and draw slow circles across its surface. Slower is better. Cover every side — there are four faces, like a kindness with four corners.",
+  "onboarding.step4.caption":           "Hold + draw slow circles",
+  "onboarding.step5.headline":          "🕯  Comfort tools",
+  "onboarding.step5.body":              "Press <b>Esc</b> to pause any time. From there you can open Settings — Gentle Mode softens the harder moments, and any mini-game can be auto-completed if you'd rather skip the tactile beat.\n\nPress <b>H</b> any time to see the full controls.",
+  "onboarding.step5.caption":           "Pause · Settings · Comfort",
+  "onboarding.step6.headline":          "🍂  You're ready",
+  "onboarding.step6.body":              "Walk to the door of the Hollow when you're ready.\n\nThere is no wrong way to keep a memory.\nThere is only the gentle way, and the others.\n\n— Marin",
+
+  // ── Evening Ledger ─────────────────────────────────────────────
+  "ledger.title_fmt":                   "Day {0} · Evening Ledger",
+  "ledger.coin_fmt":                    "Coin: {0} c",
+  "ledger.summary.empty":               "A quiet day. The kettle is on.",
+  "ledger.held_memories_header":        "On the shelves:",
+  "ledger.bullet_fmt":                  "• {0}",
+  "ledger.save.slot_fmt":               "Slot {0}",
+  "ledger.save.autosave":               "Autosave",
+  "ledger.cta.confirm_end_of_day":      "Sleep, and let the day close.",
+
+  // ── Mission Title Cards ────────────────────────────────────────
+  "mission.title.day1":                 "Day One. The Hollow.",
+  "mission.title.day2":                 "Day Two. The Garden.",
+  "mission.title.evening":              "Evening falls. The kettle is warm.",
+  "mission.title.dream":                "She closes her eyes. The memory begins.",
+
+  // ── Preface Beat (Phase 50 narrator preface) ───────────────────
+  "preface.gentle.line1":               "Take your time.",
+  "preface.gentle.line2":               "The lane is quiet today.",
+  "preface.gentle.line3":               "Someone is waiting at the door of the Hollow.",
+  "preface.standard.line1":             "The dusk has the colour of old paper.",
+  "preface.standard.line2":             "There is a kettle on the workbench.",
+  "preface.standard.line3":             "And a woman in an apron, watching for you.",
+  "preface.deep.line1":                 "The lane remembers your name before you do.",
+  "preface.deep.line2":                 "The Hollow has been waited-in.",
+  "preface.deep.line3":                 "Tonight you decide what is kept.",
+
+  // ── Cold-Open Cinematic ────────────────────────────────────────
+  "cold_open.letter.body":              "If you find this, the kettle still works.\nThe key is under the third loose brick.\nPickle is fair. Do not over-feed her.\nThere is no wrong way to keep a memory.",
+  "cold_open.letter.signature":         "— M.",
+  "cold_open.cta.begin":                "Begin",
+  "cold_open.cta.continue":             "Continue",
+  "cold_open.cta.skip":                 "Press Enter / Space to Begin",
+  "cold_open.montage.0":                "Some memories want to be sold.",
+  "cold_open.montage.1":                "Some don't.",
+  "cold_open.montage.2":                "And some — only want to be sat with.",
+
+  // ── Tea Brewing UI ─────────────────────────────────────────────
+  "tea.title":                          "Tea Brewing",
+  "tea.prompt":                         "Choose a herb to brew.",
+  "tea.herb_label":                     "Herb",
+  "tea.confirm":                        "Brew",
+  "tea.skip":                           "Skip",
+  "tea.outcome.lavender":               "The lavender resolves into a soft, warm note.",
+  "tea.outcome.valerian":               "The valerian resolves into something quieter — and slightly off.",
+  "tea.outcome.none":                   "No tea today.",
+
+  // ── Choice Card (Mission 2 moral choice) ───────────────────────
+  "choice.framing.0":                   "Gerrold has placed the orb on the table.",
+  "choice.framing.1":                   "He is waiting.",
+  "choice.option_a.label":              "A — Erase the long bit.",
+  "choice.option_a.preview_1":          "He will remember he loved her.",
+  "choice.option_a.preview_2":          "He will not remember the dying.",
+  "choice.option_b.label":              "B — Cleanse with care.",
+  "choice.option_b.preview_1":          "He will keep the memory, gentler.",
+  "choice.option_b.preview_2":          "You will need a careful hand.",
+  "choice.option_c.label":              "C — Don't take the memory. Sit with him.",
+  "choice.option_c.preview_1":          "He will carry it.",
+  "choice.option_c.preview_2":          "You will have only been here.",
+  "choice.option_c.preview_3":          "Sometimes that is enough.",
+  "choice.option_d.label":              "D — Ask him to come back tomorrow.",
+  "choice.option_d.preview_1":          "He will.",
+  "choice.option_d.preview_2":          "You can think about this for a day.",
+  "choice.erase_confirm":               "Yes, all of it. Erase the long bit.",
+  "choice.erase_cancel":                "Wait — let me think a moment more.",
+  "choice.heavy_theme.header":          "This scene contains references to:",
+  "choice.heavy_theme.body.1":          "— Loss of spouse",
+  "choice.heavy_theme.body.2":          "— Terminal illness (referenced)",
+  "choice.heavy_theme.body.3":          "— A man's grief",
+  "choice.heavy_theme.footer.1":        "Take a breath if you need to.",
+  "choice.heavy_theme.footer.2":        "The cat is still on the windowsill back at the shop.",
+  "choice.heavy_theme.dismiss":         "Dismiss",
+
+  // ── Mini-Game Tutorial / Hints ────────────────────────────────
+  "minigame.polish.hint.halfway":       "<b>Halfway</b> — the orb is warming.",
+  "minigame.polish.hint.nearly":        "<b>Nearly there</b> — keep the circles gentle.",
+  "minigame.polish.hint.slower":        "<b>Slower</b> — let the orb hear you.",
+  "minigame.polish.hint.pull_back":     "<b>Pull back</b> — that is the warm centre.",
+  "minigame.cleanse.warning":           "Crack the seal gently. Stay clear of the core.",
+
+  // ── Echo Hologram / Marin's Notes ─────────────────────────────
+  "echo.title":                         "Echo · {0}",
+  "echo.title_fmt":                     "Echo · {0}",
+  "marin.note.lane.title":              "A note pinned to the lantern post",
+  "marin.note.lane.body":               "If you find this, the kettle still works.\nDon't trust the third shelf. It tilts.",
+  "marin.note.hollow.title":            "A note inside the Hollow",
+  "marin.note.hollow.body":             "Pickle remembers everyone. Pickle is fair.",
+  "marin.note.workbench.title":         "A note on the workbench",
+  "marin.note.workbench.body":          "The cloth is for handling the warm orbs. Mine is in the drawer.",
+
+  // ── Codex / Memory Web ─────────────────────────────────────────
+  "codex.title":                        "the Memory Web",
+  "codex.empty":                        "No memories yet. Polish your first orb.",
+  "codex.counts_fmt":                   "Memories: {0}   ·   Connections: {1}",
+  "codex.close":                        "Close [Tab]",
+  "codex.entry.placeholder_title":      "Memory Title",
+
+  // ── Generic confirms ──────────────────────────────────────────
+  "ui.confirm.yes":                     "Yes",
+  "ui.confirm.no":                      "No",
+  "ui.confirm.ok":                      "OK",
+  "ui.confirm.cancel":                  "Cancel",
+  "ui.confirm.continue":                "Continue",
+  "ui.confirm.back":                    "Back",
+  "ui.confirm.close":                   "Close",
+
+  // ── Speaker labels (above dialogue) ────────────────────────────
+  "speaker.doris":                      "Doris",
+  "speaker.gerrold":                    "Gerrold",
+  "speaker.marin":                      "Marin",
+  "speaker.pickle":                     "Pickle",
+  "speaker.narrator":                   "Narrator",
+  "speaker.keeper":                     "The Keeper"
+}
