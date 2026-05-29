@@ -23,6 +23,9 @@ using UnityEngine.UI;
 using HearthboundHollow.Core;
 using HearthboundHollow.Mission;
 using HearthboundHollow.UI;
+// Disambiguate from UnityEditor.SettingsService (the Editor settings-provider API),
+// which `using UnityEditor;` also brings into scope (CS0104).
+using SettingsService = HearthboundHollow.Core.SettingsService;
 
 namespace HearthboundHollow.EditorTools
 {
