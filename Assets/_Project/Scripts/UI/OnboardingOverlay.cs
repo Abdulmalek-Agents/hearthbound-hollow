@@ -33,6 +33,14 @@
 // scene calls `BeginIfNeeded()` on Start; the overlay self-pauses the
 // game via `Time.timeScale = 0` and resumes when the player skips or
 // completes the walkthrough.
+//
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Each Step now carries an optional `locKey*` triplet (headline / body /
+// caption) so a translator can change every word in loc.<iso>.json
+// without touching this file. The English source-of-truth fields on
+// Step remain as the fallback when the LocalizationService isn't yet
+// registered (headless EditMode test, etc.). DefaultSteps() wires the
+// 6 canonical onboarding.stepN.* keys.
 
 using System;
 using System.Collections.Generic;
@@ -79,6 +87,18 @@ namespace HearthboundHollow.UI
                      "When the expectation is satisfied the step auto-advances " +
                      "after a short delay.")]
             public string expects = "";
+
+            // ── Phase 60 — Localization keys ────────────────────────────
+            [Tooltip("Phase 60 — Stable localization key for the headline. " +
+                     "If set, overrides `headline` at runtime via LocalizationService. " +
+                     "Keys live in loc.<iso>.json under 'onboarding.stepN.headline'.")]
+            public string locKeyHeadline = "";
+
+            [Tooltip("Phase 60 — Stable localization key for the body.")]
+            public string locKeyBody = "";
+
+            [Tooltip("Phase 60 — Stable localization key for the caption.")]
+            public string locKeyCaption = "";
         }
 
         // ───── Inspector references ──────────────────────────────
@@ -101,39 +121,21 @@ namespace HearthboundHollow.UI
         public Button skipButton;
 
         [Header("Behaviour")]
-        [Tooltip("Show on Start when VillageState.onboardingCompleted is false. " +
-                 "Idempotent — re-calling BeginIfNeeded() while the overlay is " +
-                 "already showing is a no-op.")]
         public bool autoShowOnStart = true;
-
-        [Tooltip("Pause Time.timeScale while the overlay is open. Default true " +
-                 "— the cozy onboarding is meant to be read at your own pace.")]
         public bool pauseGameWhileOpen = true;
-
-        [Tooltip("After an `expects` input is satisfied, this many seconds " +
-                 "pass before the step auto-advances.")]
-        [Range(0f, 3f)]
-        public float autoAdvanceDelay = 0.6f;
+        [Range(0f, 3f)] public float autoAdvanceDelay = 0.6f;
 
         [Header("Steps (designer-editable)")]
-        [Tooltip("Step sequence. If left empty, a sensible default sequence is " +
-                 "used (see DefaultSteps()).")]
         public Step[] steps;
-
-        // ───── Public API ────────────────────────────────────────
 
         public event Action OnCompleted;
 
         public bool IsOpen { get; private set; }
 
-        // ───── Internals ─────────────────────────────────────────
-
         private int _index;
         private bool _expectingInput;
         private float _autoAdvanceTimer;
         private float _prevTimeScale = 1f;
-
-        // ───── Lifecycle ─────────────────────────────────────────
 
         private void Awake()
         {
@@ -141,8 +143,6 @@ namespace HearthboundHollow.UI
             if (nextButton != null) nextButton.onClick.AddListener(Advance);
             if (skipButton != null) skipButton.onClick.AddListener(SkipAll);
 
-            // Phase 29 — auto-fit every TMP label so first-time-player intros
-            // don't clip on a windowed canvas.
             UIAutoFitText.ApplyToButtonLabel(headlineLabel,    minSize: 22, maxSize: 42);
             UIAutoFitText.ApplyToLabel(bodyLabel,               minSize: 14, maxSize: 26);
             UIAutoFitText.ApplyToButtonLabel(keyChipLabel,      minSize: 20, maxSize: 36);
@@ -157,11 +157,24 @@ namespace HearthboundHollow.UI
             if (autoShowOnStart) BeginIfNeeded();
         }
 
+        private void OnEnable()
+        {
+            EventBus.Subscribe<LocaleChangedEvent>(OnLocaleChanged);
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LocaleChangedEvent>(OnLocaleChanged);
+        }
+
+        // Phase 60 — Re-render the current step when the player flips
+        // language mid-onboarding (rare, but possible via Pause → Settings).
+        private void OnLocaleChanged(LocaleChangedEvent _) { if (IsOpen) ApplyStep(); }
+
         private void Update()
         {
             if (!IsOpen) return;
 
-            // Check the input expectation of the current step.
             if (_expectingInput && CheckCurrentStepExpectation())
             {
                 _expectingInput = false;
@@ -169,25 +182,20 @@ namespace HearthboundHollow.UI
             }
             if (_autoAdvanceTimer > 0f)
             {
-                // Auto-advance uses unscaled time because the game is paused.
                 _autoAdvanceTimer -= Time.unscaledDeltaTime;
                 if (_autoAdvanceTimer <= 0f) Advance();
             }
 
-            // Manual fallbacks — Space or Enter advances the current step.
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
                 Advance();
             if (Input.GetKeyDown(KeyCode.Escape))
                 SkipAll();
         }
 
-        // ───── Show / Hide ───────────────────────────────────────
-
         public void BeginIfNeeded()
         {
             if (IsOpen) return;
 
-            // Don't show again on completed saves.
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null && vs.onboardingCompleted) return;
 
@@ -249,20 +257,67 @@ namespace HearthboundHollow.UI
             if (_index < 0 || _index >= steps.Length) return;
             var s = steps[_index];
 
-            if (headlineLabel    != null) headlineLabel.text    = s.headline ?? string.Empty;
-            if (bodyLabel        != null) bodyLabel.text        = s.body ?? string.Empty;
-            if (keyChipLabel     != null) keyChipLabel.text     = s.keyChip ?? string.Empty;
-            if (keyCaptionLabel  != null) keyCaptionLabel.text  = s.keyCaption ?? string.Empty;
-            if (progressLabel    != null) progressLabel.text    = $"{_index + 1} / {steps.Length}";
+            // Phase 60 — Localize step text. Each Step now carries a stable
+            // `locKey*` triplet which the service resolves into the active
+            // language. The legacy English fields on Step are the
+            // source-of-truth fallback for any custom step a scene adds
+            // without a matching loc entry (and for headless EditMode tests
+            // where the LocalizationService isn't yet up).
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
 
-            // Hide the key-chip group entirely when keyChip is empty.
+            string headline = loc != null && !string.IsNullOrEmpty(s.locKeyHeadline)
+                ? loc.Get(s.locKeyHeadline) : (s.headline ?? string.Empty);
+            string body = loc != null && !string.IsNullOrEmpty(s.locKeyBody)
+                ? loc.Get(s.locKeyBody)     : (s.body ?? string.Empty);
+            string caption = loc != null && !string.IsNullOrEmpty(s.locKeyCaption)
+                ? loc.Get(s.locKeyCaption)  : (s.keyCaption ?? string.Empty);
+            string progress = loc != null
+                ? loc.Format("onboarding.progress_fmt", _index + 1, steps.Length)
+                : $"{_index + 1} / {steps.Length}";
+
+            if (headlineLabel != null)
+            {
+                headlineLabel.text = rtl ? ArabicTextShaper.Shape(headline) : headline;
+                headlineLabel.isRightToLeftText = rtl;
+            }
+            if (bodyLabel != null)
+            {
+                bodyLabel.text = rtl ? ArabicTextShaper.Shape(body) : body;
+                bodyLabel.isRightToLeftText = rtl;
+                bodyLabel.alignment = rtl
+                    ? TMPro.TextAlignmentOptions.TopRight
+                    : TMPro.TextAlignmentOptions.TopLeft;
+            }
+            if (keyChipLabel != null) keyChipLabel.text = s.keyChip ?? string.Empty;
+            if (keyCaptionLabel != null)
+            {
+                keyCaptionLabel.text = rtl ? ArabicTextShaper.Shape(caption) : caption;
+                keyCaptionLabel.isRightToLeftText = rtl;
+            }
+            if (progressLabel != null) progressLabel.text = progress;
+
             if (keyChipLabel != null) keyChipLabel.gameObject.SetActive(!string.IsNullOrEmpty(s.keyChip));
-            if (keyCaptionLabel != null) keyCaptionLabel.gameObject.SetActive(!string.IsNullOrEmpty(s.keyCaption));
+            if (keyCaptionLabel != null) keyCaptionLabel.gameObject.SetActive(!string.IsNullOrEmpty(caption));
+
+            // Localize the Next + Skip button labels in the same pass.
+            if (loc != null)
+            {
+                SetButtonLabel(nextButton, loc.Get("onboarding.next"), rtl);
+                SetButtonLabel(skipButton, loc.Get("onboarding.skip"), rtl);
+            }
 
             _expectingInput = !string.IsNullOrEmpty(s.expects);
         }
 
-        // ───── Input expectations ────────────────────────────────
+        private static void SetButtonLabel(Button b, string s, bool rtl)
+        {
+            if (b == null) return;
+            var t = b.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (t == null) return;
+            t.text = rtl ? ArabicTextShaper.Shape(s) : s;
+            t.isRightToLeftText = rtl;
+        }
 
         private bool CheckCurrentStepExpectation()
         {
@@ -287,16 +342,19 @@ namespace HearthboundHollow.UI
             }
         }
 
-        // ───── Default step content ──────────────────────────────
-
-        // Phase 32.20 — emoji-decorated headlines for the onboarding cards so
-        // the steps feel warm and inviting before the player has read the
-        // copy. Each emoji ties to its step's verb (lantern for welcome,
-        // walking figure for movement, hand for interaction, sparkle for
-        // polish, candle for comfort, leaf for goodbye).
+        // Phase 32.20 emoji-decorated headlines live in the loc tables now
+        // so both English and Arabic players see the same warm glyphs
+        // around their language's translated copy.
+        // Phase 60 — Every step also carries a locKey* triplet so a
+        // translator can change every word without touching this file.
+        // The English `headline` / `body` / `keyCaption` strings serve
+        // as the source-of-truth fallback when the LocalizationService
+        // isn't up yet (e.g. headless EditMode test).
         private static Step[] DefaultSteps() => new[]
         {
             new Step {
+                locKeyHeadline = "onboarding.step1.headline",
+                locKeyBody     = "onboarding.step1.body",
                 headline = "🪔  Welcome to the Hollow",
                 body = "You inherit a memory-brokerage shop in a small autumnal village.\n\n" +
                        "Some memories want to be sold. Some don't.\n" +
@@ -306,6 +364,9 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
+                locKeyHeadline = "onboarding.step2.headline",
+                locKeyBody     = "onboarding.step2.body",
+                locKeyCaption  = "onboarding.step2.caption",
                 headline = "🚶  Move with WASD",
                 body = "Walk through the village. Take your time — the lanterns hush, " +
                        "the leaves rustle, and someone is waiting for you at the door of the Hollow.",
@@ -314,6 +375,9 @@ namespace HearthboundHollow.UI
                 expects = "press_wasd"
             },
             new Step {
+                locKeyHeadline = "onboarding.step3.headline",
+                locKeyBody     = "onboarding.step3.body",
+                locKeyCaption  = "onboarding.step3.caption",
                 headline = "✋  Interact with E",
                 body = "Look for soft golden prompts above doorways, workbenches, and " +
                        "the orbs villagers entrust to you. Press E (or the gamepad south button) " +
@@ -323,6 +387,9 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
+                locKeyHeadline = "onboarding.step4.headline",
+                locKeyBody     = "onboarding.step4.body",
+                locKeyCaption  = "onboarding.step4.caption",
                 headline = "✨  Polish memories with slow circles",
                 body = "When a villager hands you a memory orb, hold the left mouse button " +
                        "and draw slow circles across its surface. Slower is better. " +
@@ -332,6 +399,9 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
+                locKeyHeadline = "onboarding.step5.headline",
+                locKeyBody     = "onboarding.step5.body",
+                locKeyCaption  = "onboarding.step5.caption",
                 headline = "🕯  Comfort tools",
                 body = "Press <b>Esc</b> to pause any time. From there you can open Settings — " +
                        "Gentle Mode softens the harder moments, and any mini-game can be " +
@@ -342,6 +412,8 @@ namespace HearthboundHollow.UI
                 expects = ""
             },
             new Step {
+                locKeyHeadline = "onboarding.step6.headline",
+                locKeyBody     = "onboarding.step6.body",
                 headline = "🍂  You're ready",
                 body = "Walk to the door of the Hollow when you're ready.\n\n" +
                        "There is no wrong way to keep a memory.\nThere is only the gentle way, " +
