@@ -289,63 +289,56 @@ namespace HearthboundHollow.UI
 
         // ───── Default step content ──────────────────────────────
 
-        // Phase 32.20 — emoji-decorated headlines for the onboarding cards so
-        // the steps feel warm and inviting before the player has read the
-        // copy. Each emoji ties to its step's verb (lantern for welcome,
-        // walking figure for movement, hand for interaction, sparkle for
-        // polish, candle for comfort, leaf for goodbye).
+        // Phase 54 (D-070) — cleaner, action-first onboarding copy to current
+        // cozy-PC-hit standards: one concept per card, a verb-led headline, a
+        // single short body, and an unmistakable key chip. Headlines route their
+        // decorative emoji through HollowGlyphs.Format so they render as on-brand
+        // gold glyphs in TextMesh Pro (and degrade to clean text — never a tofu
+        // box — before the glyph asset is built).
         private static Step[] DefaultSteps() => new[]
         {
             new Step {
-                headline = "🪔  Welcome to the Hollow",
-                body = "You inherit a memory-brokerage shop in a small autumnal village.\n\n" +
-                       "Some memories want to be sold. Some don't.\n" +
-                       "There is no combat. There are no failure screens. Only choices.",
+                headline = HollowGlyphs.Format("🪔 Welcome to the Hollow"),
+                body = "You've inherited a little memory-shop in a quiet autumn village.\n" +
+                       "No combat. No fail screens. Just people — and the memories they trust you to keep.",
                 keyChip = "",
                 keyCaption = "",
                 expects = ""
             },
             new Step {
-                headline = "🚶  Move with WASD",
-                body = "Walk through the village. Take your time — the lanterns hush, " +
-                       "the leaves rustle, and someone is waiting for you at the door of the Hollow.",
+                headline = HollowGlyphs.Format("🚶 Move"),
+                body = "Wander at your own pace. Someone is waiting at the door of the Hollow.",
                 keyChip = "WASD",
-                keyCaption = "or Arrow Keys / Left Stick",
+                keyCaption = "Move  ·  Arrows / Left Stick",
                 expects = "press_wasd"
             },
             new Step {
-                headline = "✋  Interact with E",
-                body = "Look for soft golden prompts above doorways, workbenches, and " +
-                       "the orbs villagers entrust to you. Press E (or the gamepad south button) " +
-                       "to act on what you see.",
+                headline = HollowGlyphs.Format("✋ Interact"),
+                body = "A soft golden prompt means you can act — open a door, take a memory, pour the tea.",
                 keyChip = "E",
                 keyCaption = "Interact",
                 expects = ""
             },
             new Step {
-                headline = "✨  Polish memories with slow circles",
-                body = "When a villager hands you a memory orb, hold the left mouse button " +
-                       "and draw slow circles across its surface. Slower is better. " +
-                       "Cover every side — there are four faces, like a kindness with four corners.",
-                keyChip = "LMB",
-                keyCaption = "Hold + draw slow circles",
+                headline = HollowGlyphs.Format("✨ Polish a memory"),
+                body = "Hold the left mouse button and trace slow circles over the glowing orb.\n" +
+                       "Slower is kinder. Cover all four sides — like a kindness with four corners.",
+                keyChip = "Hold LMB",
+                keyCaption = "Draw slow circles",
                 expects = ""
             },
             new Step {
-                headline = "🕯  Comfort tools",
-                body = "Press <b>Esc</b> to pause any time. From there you can open Settings — " +
-                       "Gentle Mode softens the harder moments, and any mini-game can be " +
-                       "auto-completed if you'd rather skip the tactile beat.\n\n" +
-                       "Press <b>H</b> any time to see the full controls.",
+                headline = HollowGlyphs.Format("🕯 Take it easy"),
+                body = "Press <b>Esc</b> any time for Settings — Gentle Mode, Auto-Complete, and language.\n" +
+                       "Press <b>H</b> for the full controls whenever you need them.",
                 keyChip = "Esc",
-                keyCaption = "Pause · Settings · Comfort",
+                keyCaption = "Pause  ·  Settings  ·  Comfort",
                 expects = ""
             },
             new Step {
-                headline = "🍂  You're ready",
+                headline = HollowGlyphs.Format("🍂 You're ready"),
                 body = "Walk to the door of the Hollow when you're ready.\n\n" +
-                       "There is no wrong way to keep a memory.\nThere is only the gentle way, " +
-                       "and the others.\n\n— Marin",
+                       "There is no wrong way to keep a memory.\nThere is only the gentle way, and the others.\n\n— Marin",
                 keyChip = "",
                 keyCaption = "",
                 expects = ""
