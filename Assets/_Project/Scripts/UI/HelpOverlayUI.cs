@@ -9,17 +9,11 @@
 // Content varies by control scheme detected at runtime: Keyboard+Mouse,
 // Gamepad, or Touch.
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────────
-// Same family of bugs as PauseMenuUI — when Phase 23 deactivated the
-// script-host, Update() stopped firing and the H key did nothing. The
-// script-host now stays active; only the visual `root` child gets
-// toggled. Show() self-heals defensively.
-//
-// ── Phase 26 update ─────────────────────────────────────────────
-// The new PlayerController exposes sprint (Shift), jump (Space) and the
-// SmoothFollowCamera exposes orbit (RMB + drag) + zoom (scroll). The
-// reference card is rewritten to document them. Gentle Mode-aware: when
-// SettingsService.GentleMode == true we strip the sprint + jump lines.
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Title, subtitle, every row, and the closing Marin quote come from
+// loc.<iso>.json via LocalizationService. The Phase 32.20 cozy emoji +
+// colour-tag styling lives in the loc tables so both English and Arabic
+// players see the same warm visuals around their translated copy.
 
 using TMPro;
 using UnityEngine;
@@ -57,8 +51,6 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            // Hide only the visual panel — keep the host GameObject active so
-            // Update() can listen for the toggle key.
             if (root != null && root != gameObject) root.SetActive(false);
             if (closeButton != null) closeButton.onClick.AddListener(Hide);
 
@@ -92,8 +84,6 @@ namespace HearthboundHollow.UI
 
         public void Show()
         {
-            // Defensive self-heal — should never be needed once Phase 23 wiring
-            // is correct, but cheap to keep.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
 
             if (root != null) root.SetActive(true);
@@ -120,61 +110,104 @@ namespace HearthboundHollow.UI
 
         private void ApplyContent()
         {
-            // Phase 32.20 — friendly emoji glyphs on the title/subtitle so
-            // the card feels warm before the player has even read a word.
-            // (Existing user-set inspector text is preserved.)
-            if (titleLabel != null && string.IsNullOrEmpty(titleLabel.text))
-                titleLabel.text = "🪔  Welcome to the Hollow  🪔";
-            if (subtitleLabel != null && string.IsNullOrEmpty(subtitleLabel.text))
-                subtitleLabel.text = "✒  A quick word from Marin's notes …";
+            // Phase 60 — Localized title / subtitle / body. The Phase 32.20
+            // cozy emoji + colour-tag styling lives in the loc.<iso>.json
+            // tables now (e.g. `help.title` = "🪔  Welcome to the Hollow  🪔"
+            // for English and "🪔  أهلًا بكَ في الجَوْف  🪔" for Arabic) so
+            // both languages get the same warm visuals around their
+            // translated copy. Falls back to the original English when the
+            // LocalizationService isn't yet registered (e.g. EditMode test).
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
+
+            string title    = loc != null ? loc.Get("help.title")    : "🪔  Welcome to the Hollow  🪔";
+            string subtitle = loc != null ? loc.Get("help.subtitle") : "✒  A quick word from Marin's notes …";
+
+            if (titleLabel != null)
+            {
+                titleLabel.text = rtl ? ArabicTextShaper.Shape(title) : title;
+                titleLabel.isRightToLeftText = rtl;
+            }
+            if (subtitleLabel != null)
+            {
+                subtitleLabel.text = rtl ? ArabicTextShaper.Shape(subtitle) : subtitle;
+                subtitleLabel.isRightToLeftText = rtl;
+            }
 
             // Always re-build the body so toggling Gentle Mode at runtime is
             // immediately reflected on the next H-open.
-            if (bodyText != null) bodyText.text = BuildBody();
+            if (bodyText != null)
+            {
+                string body = BuildBody();
+                if (rtl) body = ArabicTextShaper.Shape(body);
+                bodyText.text = body;
+                bodyText.isRightToLeftText = rtl;
+                bodyText.alignment = rtl
+                    ? TMPro.TextAlignmentOptions.TopRight
+                    : TMPro.TextAlignmentOptions.TopLeft;
+            }
         }
 
+        /// <summary>
+        /// Build the controls-reference body. Honors Gentle Mode (hides
+        /// Sprint + Jump rows) and the active locale (Phase 60). Cozy emoji
+        /// + colour tags from Phase 32.20 are embedded in the loc tables so
+        /// the same TMP rich-text renders in both languages.
+        /// </summary>
         private static string BuildBody()
         {
             bool gentle = false;
             var s = ServiceLocator.Get<SettingsService>();
             if (s != null) gentle = s.GentleMode;
 
-            // Phase 32.20 — readability + warmth pass on the controls card.
-            // Each action gets a cozy emoji glyph (a torch instead of a
-            // generic dot) and the verb is wrapped in a warm gold colour
-            // so the eye snaps to the verb before reading the input. The
-            // closing quote is hand-spaced for centre-alignment under the
-            // signature line.
-            const string ink   = "<color=#221208>";
+            var loc = ServiceLocator.Get<LocalizationService>();
+
+            string G(string key, string englishFallback)
+                => loc != null ? loc.Get(key) : englishFallback;
+
+            // Phase 32.20 source-of-truth fallback strings — used only when
+            // the LocalizationService hasn't yet registered (rare). Real
+            // runtime path goes through `loc.Get(…)` which reads loc.<iso>.json.
             const string gold  = "<color=#7a4f10>";
             const string brown = "<color=#5a3a18>";
+            const string ink   = "<color=#221208>";
             const string dim   = "<color=#705a3a>";
             const string end   = "</color>";
 
-            string Row(string emoji, string verb, string binding)
-                => $"{gold}{emoji}{end}  {brown}<b>{verb}</b>{end}   {ink}{binding}{end}";
-
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine(Row("🚶", "Move",     "WASD / Arrow Keys / Left Stick"));
+            sb.AppendLine(G("help.row.move",      $"{gold}🚶{end}  {brown}<b>Move</b>{end}   {ink}WASD / Arrow Keys / Left Stick{end}"));
             if (!gentle)
             {
-                sb.AppendLine(Row("🏃", "Sprint",   "Left Shift / Left-stick click"));
-                sb.AppendLine(Row("⤴",  "Jump",     "Space / Gamepad south"));
+                sb.AppendLine(G("help.row.sprint", $"{gold}🏃{end}  {brown}<b>Sprint</b>{end}   {ink}Left Shift / Left-stick click{end}"));
+                sb.AppendLine(G("help.row.jump",   $"{gold}⤴{end}  {brown}<b>Jump</b>{end}   {ink}Space / Gamepad south{end}"));
             }
-            sb.AppendLine(Row("✋", "Interact", "E / Gamepad □"));
-            sb.AppendLine(Row("▶",  "Advance",  "Click / Space / Enter"));
-            sb.AppendLine(Row("✨", "Polish",   "Hold left mouse, draw slow circles"));
-            sb.AppendLine($"      {dim}— cover all sides of the orb{end}");
-            sb.AppendLine($"      {dim}— slower is better{end}");
-            sb.AppendLine(Row("👁", "Look",     "Hold Right Mouse + drag (or Right Stick)"));
-            sb.AppendLine(Row("🔍", "Zoom",     "Mouse scroll / Gamepad LB-RB"));
-            sb.AppendLine(Row("❓", "Help",     "H to toggle this card"));
-            sb.AppendLine(Row("⏸",  "Pause",    "Esc"));
+            sb.AppendLine(G("help.row.interact",  $"{gold}✋{end}  {brown}<b>Interact</b>{end}   {ink}E / Gamepad □{end}"));
+            sb.AppendLine(G("help.row.advance",   $"{gold}▶{end}  {brown}<b>Advance</b>{end}   {ink}Click / Space / Enter{end}"));
+            sb.AppendLine(G("help.row.polish_1",  $"{gold}✨{end}  {brown}<b>Polish</b>{end}   {ink}Hold left mouse, draw slow circles{end}"));
+            sb.AppendLine(G("help.row.polish_2",  $"      {dim}— cover all sides of the orb{end}"));
+            sb.AppendLine(G("help.row.polish_3",  $"      {dim}— slower is better{end}"));
+            sb.AppendLine(G("help.row.look",      $"{gold}👁{end}  {brown}<b>Look</b>{end}   {ink}Hold Right Mouse + drag (or Right Stick){end}"));
+            sb.AppendLine(G("help.row.zoom",      $"{gold}🔍{end}  {brown}<b>Zoom</b>{end}   {ink}Mouse scroll / Gamepad LB-RB{end}"));
+            sb.AppendLine(G("help.row.help",      $"{gold}❓{end}  {brown}<b>Help</b>{end}   {ink}H to toggle this card{end}"));
+            sb.AppendLine(G("help.row.pause",     $"{gold}⏸{end}  {brown}<b>Pause</b>{end}   {ink}Esc{end}"));
             sb.AppendLine();
-            sb.AppendLine($"{brown}<i>“There is no wrong way to keep a memory.</i>{end}");
-            sb.AppendLine($"{brown}<i>There is only the gentle way, and the others.”</i>{end}");
-            sb.Append($"                                                {gold}— M.{end}");
+            sb.AppendLine(G("help.row.signature",
+                $"{brown}<i>\u201cThere is no wrong way to keep a memory.\n" +
+                $"There is only the gentle way, and the others.\u201d</i>{end}\n" +
+                $"                                                {gold}— M.{end}"));
             return sb.ToString();
+        }
+
+        private void OnLocaleChanged(LocaleChangedEvent _) => ApplyContent();
+
+        private void OnEnable()
+        {
+            EventBus.Subscribe<LocaleChangedEvent>(OnLocaleChanged);
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LocaleChangedEvent>(OnLocaleChanged);
         }
     }
 }
