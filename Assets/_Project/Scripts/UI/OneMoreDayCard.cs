@@ -61,7 +61,7 @@ namespace HearthboundHollow.UI
         private void Awake()
         {
             if (root != null && root != gameObject) root.SetActive(false);
-            // Phase 53 (D-068): the CanvasGroup sits on the always-active host;
+            // Phase 53.1 (D-068): the CanvasGroup sits on the always-active host;
             // a stranded blocksRaycasts=true would silently eat every click.
             SetBlocking(false);
 

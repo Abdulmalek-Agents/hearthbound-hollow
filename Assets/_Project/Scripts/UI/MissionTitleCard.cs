@@ -57,7 +57,7 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            // Phase 53 (D-068): the CanvasGroup lives on the always-active
+            // Phase 53.1 (D-068): the CanvasGroup lives on the always-active
             // script-host, so a leftover blocksRaycasts=true would eat EVERY
             // click in the scene while the card is invisible. Start hidden AND
             // non-blocking.

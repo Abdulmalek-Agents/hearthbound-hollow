@@ -785,6 +785,17 @@ All glyphs are softly lit (Vows 1, 3, 5 brighter for the ones you exercised toda
 | **Pet the inkblot of Pickle on the right page** | A real-life cat purr plays briefly. Pickle (in the shop) briefly tilts her head. Easter egg. |
 | **Flip back a page** | (No previous pages exist yet — this is Day 1.) |
 
+> **Progression note (Phase 53.1 / D-068):** the Evening Ledger is the Day 1
+> gate — its **Save slot** and **Sleep — End Day** buttons are the only way
+> forward, so they must always be clickable. A regression once stranded an
+> invisible, full-screen raycast-blocking `CanvasGroup` (from the intro title
+> card) over the scene: every UI click was eaten while the keyboard still
+> worked, so the player was stuck here and could not advance. All
+> CanvasGroup-on-host overlays now clear `blocksRaycasts` whenever they are
+> transparent, so the ledger → goodnight → next-scene flow can never lock up.
+> If buttons ever feel dead again, suspect a leftover modal overlay, not the
+> ledger wiring.
+
 ### 16.3 Closing the book (the save)
 
 Press **Close the book**. Then:
