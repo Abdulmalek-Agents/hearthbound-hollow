@@ -85,6 +85,77 @@ namespace HearthboundHollow.UI
             // The coordinator (Mission asmdef) will call SetContinueEnabled(true) on Start
             // if SaveService finds a non-empty autosave slot.
             SetContinueEnabled(false);
+
+            // Phase 57 (D-075): make sure Settings (language / reset / customise) is
+            // reachable from the FIRST screen. The main-menu scene shipped with both
+            // settingsButton AND systemMenu unwired, so the player had no way to pick
+            // العربية before starting. Self-heal: find the SystemMenuUI in the scene
+            // and, if there is no Settings button, build one (styled like the menu's
+            // other buttons) wired to OnSettings.
+            EnsureSettingsAccess();
+        }
+
+        /// <summary>
+        /// Self-healing Settings access (D-075). Finds the SystemMenuUI if unassigned
+        /// and creates a Settings button when one is missing, so language/reset are
+        /// always reachable from the main menu. Idempotent + defensive.
+        /// </summary>
+        private void EnsureSettingsAccess()
+        {
+            try
+            {
+                if (systemMenu == null)
+#if UNITY_2023_1_OR_NEWER
+                    systemMenu = FindFirstObjectByType<SystemMenuUI>(FindObjectsInactive.Include);
+#else
+                    systemMenu = FindObjectOfType<SystemMenuUI>(true);
+#endif
+
+                if (settingsButton != null) return; // already present
+
+                var template = openTheHollowButton != null ? openTheHollowButton : quitButton;
+                if (template == null) return;       // nothing to clone — leave as-is
+
+                var clone = Instantiate(template.gameObject, template.transform.parent);
+                clone.name = "SettingsButton (auto)";
+                clone.SetActive(true);
+
+                // Compact, top-right corner so it never overlaps the cozy centred CTAs.
+                var rt = clone.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
+                    rt.pivot = new Vector2(1f, 1f);
+                    rt.anchoredPosition = new Vector2(-28f, -28f);
+                    rt.sizeDelta = new Vector2(Mathf.Clamp(rt.sizeDelta.x, 180f, 300f),
+                                               Mathf.Clamp(rt.sizeDelta.y, 48f, 70f));
+                    rt.localScale = Vector3.one;
+                }
+
+                settingsButton = clone.GetComponent<Button>();
+                if (settingsButton != null)
+                {
+                    settingsButton.onClick.RemoveAllListeners(); // drop any cloned runtime listeners
+                    settingsButton.onClick.AddListener(OnSettings);
+                    settingsButton.interactable = true;
+                }
+
+                // Localised label ("Settings" / "الإعدادات") that follows language changes.
+                var lbl = clone.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (lbl != null)
+                {
+                    var lt = lbl.GetComponent<LocalizedText>();
+                    if (lt != null) lt.SetKey("menu.settings");
+                    else lbl.text = LocalizationService.Get("menu.settings");
+                    lbl.enableAutoSizing = true;
+                }
+
+                Hh.Log(LogCategory.UI, "MainMenu: ensured a Settings button (D-075).");
+            }
+            catch (System.Exception ex)
+            {
+                Hh.Warn(LogCategory.UI, $"MainMenu EnsureSettingsAccess skipped: {ex.Message}");
+            }
         }
 
         /// <summary>
