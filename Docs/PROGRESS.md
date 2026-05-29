@@ -1099,6 +1099,19 @@ See `CHANGELOG.md` for per-release decision tables.
 | **Phase 32 (Voice MVP)** | Doris's M1 dialogue was silent typewriter only | **UX** | ✅ **Fixed — 48 macOS `say` clips, lip-sync-feel typewriter pacing, D-058** |
 | **P32-IDEMP-1** | OneClickSetup uses `NewScene(NewSceneMode.Single)` on scenes 00-03 — destructive by design | Low | 🟡 Open — see Phase 32 idempotency audit table above |
 | **P32-VOICE-1** | 3 refused-path lines + dynamic afterPolishLine have no lineId; voice silent on those branches | Cosmetic | 🟡 Open — add 4 more clips in a follow-up |
+| **Phase 47.1 (playtest)** | macOS trackpad zoom dead; slow polish circles unresponsive; Evening Ledger prose unreadable | **Playtest** | ✅ **Fixed — see Phase 47.1 below** |
+
+---
+
+## Phase 47.1 — Playtest polish (2026-05-29)
+
+Three issues from a live playtest (Evening Ledger Day 1 screenshot + verbal report):
+
+1. **macOS trackpad zoom "stopped working".** `SmoothFollowCamera.ReadZoomDelta()` fell back to `Input.mouseScrollDelta.y`, which the new Input System backend reports as **0** for the two-finger trackpad gesture. Now reads `Mouse.current.scroll` first, normalises per-backend magnitudes into "notch" units (wheel ÷120, trackpad ÷18, legacy ±1), clamps the per-frame jump, and eases `distance → targetDistance` via SmoothDamp (`zoomSmoothTime`, `zoomSensitivity`). Added `SetZoomDistance()` / `TargetDistance` so `PolishOrbHighlighter`'s dolly-in rides the smoothing instead of being snapped back.
+2. **Slow polish circles felt unresponsive.** `motionThresholdNormalized` was `0.05` (≈96 px/frame at 1080p) — a deliberate slow circle never crossed it. Lowered to `0.0015` (≈3 px/frame); eased `clarityGainPerSecond` 0.014 → 0.006 so the circle lasts a satisfying few seconds instead of snapping to full. Idle guide-ring alpha bumped for visibility.
+3. **Evening Ledger / panel prose "not visible, not clear".** `UIReadabilityHelper.ApplyBody` painted near-black ink **on top of** the dark wash every panel adds — dark-on-dark. Flipped body prose to bright cream with a strong dark outline (legible on the wash *and* bare parchment) and deepened `WashDark` alpha 0.40 → 0.74. Cascades to Evening Ledger, One More Day, Help, and Tone Compass.
+
+Logged as **D-065**. No new compile deps; all edits are field-default + method-level changes to existing scripts.
 
 ---
 

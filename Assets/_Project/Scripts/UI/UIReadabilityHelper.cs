@@ -43,7 +43,7 @@ namespace HearthboundHollow.UI
         public static readonly Color CreamPaper  = new Color(0.94f, 0.86f, 0.66f, 1f);
         public static readonly Color GoldEmber   = new Color(0.92f, 0.70f, 0.34f, 1f);
         public static readonly Color GoldRich    = new Color(0.97f, 0.85f, 0.50f, 1f);
-        public static readonly Color WashDark    = new Color(0.06f, 0.04f, 0.03f, 0.40f);
+        public static readonly Color WashDark    = new Color(0.05f, 0.03f, 0.02f, 0.74f);
 
         /// <summary>
         /// Title-sized, bold, dark-ink with a cream outline + drop-shadow.
@@ -65,17 +65,21 @@ namespace HearthboundHollow.UI
         }
 
         /// <summary>
-        /// Body-sized prose — 24-36 pt, dark ink, subtle outline for contrast
-        /// against busy parchment, word-wrap enabled.
+        /// Body-sized prose — 24-36 pt. Phase 47.1: bright cream ink with a
+        /// strong dark outline. Every ApplyBody call in the project is paired
+        /// with AddDarkWash, and the OLD dark-ink body painted near-black text
+        /// ON TOP of that dark wash → the Evening Ledger prose read as "not
+        /// visible". Cream-on-dark-wash pops; the dark outline keeps it legible
+        /// on the rare unwashed parchment too.
         /// </summary>
         public static void ApplyBody(TextMeshProUGUI t, int min = 22, int max = 36)
         {
             if (t == null) return;
-            t.color = InkDark;
+            t.color = CreamBright;
             t.fontStyle = FontStyles.Normal;
             t.alignment = TextAlignmentOptions.TopLeft;
-            t.outlineColor = CreamBright;
-            t.outlineWidth = 0.15f;
+            t.outlineColor = InkDark;
+            t.outlineWidth = 0.22f;
             t.enableWordWrapping = true;
             UIAutoFitText.ApplyToLabel(t, min, max);
         }

@@ -52,7 +52,7 @@ namespace HearthboundHollow.MiniGames
 
         [Header("Visuals")]
         [Tooltip("Idle ring colour (un-covered quadrants).")]
-        public Color ringIdleColor    = new Color(1.00f, 0.78f, 0.32f, 0.85f);
+        public Color ringIdleColor    = new Color(1.00f, 0.80f, 0.36f, 0.95f);
         [Tooltip("Solid-gold colour as all 4 quadrants are covered.")]
         public Color ringCoveredColor = new Color(1.00f, 0.92f, 0.52f, 1.00f);
         [Tooltip("Core 'don't scrub here' dim band colour.")]
@@ -126,9 +126,9 @@ namespace HearthboundHollow.MiniGames
                 _cam = Camera.main.GetComponent<SmoothFollowCamera>();
                 if (_cam != null && _cam.enabled)
                 {
-                    _savedCamDistance = _cam.distance;
+                    _savedCamDistance = _cam.TargetDistance;
                     _savedCamPitch    = _cam.pitch;
-                    _cam.distance = dollyDistance;
+                    _cam.SetZoomDistance(dollyDistance);
                     _cam.pitch    = dollyPitch;
                     _dollyApplied = true;
                 }
@@ -142,7 +142,7 @@ namespace HearthboundHollow.MiniGames
 
             if (_cam != null && _dollyApplied)
             {
-                _cam.distance = _savedCamDistance;
+                _cam.SetZoomDistance(_savedCamDistance);
                 _cam.pitch    = _savedCamPitch;
             }
             _cam = null;

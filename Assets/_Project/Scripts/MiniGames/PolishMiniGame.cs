@@ -54,8 +54,12 @@ namespace HearthboundHollow.MiniGames
     public class PolishMiniGame : MiniGameBase
     {
         [Header("Tuning")]
-        [Range(0.001f, 0.05f)] public float clarityGainPerSecond = 0.014f;
-        [Range(0.001f, 1f)] public float motionThresholdNormalized = 0.05f;
+        [Range(0.001f, 0.05f)] public float clarityGainPerSecond = 0.006f;
+        // Phase 47.1 — was 0.05 (≈96 px/frame on a 1080p screen): a deliberate
+        // SLOW circle never crossed it, so the orb didn't respond and the
+        // interaction "felt bad". 0.0015 ≈ 3 px/frame — even a gentle, slow
+        // circle now registers while genuine stillness still reads as no motion.
+        [Range(0.0005f, 1f)] public float motionThresholdNormalized = 0.0015f;
         [Range(0.01f, 5f)] public float maxComfortableSpeed = 2.4f;
         [Range(0f, 1f)] public float milestoneClarity = 0.55f;
         [Range(0f, 1f)] public float revealClarity = 0.85f;

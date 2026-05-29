@@ -102,6 +102,15 @@ namespace HearthboundHollow.Player
         [Tooltip("Per-tick zoom step (units per scroll line / RB-LB press).")]
         public float zoomStep = 0.6f;
 
+        [Tooltip("Zoom input sensitivity — scales the normalised scroll / trackpad " +
+                 "delta into a distance change.")]
+        [Range(0.1f, 4f)] public float zoomSensitivity = 1f;
+
+        [Tooltip("Zoom smoothing time. The distance eases toward the zoom target so " +
+                 "both the scroll wheel AND the macOS two-finger trackpad gesture feel " +
+                 "buttery instead of steppy. 0 = instant.")]
+        [Range(0f, 0.4f)] public float zoomSmoothTime = 0.12f;
+
         // ───── Smoothing ───────────────────────────────────────────
 
         [Header("Smoothing")]
@@ -146,6 +155,9 @@ namespace HearthboundHollow.Player
 
         private Vector3 _velocityCache;
         private Vector3 _smoothedTargetPos;
+        private float _targetDistance;
+        private float _zoomVelocity;
+        private bool _zoomInit;
 
         private void OnEnable()
         {
@@ -175,6 +187,8 @@ namespace HearthboundHollow.Player
         private void Start()
         {
             if (target != null) _smoothedTargetPos = target.position + lookOffset;
+            _targetDistance = distance;
+            _zoomInit = true;
         }
 
         private void LateUpdate()
@@ -183,8 +197,12 @@ namespace HearthboundHollow.Player
 
             // 1) Read player look + zoom intent.
             Vector2 look = ReadLookDelta();
+            if (!_zoomInit) { _targetDistance = distance; _zoomInit = true; }
             float zoom = ReadZoomDelta();
-            distance = Mathf.Clamp(distance - zoom * zoomStep, distanceMin, distanceMax);
+            _targetDistance = Mathf.Clamp(_targetDistance - zoom * zoomStep * zoomSensitivity, distanceMin, distanceMax);
+            distance = (zoomSmoothTime > 0.0001f)
+                ? Mathf.SmoothDamp(distance, _targetDistance, ref _zoomVelocity, zoomSmoothTime, Mathf.Infinity, Time.unscaledDeltaTime)
+                : _targetDistance;
 
             yaw += look.x * yawSensitivity * Time.unscaledDeltaTime;
             float pitchDelta = look.y * pitchSensitivity * Time.unscaledDeltaTime;
@@ -257,10 +275,59 @@ namespace HearthboundHollow.Player
 
         private float ReadZoomDelta()
         {
+            float raw = 0f;
+
+            // 1) Designer-wired action wins.
             if (cameraZoomAction != null && cameraZoomAction.action != null && cameraZoomAction.action.enabled)
-                return cameraZoomAction.action.ReadValue<float>();
-            return Input.mouseScrollDelta.y;
+                raw = cameraZoomAction.action.ReadValue<float>();
+
+            // 2) New Input System scroll. This is the path that actually carries
+            //    the macOS two-finger trackpad zoom gesture — the legacy
+            //    Input.mouseScrollDelta API reports 0 for it under the Input
+            //    System backend, which is why trackpad zoom "stopped working".
+            if (Mathf.Approximately(raw, 0f) && Mouse.current != null)
+                raw = Mouse.current.scroll.ReadValue().y;
+
+            // 3) Legacy fallback (old input backend / standalone wheel mice).
+            if (Mathf.Approximately(raw, 0f))
+                raw = Input.mouseScrollDelta.y;
+
+            if (Mathf.Approximately(raw, 0f)) return 0f;
+
+            // Normalise wildly different per-backend magnitudes into comfortable
+            // "notch" units so `zoomStep` feels identical on a wheel mouse, a
+            // Windows Input-System wheel (~±120 / notch), and a macOS trackpad
+            // (small continuous pixel deltas).
+            float sign = Mathf.Sign(raw);
+            float mag  = Mathf.Abs(raw);
+            float notches;
+            if (mag >= 90f)       notches = mag / 120f; // Input System wheel notch
+            else if (mag >= 1.5f) notches = mag / 18f;  // trackpad pixel deltas
+            else                  notches = mag;         // legacy ±1 per notch
+
+            // Clamp the per-frame contribution so a fast trackpad flick can't
+            // jump the entire zoom range in one frame.
+            return sign * Mathf.Min(notches, 3f);
         }
+
+        /// <summary>
+        /// Set the zoom distance THROUGH the smoothing system so external callers
+        /// (e.g. PolishOrbHighlighter's dolly-in) ease with the zoom instead of
+        /// being snapped back by it. Pass immediate=true to jump with no easing.
+        /// </summary>
+        public void SetZoomDistance(float d, bool immediate = false)
+        {
+            _zoomInit = true;
+            _targetDistance = Mathf.Clamp(d, distanceMin, distanceMax);
+            if (immediate)
+            {
+                distance = _targetDistance;
+                _zoomVelocity = 0f;
+            }
+        }
+
+        /// <summary>The distance the zoom is easing toward.</summary>
+        public float TargetDistance => _zoomInit ? _targetDistance : distance;
 
         // ───── Editor helpers ─────────────────────────────────────
 
@@ -268,6 +335,9 @@ namespace HearthboundHollow.Player
         {
             if (target == null) return;
             _smoothedTargetPos = target.position + lookOffset;
+            _targetDistance = distance;
+            _zoomVelocity = 0f;
+            _zoomInit = true;
             Quaternion orbit = Quaternion.Euler(pitch, yaw, 0f);
             transform.position = _smoothedTargetPos + orbit * (Vector3.back * distance);
             transform.rotation = Quaternion.LookRotation(_smoothedTargetPos - transform.position, Vector3.up);
