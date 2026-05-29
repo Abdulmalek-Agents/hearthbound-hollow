@@ -83,7 +83,7 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            // Phase 53 (D-066): start fully transparent AND non-blocking. The
+            // Phase 53 (D-068): start fully transparent AND non-blocking. The
             // rootGroup is a full-screen letterbox overlay; a leftover
             // blocksRaycasts=true after the beat would eat every click in the
             // Lane scene while invisible.
@@ -183,7 +183,7 @@ namespace HearthboundHollow.UI
             rootGroup.interactable = on;
         }
 
-        // Safety net (D-066): a fully transparent overlay must never block
+        // Safety net (D-068): a fully transparent overlay must never block
         // clicks, even if the coroutine was stopped before it cleared.
         private void LateUpdate()
         {

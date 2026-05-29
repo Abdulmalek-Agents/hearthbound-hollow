@@ -61,7 +61,7 @@ namespace HearthboundHollow.UI
         private void Awake()
         {
             if (root != null && root != gameObject) root.SetActive(false);
-            // Phase 53 (D-066): the CanvasGroup sits on the always-active host;
+            // Phase 53 (D-068): the CanvasGroup sits on the always-active host;
             // a stranded blocksRaycasts=true would silently eat every click.
             SetBlocking(false);
 
@@ -164,7 +164,7 @@ namespace HearthboundHollow.UI
             canvasGroup.interactable = on;
         }
 
-        // Safety net (D-066): a fully transparent card must never block clicks,
+        // Safety net (D-068): a fully transparent card must never block clicks,
         // even if a coroutine was stopped mid-flight before Hide() ran.
         private void LateUpdate()
         {

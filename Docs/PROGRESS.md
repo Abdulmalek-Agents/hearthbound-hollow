@@ -1111,7 +1111,52 @@ Three issues from a live playtest (Evening Ledger Day 1 screenshot + verbal repo
 2. **Slow polish circles felt unresponsive.** `motionThresholdNormalized` was `0.05` (≈96 px/frame at 1080p) — a deliberate slow circle never crossed it. Lowered to `0.0015` (≈3 px/frame); eased `clarityGainPerSecond` 0.014 → 0.006 so the circle lasts a satisfying few seconds instead of snapping to full. Idle guide-ring alpha bumped for visibility.
 3. **Evening Ledger / panel prose "not visible, not clear".** `UIReadabilityHelper.ApplyBody` painted near-black ink **on top of** the dark wash every panel adds — dark-on-dark. Flipped body prose to bright cream with a strong dark outline (legible on the wash *and* bare parchment) and deepened `WashDark` alpha 0.40 → 0.74. Cascades to Evening Ledger, One More Day, Help, and Tone Compass.
 
-Logged as **D-065**. No new compile deps; all edits are field-default + method-level changes to existing scripts.
+Logged as **D-067**. No new compile deps; all edits are field-default + method-level changes to existing scripts. *(Originally mis-numbered "D-065" in this log, which collided with the Phase 53 Localization decision — corrected to D-067.)*
+
+---
+
+## Phase 53.1 — Input / click hardening (2026-05-29)
+
+**Playtest blocker:** at the Day 1 Evening Ledger the player could not click any
+button (Save slot, "Sleep — End Day"), nor any button inside the Help overlay
+(opened with H). Keyboard still worked (H toggled the overlay), so the game was
+**stuck — could not advance to the next stage.** Screenshots: Help overlay +
+Evening Ledger Day 1.
+
+**Root cause — invisible full-screen raycast eater.** Several cozy overlays put
+their `CanvasGroup` on the *always-active* script-host (so `Update()` keeps
+running for the toggle key) and hide only by fading `alpha → 0` and/or
+deactivating a child `root` — while the serialized `CanvasGroup.blocksRaycasts`
+stayed **true**. The `MissionTitleCard` (the only always-active
+`blocksRaycasts: 1` object in `03_Mission01_Hollow`) is the lead suspect: its
+play coroutine activates `root`, fades, then deactivates `root`. If that
+coroutine is interrupted — host disabled, `Play()` re-entered, scene torn down —
+a stopped Unity coroutine **cannot run a finally block**, stranding an
+`alpha-0`, `blocksRaycasts: true`, full-screen `CanvasGroup`: an invisible click
+eater over the entire scene. Mouse → UI dies; keyboard polling survives. Exactly
+the reported symptom.
+
+**Fix (D-068).** Every CanvasGroup-on-host overlay now *manages*
+`blocksRaycasts` + `interactable` in code (false at `Awake`, true while
+presenting, false when hidden) **and** runs a `LateUpdate` safety net enforcing
+the invariant *"a fully transparent overlay must never block raycasts"*
+(`alpha ≤ 0.001 ⇒ blocksRaycasts = false`). Applied to `MissionTitleCard`
+(Hollow), `OneMoreDayCard` (the end-of-day beat right after the ledger) and
+`PrefaceBeatUI` (Lane). Runtime edits — they heal the **already-built scenes
+with no rebuild**.
+
+Also fixed `Phase48_BootstrapHookCinematic.EnsureEventSystem` to create the
+Bootstrap EventSystem with `InputSystemUIInputModule` under
+`#if ENABLE_INPUT_SYSTEM` (it hard-coded the legacy `StandaloneInputModule`,
+inconsistent with the other four scene builders — under an Input-System-only
+backend that module reads no pointer input). Builder-only; effective on the next
+`🚀 Build Everything`.
+
+Logged as **D-068**. Progression doc updated:
+`Docs/GAMEPLAY_GUIDE_MISSION_1.md` (end-of-day step notes the click-robust
+ledger → goodnight → next-scene flow).
+
+| **Phase 53.1 (playtest)** | Evening Ledger / Help buttons dead — game stuck at Day 1, can't advance | **Blocker** | ✅ **Fixed — overlay CanvasGroups never strand `blocksRaycasts`; D-068** |
 
 ---
 

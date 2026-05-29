@@ -57,7 +57,7 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
-            // Phase 53 (D-066): the CanvasGroup lives on the always-active
+            // Phase 53 (D-068): the CanvasGroup lives on the always-active
             // script-host, so a leftover blocksRaycasts=true would eat EVERY
             // click in the scene while the card is invisible. Start hidden AND
             // non-blocking.
@@ -76,7 +76,7 @@ namespace HearthboundHollow.UI
             canvasGroup.interactable = on;
         }
 
-        // Safety net (D-066): a coroutine stopped mid-flight (host disabled,
+        // Safety net (D-068): a coroutine stopped mid-flight (host disabled,
         // Play() re-entered, scene torn down) cannot run a finally block, so it
         // could strand an alpha-0 CanvasGroup with blocksRaycasts still on —
         // an invisible, full-screen click eater. Invariant: a fully transparent

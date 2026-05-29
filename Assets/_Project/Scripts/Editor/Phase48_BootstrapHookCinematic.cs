@@ -523,7 +523,7 @@ namespace HearthboundHollow.EditorTools
             if (es == null)
             {
                 var go = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
-                // D-066: match the rest of the builder family — under the new
+                // D-068: match the rest of the builder family — under the new
                 // Input System the legacy StandaloneInputModule cannot read
                 // pointer input, so clicks die. Branch on ENABLE_INPUT_SYSTEM.
 #if ENABLE_INPUT_SYSTEM && UNITY_2020_2_OR_NEWER
