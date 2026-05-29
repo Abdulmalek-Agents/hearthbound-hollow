@@ -47,6 +47,12 @@ Help, Tone Compass) build their labels as **hardcoded English literals** that ne
 - **Runtime components** — `ComfortToolsMenu` (subtitle-size readout), `ToneCompassCard`
   (primer body + gentle-mode label), `HUDController` / `EveningLedgerUI` / `MissionTitleCard`
   (Day / coins), `DialogueUI` (advance prompt) now resolve text via `GetShaped`.
+- **Onboarding** (`OnboardingOverlay`) — `Step` gained `emoji` + `locKey`; `ApplyStep` composes a
+  HollowGlyphs gold glyph (kept OUTSIDE the shaped headline) + localized headline/body/caption,
+  and right-aligns the body for Arabic. All 6 default steps localized.
+- **Mini-game tutorial** (`MiniGameTutorialUI`) — headlines, instructions, per-game base hints,
+  milestone/reveal/friction prompts, the crack-sealed counter, the Auto-Complete suffix + Skip
+  button localize via a `SetHint`/`LocOrField` pair (compose raw, then shape once).
 
 ### Constraints found & honored
 - `ArabicShaper` would **corrupt TMP rich-text tags** (`<b>`, `<color>`) and **reverse across
@@ -58,8 +64,9 @@ Re-run **Hearthbound → 🚀 Build Everything** (rebakes scenes 00–05 so the 
 `LocalizedText` binders), then toggle Arabic in Settings.
 
 ### Remaining (offered as follow-ups)
-Onboarding overlay steps; mini-game tutorial hints; Help **controls-card body** (rich-text);
-control-hint chips (WASD/E/H are universal); + the deferred dialogue/VO human pass.
+Help **controls-card body** (rich-text, programmatically built); control-hint chips (WASD/E/H —
+universal key names); mission display-names + narrative prose (Codex / Evening Ledger / Dreams);
++ the deferred dialogue + voice human-translation/VO pass (Pillar 1 / D-065).
 
 ---
 
