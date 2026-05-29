@@ -336,8 +336,18 @@ namespace HearthboundHollow.EditorTools
 
         private static void PopulateTables(TMP_SpriteAsset asset, Texture2D tex)
         {
-            var glyphTable = new List<TMP_SpriteGlyph>();
-            var charTable  = new List<TMP_SpriteCharacter>();
+            // NOTE: TMP_SpriteAsset.spriteGlyphTable / spriteCharacterTable have
+            // INTERNAL setters (read-only from this assembly), so we mutate the
+            // existing backing lists in place rather than assigning new ones.
+            var glyphTable = asset.spriteGlyphTable;
+            var charTable  = asset.spriteCharacterTable;
+            if (glyphTable == null || charTable == null)
+            {
+                Debug.LogWarning("[Phase54] TMP sprite tables are null; cannot populate glyphs.");
+                return;
+            }
+            glyphTable.Clear();
+            charTable.Clear();
 
             for (uint i = 0; i < Glyphs.Length; i++)
             {
@@ -362,9 +372,6 @@ namespace HearthboundHollow.EditorTools
                 };
                 charTable.Add(character);
             }
-
-            asset.spriteGlyphTable = glyphTable;
-            asset.spriteCharacterTable = charTable;
         }
 
         // ───── TMP Settings registration (best-effort, version-tolerant) ─────
