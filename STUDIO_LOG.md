@@ -15,6 +15,80 @@
 
 ---
 
+## 🎙️🎭 Phase 53 + Voice Fix — Human Speech, Language, Reset & Character Creator 🟢 (2026-05-29)
+
+**User request:** (1) dialogue voices pronounced the ellipsis "…" as "full stop"/"dot
+dot dot" — make them sound human (any free AI voice OK, replace the WAVs to sound
+native). (2) Add a Settings option to **reset the game** back to the home menu, and
+to **select language (Arabic / English)**. (3) Add **character + clothes selection**
+at the beginning. Make it very polished.
+
+### Specialists convened
+Audio/VO Engineer (lead on voice) · 2× C# Scripters · UX/UI Designer · 2× 2D/UI
+Artists · Localization lead (EN/AR, RTL) · Technical Artist + 3D Modeler (avatar
+tinting) · Build/DevOps · 3× Senior QA · 3× Market Critics (cozy-onboarding benchmark).
+
+### 1) Voice — the "full stop / dot dot dot" fix ✅
+
+**Root cause (QA + Audio Eng):** the Piper pipeline (`Tools/generate_voices.sh`)
+already sanitises text via `clean_for_tts()`, but the **espeak-ng fallback**
+(`Phase46_VoiceGenerator.cs`) — the one `🚀 Build Everything` actually runs — was
+feeding **raw** line text to the engine, which verbalises punctuation literally
+("…" → "dot dot dot", "—" → "dash").
+
+**Fix (Phase 46.2):** ported `clean_for_tts` into C# (`CleanForTts` + `IsDirtySource`):
+ellipses/dashes → natural comma pauses; parenthetical stage directions + `*emphasis*`
+stripped; leading/trailing junk trimmed (terminal `. ! ?` kept for cadence);
+pure-punctuation lines (e.g. `"..."`) become **voiceless** (the typewriter carries
+the beat). Stale pre-sanitiser clips auto-purge + regenerate on the next Build
+Everything. For fully **native neural** voices, the **Piper** pipeline (free,
+open-source, D-059) remains the recommended path — `bash Tools/generate_voices.sh`.
+
+### 2) + 3) Phase 53 — Polish Menu Layer (language · reset · character)
+
+| Kind | Item | Status |
+|---|---|---|
+| Core | `LocalizationService.cs` — EN/العربية table, live `OnLanguageChanged`, RTL flag | 🟢 |
+| Core | `SettingsService` — `Language` + character prefs (name/skin/outfit/accessory/created) + `ClearCharacterCreation()` | 🟢 |
+| UI | `LocalizedText.cs` — TMP binder (refresh on language change + RTL flip) | 🟢 |
+| UI | `CharacterCreationUI.cs` — skin/outfit/accessory swatches + name + live preview | 🟢 |
+| UI | `SystemMenuUI.cs` — English/العربية toggle · Customize · Reset (in-panel confirm) | 🟢 |
+| UI edit | `MainMenuController.cs` — `systemMenu` + New-Game `NewGameGate` hook | 🟢 |
+| Mission | `CharacterAppearance.cs` — palette + applier (tints avatar, builds cap/flower/scarf) | 🟢 |
+| Mission | `PolishMenuCoordinator.cs` — Save-aware bridge: reset, customize, New-Game gate | 🟢 |
+| Editor | `Phase53_PolishMenuBuilder.cs` — builds the screens on Main Menu + Pause; chained as Build-Everything Step 16 | 🟢 |
+
+**Flow:** New Game → (Tone Compass) → **Character Creator** (pick skin tone, outfit
+colour, cap/flower/scarf, name) → first scene with the avatar wearing your look.
+**Settings** (Main Menu or Pause → Settings) → **Language EN/العربية** (live) ·
+**Customize Character** · **Reset Game** (in-panel confirm → wipes saves + resets
+VillageState + clears the character → back to the title; **keeps** language/audio/comfort).
+
+### Decisions (see ARCHITECTURE)
+- **D-065** — Runtime UI localization via `LocalizationService` (key→{en,ar}); UI
+  chrome localized + a language selector; hand-written dialogue prose stays canonical
+  English (a dedicated writer translation pass is future work). Missing keys fall back
+  → never blank. Language persists in `SettingsService` (PlayerPrefs).
+- **D-066** — Character appearance is **all-procedural** (palette tints + code-built
+  accessory) so no new art ships; persisted in PlayerPrefs (a player profile, not
+  per-save). Reset keeps language + comfort, clears the character so New Game re-asks.
+
+### asmdef / Cozy audit
+- `LocalizationService` (Core), `LocalizedText`/`SystemMenuUI`/`CharacterCreationUI`
+  (UI → Core only), `CharacterAppearance`/`PolishMenuCoordinator` (Mission → UI/Save/
+  Core), builder (Editor). No cycles (D-035). Save stays out of UI (coordinator bridges).
+- Reset uses a gentle in-panel confirm (no scary modal); copy is warm; nothing
+  punishes. Zero new external packages; all visuals built-in UI sprites + tints.
+
+### QA acceptance (verify after pull + Build Everything)
+1. Dialogue no longer says "dot dot dot"/"full stop"; `"..."` lines are silent.
+2. Settings → العربية flips UI chrome + right-aligns; → English flips back.
+3. New Game opens the Character Creator; choices show on the avatar in-scene.
+4. Settings → Reset Game → confirm → returns to title, Continue greyed, New Game re-asks character.
+5. `🔍 Diagnose Build` clean; zero NRE booting → menu → game.
+
+---
+
 ## 📌 Phase 47-OMD — "One More Day" Goodnight Beat 🟢 (2026-05-29)
 
 **User request:** Read every doc + the `Docs/` and `Docs/Depth_Bible/` folders on
