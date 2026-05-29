@@ -24,6 +24,11 @@
 //   • Gentle Mode: VillageState.gentleModeEnabled is read here and passed to
 //     the card as `instant` so the fade is skipped (identical content, zero
 //     stress) — keeps OneMoreDayCard free of any game-state dependency.
+//
+// ── Phase 54 (D-069) — never strand the player ─────────────────────────────
+//   • The dream wait is bounded by a watchdog so a paused/looping/never-stopping
+//     Timeline cannot freeze the night chain.
+//   • The transition body is guarded; if it throws we fall back to the menu.
 
 using System;
 using System.Collections;
@@ -57,9 +62,17 @@ namespace HearthboundHollow.Mission
             StartCoroutine(RunSequence(playDream, dreamTrigger, onComplete));
         }
 
+        [Header("Phase 54 — safety (D-069)")]
+        [Tooltip("Maximum seconds to wait for the dream's OnDreamFinished signal " +
+                 "before continuing the night chain anyway. A Timeline that is " +
+                 "paused (Time.timeScale 0) or never raises 'stopped' must NEVER " +
+                 "strand the player on a frozen screen — the day always advances.")]
+        public float dreamWatchdogSeconds = 30f;
+
         private IEnumerator RunSequence(bool playDream, Action dreamTrigger, Action onComplete)
         {
-            // 1) Dream (await its natural finish).
+            // 1) Dream (await its natural finish, with a watchdog so a stalled
+            //    Timeline can never soft-lock the night chain — D-069).
             if (playDream && dream != null && dreamTrigger != null)
             {
                 bool finished = false;
@@ -67,8 +80,19 @@ namespace HearthboundHollow.Mission
                 dream.OnDreamFinished += handler;
                 Hh.Log(LogCategory.Cutscene, "EndOfDaySequencer → play dream.");
                 dreamTrigger.Invoke();
-                while (!finished) yield return null;
+
+                float waited = 0f;
+                float maxWait = Mathf.Max(1f, dreamWatchdogSeconds);
+                while (!finished && waited < maxWait)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
                 dream.OnDreamFinished -= handler;
+                if (!finished)
+                    Hh.Warn(LogCategory.Cutscene,
+                        $"EndOfDaySequencer: dream did not signal finish within {maxWait:F0}s — " +
+                        "continuing so the day still advances.");
             }
 
             // 2) Goodnight card (await Goodnight press). Degrades gracefully:
@@ -90,8 +114,21 @@ namespace HearthboundHollow.Mission
                     "EndOfDaySequencer → no card/tease wired; skipping goodnight beat.");
             }
 
-            // 3) Transition (the director's original behaviour).
-            onComplete?.Invoke();
+            // 3) Transition (the director's original behaviour). Guarded so a
+            //    throwing handler can't kill the coroutine and strand the
+            //    player mid-night (D-069).
+            try
+            {
+                onComplete?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Hh.Err(LogCategory.Mission,
+                    $"EndOfDaySequencer: day-end transition threw — {ex.Message}. " +
+                    "Attempting safe fallback to the main menu.");
+                var gm = GameManager.Instance;
+                if (gm != null) gm.LoadScene(gm.mainMenuSceneName);
+            }
         }
 
         /// <summary>
