@@ -10,6 +10,47 @@
 
 ---
 
+## 🆕 Phase 57 — Arabic dialogue + voice PLUMBING (D-074)  🟢 (2026-05-30)
+
+**User request (QA video):** *"Arabic voice localization for dialogue not working — fix."*
+
+### Two things, one bug + one content gap
+- **Bug (fixed):** the dialogue **advance prompt** ("Click or [Space] >") stayed English even
+  in Arabic. Root cause: the baked scene pre-wires `advancePrompt`, so DialogueUI's
+  `EnsureAdvancePromptExists()` returns early and the build-time `GetShaped` never ran. Fixed
+  by localizing it in `Awake` (runtime) → "انقر أو اضغط مسافة".
+- **Not a bug — missing content:** the dialogue **line text** ("This is the memory.") + Doris's
+  **voice** are hand-written Yarn + VO. Per Pillar 1 / D-065 the Arabic version is a HUMAN
+  translation/recording pass — there's no Arabic prose or audio in the project.
+
+### Decision (player chose "build the plumbing, supply Arabic later")
+Built the drop-in infrastructure so Arabic dialogue + voice "just work" once human content
+exists, **without authoring any Arabic prose/audio** (Pillar 1 honored). Everything stays
+English until the files are filled.
+
+- **Dialogue text:** new `DialogueLocalizationSO` (empty lineId→Arabic table, Resources-loaded)
+  + `DialogueLocalization` accessor. `DialogueUI.PresentLine` overrides the English line with
+  the shaped Arabic **when** the language is Arabic AND a translation exists for that lineId.
+- **Voice:** `VoicePlayer` gained an optional `libraryAr` (auto-loaded from
+  `Resources/HearthboundVoiceLibrary_ar`). `Play(lineId)` now resolves the Arabic clip when
+  Arabic is active + present, else falls back to the English clip.
+- **Scaffold:** `Phase57_ArabicLocalizationScaffold` (Advanced menu, auto-runs if missing)
+  creates the empty dialogue table and builds the Arabic voice library by scanning a sibling
+  `Assets/_Project/Audio/Voice_ar/<Character>/<lineId>.wav` root (mirrors the English convention;
+  sibling path so the English recursive scan never grabs it).
+
+### How to actually localize dialogue/voice (human pass)
+1. Fill `Resources/DialogueLocalization_ar` entries (lineId → Arabic text). lineIds are the
+   ones the directors pass, e.g. `doris_m1_greet_01` (see `Mission01Director`).
+2. Drop Arabic VO at `Audio/Voice_ar/<Character>/<lineId>.wav`, re-run **Phase 57** (or Build
+   Everything). Speaker names (proper nouns) stay as-is.
+
+### Known follow-up
+RTL typewriter reveal (DialogueUI types char-by-char) will need a polish pass for shaped Arabic
+once real Arabic lines exist — not observable now (table is empty → English).
+
+---
+
 ## 🆕 Phase 56.1 — Arabic UI-chrome localization coverage  🟢 (2026-05-29)
 
 **User request (with QA screenshots):**

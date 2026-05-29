@@ -74,6 +74,13 @@ namespace HearthboundHollow.Audio
         [Tooltip("If null, auto-loaded from Resources/HearthboundVoiceLibrary on Awake.")]
         public VoiceLibrarySO library;
 
+        [Tooltip("Phase 57 (D-074) — optional Arabic voice library. If null, auto-loaded " +
+                 "from Resources/HearthboundVoiceLibrary_ar on Awake. When Arabic is the " +
+                 "active language AND a clip exists here for a lineId, it plays instead of " +
+                 "the English clip; otherwise English is used. Ships empty/absent, so " +
+                 "voice stays English until Arabic .wav files are added (Audio/Voice_ar/).")]
+        public VoiceLibrarySO libraryAr;
+
         [Tooltip("The 2D AudioSource through which dialogue plays. " +
                  "Auto-created on Awake if null.")]
         public AudioSource source;
@@ -123,6 +130,12 @@ namespace HearthboundHollow.Audio
                         $"Resources/{ResourcesLibraryName}.");
                 }
             }
+
+            // Phase 57 (D-074) — optional Arabic voice library. Absent/empty by
+            // default; when present, Play() prefers its clip while Arabic is active
+            // and falls back to the English clip for any untranslated line.
+            if (libraryAr == null)
+                libraryAr = Resources.Load<VoiceLibrarySO>("HearthboundVoiceLibrary_ar");
         }
 
         private void EnsureAudioSource()
@@ -216,9 +229,10 @@ namespace HearthboundHollow.Audio
         /// </summary>
         public float Play(string lineId)
         {
-            if (string.IsNullOrEmpty(lineId)) return 0f;
-            if (library == null || source == null) return 0f;
-            if (!library.TryGet(lineId, out var e) || e.clip == null) return 0f;
+            if (string.IsNullOrEmpty(lineId) || source == null) return 0f;
+            // Phase 57 (D-074) — language-aware: Arabic clip when active + present,
+            // else the canonical English clip.
+            if (!TryResolveEntry(lineId, out var e) || e.clip == null) return 0f;
 
             // If there's a previous clip still playing, end it cleanly
             // (publishes the end event so duckers restore before we duck again).
@@ -240,6 +254,23 @@ namespace HearthboundHollow.Audio
             EventBus.Publish(new VoiceClipStartedEvent(lineId, e.clip.length));
 
             return e.clip.length;
+        }
+
+        /// <summary>
+        /// Phase 57 (D-074) — resolve the voice entry for a line, preferring the
+        /// Arabic clip while Arabic is the active language (and a non-null clip
+        /// exists for it), otherwise the canonical English clip. Both libraries
+        /// are optional; an absent/empty Arabic library means English everywhere.
+        /// </summary>
+        private bool TryResolveEntry(string lineId, out VoiceLibrarySO.Entry entry)
+        {
+            if (LocalizationService.IsRightToLeft && libraryAr != null &&
+                libraryAr.TryGet(lineId, out entry) && entry.clip != null)
+                return true;
+            if (library != null && library.TryGet(lineId, out entry) && entry.clip != null)
+                return true;
+            entry = default;
+            return false;
         }
 
         /// <summary>

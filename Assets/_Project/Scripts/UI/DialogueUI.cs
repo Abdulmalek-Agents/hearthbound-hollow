@@ -273,6 +273,16 @@ namespace HearthboundHollow.UI
             ClearChoices();
             if (_typeCoroutine != null) StopCoroutine(_typeCoroutine);
 
+            // Phase 57 (D-074) — Arabic dialogue-text plumbing. When Arabic is
+            // active AND a human translation exists for this lineId, show the
+            // shaped Arabic; otherwise keep the canonical English line. The table
+            // ships EMPTY (Pillar 1 / D-065 — filled by a translator), so this is
+            // a no-op until Arabic prose is dropped in. Speaker names (proper
+            // nouns) are intentionally left untranslated.
+            if (LocalizationService.IsRightToLeft &&
+                DialogueLocalization.TryGetArabic(lineId, out var arLine))
+                text = LocalizationService.Shape(arLine);
+
             _fullLineText = text ?? string.Empty;
 
             if (advancePrompt != null) advancePrompt.gameObject.SetActive(false);
