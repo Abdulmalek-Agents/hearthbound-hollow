@@ -142,6 +142,13 @@ namespace HearthboundHollow.Mission
             // Subscribe to polish completion.
             if (polishGame != null) polishGame.OnGameFinished += OnPolishFinished;
 
+            // Phase 54 (D-071) — register Doris with the dialogue camera so it
+            // frames her properly (the Hollow scene has no object literally named
+            // "Doris", which previously collapsed dialogue to a wall-jammed wide
+            // shot). Safe even before the camera director auto-spawns.
+            if (dorisTransform != null)
+                HearthboundHollow.Player.DialogueCameraDirector.RegisterSpeaker("Doris", dorisTransform);
+
             // Hide UI panels initially.
             if (dialogueUI != null) dialogueUI.Hide();
             if (eveningLedger != null)
@@ -386,6 +393,8 @@ namespace HearthboundHollow.Mission
                 "The shop is still yours.\n" +
                 "Some days are not the day.";
             eveningLedger.Show(summary, titles);
+            // Park the player on the modal ledger (D-069). Mouse still works.
+            LockPlayer(true);
         }
 
         // ───── The polish flow ────────────────────────────────────────────
@@ -523,14 +532,35 @@ namespace HearthboundHollow.Mission
                     "She did not move. She is watching you.\n\n" +
                     "The shop is quiet. The shelf is no longer empty.";
                 eveningLedger.Show(summary, titles);
+                // Keep movement locked while the modal end-of-day panel is open
+                // so the player can't wander off behind it (D-069 polish). Mouse
+                // input still works for the Save / Sleep buttons.
+                LockPlayer(true);
             }
-            LockPlayer(false);
+            else
+            {
+                LockPlayer(false);
+            }
         }
 
         // ───── End of day ────────────────────────────────────────────
 
+        private bool _endOfDayHandled;
+
         private void OnEndOfDayConfirmed()
         {
+            // Single-fire guard (D-069): the Evening Ledger's confirm button now
+            // guards itself too, but belt-and-braces here means the night chain
+            // can never be entered twice (which previously raced two LoadScene
+            // calls and contributed to the end-of-day soft-lock).
+            if (_endOfDayHandled) return;
+            _endOfDayHandled = true;
+
+            // Keep the player parked through the dream / goodnight card / load,
+            // and make sure the ledger is truly closed before the night beats.
+            LockPlayer(true);
+            if (eveningLedger != null) eveningLedger.Hide();
+
             var gm = GameManager.Instance;
             if (gm == null) return;
 
