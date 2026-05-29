@@ -109,6 +109,13 @@ namespace HearthboundHollow.Mission
         [Tooltip("Scene to load when the player ends the day (MVP: return to MainMenu).")]
         public string sceneAfterEndOfDay = "01_MainMenu";
 
+        [Header("Phase 47 — One More Day (optional)")]
+        [Tooltip("When wired (by Phase47_OneMoreDayBuilder), the night chain " +
+                 "Ledger → Dream → Goodnight Card → load is owned here. " +
+                 "Unwired = the exact legacy day-end path runs (D-064).")]
+        public EndOfDaySequencer endOfDaySequencer;
+        public HearthboundHollow.Cutscene.MemoryDreamSequencer dreamSequencer;
+
         // ───── Lifecycle ──────────────────────────────────────────
 
         private DorisGreetingTrigger _dorisProxy;
@@ -381,7 +388,7 @@ namespace HearthboundHollow.Mission
             eveningLedger.Show(summary, titles);
         }
 
-        // ───── The polish flow ─────────────────────────────────────────────
+        // ───── The polish flow ────────────────────────────────────────────
 
         private IEnumerator PolishFlow()
         {
@@ -526,12 +533,27 @@ namespace HearthboundHollow.Mission
         {
             var gm = GameManager.Instance;
             if (gm == null) return;
-            gm.EndDay();
-            EventBus.Publish(new MissionCompletedEvent(null, "Mission01", "Day 1 — Doris's first loaves."));
-            gm.LoadScene(sceneAfterEndOfDay);
+
+            // The original day-end behaviour — captured as a lambda so the
+            // optional EndOfDaySequencer can run the night beats first, then
+            // invoke it. Unwired sequencer = byte-for-byte the legacy path.
+            System.Action transition = () =>
+            {
+                gm.EndDay();
+                EventBus.Publish(new MissionCompletedEvent(null, "Mission01", "Day 1 — Doris's first loaves."));
+                gm.LoadScene(sceneAfterEndOfDay);
+            };
+
+            if (endOfDaySequencer != null)
+                endOfDaySequencer.BeginNightSequence(
+                    playDream: dreamSequencer != null,
+                    dreamTrigger: () => dreamSequencer?.PlayDream1(),
+                    onComplete: transition);
+            else
+                transition();   // unchanged legacy path
         }
 
-        // ───── Helpers ──────────────────────────────────────────────
+        // ───── Helpers ─────────────────────────────────────────────
 
         private void LockPlayer(bool locked)
         {
