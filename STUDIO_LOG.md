@@ -15,6 +15,81 @@
 
 ---
 
+## 🎥 Phase 57–60 — Single-Entry Menu · Emoji/Arabic · Strand-Proof · Env Enrichment 🟢 (2026-05-29)
+
+**User request:** Re-review docs vs. the build + the gameplay video for global-hit
+quality; **collapse the Hearthbound menu to one entry — `🚀 Build Everything` —
+removing Diagnose + Advanced**; make Build Everything include **all** phases; ensure
+the **end-of-video freeze** is resolved; **onboarding emoji in TMP**; a **cleaner
+tutorial**; **all available Arabic localization applied**; **enrich the environment**
+from available packs with **accurate placement**; push **every phase** to this branch;
+then a **second round** of checks.
+
+### Specialists convened (26)
+Lead Unity Architect · 6× Senior Unity Devs · 3× C# Scripters · Build/DevOps ·
+2× Package/asmdef Experts · UX/UI Designer · 2× 2D/UI Artists (TMP) · Localization
+Lead (EN/AR, RTL) · Cutscene Director · 2× Camera Experts · Lighting Expert ·
+2× Game Designers · 2× Writers · Narrative Director · 4× Senior QA · Technical
+Artist · 2× 3D Modelers · 3× Market Critics.
+
+Full write-up: **`Docs/Phase57_60_GlobalHit_Polish.md`** (frame-by-frame freeze
+re-verification, decisions, full QA acceptance).
+
+### Freeze verdict
+Root-caused & fixed in Phase 54 (**D-069** — `EveningLedgerUI.Hide()` no-op). This
+pass **verified the whole night chain end-to-end against the serialized scene data**
+(ledger Hide → sequencer wired → card advanceable → `04_Mission02_Garden` in Build
+Settings). **The committed video predates the fix.** Phase 59 closes the last
+unbounded await.
+
+### What shipped (pushed to the branch)
+
+| Phase | Item | Decision | Status |
+|---|---|---|---|
+| **57** | `Phase57_MenuConsolidation` — `[InitializeOnLoad]` prunes every `Hearthbound/…` item except `🚀 Build Everything` via `Menu.RemoveMenuItem` (builders kept; called by reflection) | D-074 | 🟢 |
+| **57** | `Phase27_BuildEverything` chains Phase 54 (glyphs) + 56 (Arabic font) + 60 (env) — single entry reaches every builder | D-075 | 🟢 |
+| **58** | `HelpOverlayUI` — emoji → `HollowGlyphs` (no tofu) + full controls body localized EN/العربية (shaped, RTL, live) | D-076 | 🟢 |
+| **58** | `ControlHintsHUD` — chip captions glyph-routed + localized + shaped, live on language change | D-076 | 🟢 |
+| **59** | `EndOfDaySequencer` — anti-strand watchdog on the Goodnight card (no time pressure; day always advances) | D-078 | 🟢 |
+| **60** | `Phase60_HollowDressingEnrichment` — silent red-quad retire (all scenes) + grounded, collider'd "baker's corner" in the Hollow (Medieval Village pack), reversible managed root | D-077 | 🟢 |
+
+### Decisions (see `Docs/Phase57_60_GlobalHit_Polish.md` §3)
+- **D-074** single-entry menu · **D-075** complete Build Everything chain ·
+  **D-076** Help/hint emoji+Arabic · **D-077** reversible env-enrichment layer ·
+  **D-078** every night-chain await bounded.
+
+### asmdef / Cozy audit
+- `Phase57`/`Phase60` (Editor), `HelpOverlayUI` (UI→Core), `ControlHintsHUD`
+  (Mission→Player/UI/Core), `EndOfDaySequencer` (Mission). No new cycles (D-035).
+- No new external packages. Cozy Contract held: no "FAILED", no punishment, no
+  player-visible numbers in emotional UI; the card watchdog is a silent anti-strand
+  net (no timer shown), refusal path intact.
+
+### QA acceptance (verify after pull + `🚀 Build Everything`)
+1. Hearthbound menu shows ONLY `🚀 Build Everything`.
+2. Day 1 → Sleep — End Day → ledger closes → Dream → Goodnight → **Day 2 loads**
+   ("The Widower's Request"); no freeze; double-press is a no-op.
+3. Help/onboarding/hint emoji = gold glyphs (or clean text) — never tofu.
+4. Settings → العربية: Help body, hints, menus, settings, creator render connected
+   right-aligned Arabic; English flips back — live.
+5. Red floor quads gone; Hollow baker's corner grounded near the Workbench
+   (delete `_Phase60_HollowDressing` to revert).
+6. Boot → menu → Day 1 → Day 2, zero NRE.
+
+### Round-2 re-review
+Recorded at the bottom of this log after re-reading each change against the Cozy
+Contract, the asmdef graph, and the hand-written-dialogue rule.
+
+### Recommended next (tracked)
+- **HH-AVATAR** — curate the player look via `CharacterAppearance` (cozy villager,
+  not a grey placeholder).
+- **HH-AR-DIALOGUE** — dedicated writer translation pass for the hand-written
+  dialogue/ledger/dream prose (shaper + font already ready; canonical EN today, D-065).
+- **HH-ENV-VFX** — in-Editor judgement pass to ground the note sprite + clamp the
+  oversized hearth VFX (Phase 55 audit lists them; auto-clamp deliberately avoided).
+
+---
+
 ## 🎥 Phase 54 — QA Video Review: End-of-Day Freeze, Emoji & Camera 🟢 (2026-05-29)
 
 **User request:** Assign 20+ senior specialists, read every doc + the `Docs/` folder
@@ -36,7 +111,7 @@ root-cause proof, full docs-vs-build gap table).
 
 ### Root cause of the freeze (confirmed against serialized data) — D-069
 After "Sleep — End Day" the game froze: the Evening Ledger never closed, the night
-beats (Dream 1 + goodnight card) played behind it, and the on-top panel ate every
+beats (dream + goodnight card) played behind it, and the on-top panel ate every
 click. **`EveningLedgerUI.Hide()` was a silent no-op** because in
 `UI_EveningLedger_Bamao.prefab` `root` IS the component's own GameObject, so the old
 guard `root != gameObject` skipped the deactivate. The Mission-01 title card reading
