@@ -4,7 +4,7 @@
 >
 > **Owners:** Engagement Designer (lead) · Esme Cordray (prose) · Mochi Tannenbaum (Pickle) · Sven Aleko (night beat) · Pell Doyne (cozy gate) · Senior Unity Dev + Asset Engineer.
 >
-> **Status:** 📋 Implementation guide — ready to build in the Editor. Tier 1 only.
+> **Status:** ✅ **IMPLEMENTED (Tier 1) — 2026-05-29** on `feat/mission-1-2-architecture`. The 4 scripts, 3 director/runner edits, Yarn nodes, 2 SO assets, and the idempotent builder all ship; run `Hearthbound → 🚀 Build Everything` (Phase 47 OMD is the final step) to generate the prefab + scene wiring. See `STUDIO_LOG.md` / `Docs/PROGRESS_Phase47_OneMoreDay.md` for the build notes and the 4 intentional deviations from this guide (day-index fix, `refusedDorisOrb` branch flag, M2 `playDream:false`, decision renumbered **D-060 → D-064**).
 > **Branch:** `feat/mission-1-2-architecture` · **Unity:** 6000.4.4f1 / URP-Mobile.
 
 ---
