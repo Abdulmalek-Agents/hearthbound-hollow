@@ -138,42 +138,36 @@ namespace HearthboundHollow.EditorTools
         {
             if (arabic == null) return;
 
-            // 1) Fallback on the default body font → Latin keeps the cozy font,
-            //    Arabic code points resolve through this asset.
+            // Register via SerializedObject on both targets so it works regardless
+            // of whether the C# fallback-list properties expose a public setter
+            // (TMP hardened several setters to internal). 1) the default body font
+            // (Latin keeps its font; Arabic resolves through this fallback), and
+            // 2) the TMP Settings global fallback (covers fonts with no own table).
             var def = TMP_Settings.defaultFontAsset;
-            if (def != null)
-            {
-                def.fallbackFontAssetTable ??= new List<TMP_FontAsset>();
-                if (!def.fallbackFontAssetTable.Contains(arabic))
-                {
-                    def.fallbackFontAssetTable.Add(arabic);
-                    EditorUtility.SetDirty(def);
-                }
-            }
+            if (def != null && AppendToArray(def, "m_FallbackFontAssetTable", arabic))
+                EditorUtility.SetDirty(def);
 
-            // 2) Global fallback in TMP Settings (covers any font without its own
-            //    fallback table). Property name is stable across TMP versions.
             var settings = TMP_Settings.instance;
-            if (settings != null)
-            {
-                var so = new SerializedObject(settings);
-                var prop = so.FindProperty("m_fallbackFontAssets");
-                if (prop != null && prop.isArray)
-                {
-                    bool present = false;
-                    for (int i = 0; i < prop.arraySize; i++)
-                        if (prop.GetArrayElementAtIndex(i).objectReferenceValue == arabic) { present = true; break; }
-                    if (!present)
-                    {
-                        prop.arraySize += 1;
-                        prop.GetArrayElementAtIndex(prop.arraySize - 1).objectReferenceValue = arabic;
-                    }
-                    so.ApplyModifiedPropertiesWithoutUndo();
-                    EditorUtility.SetDirty(settings);
-                }
-            }
+            if (settings != null && AppendToArray(settings, "m_fallbackFontAssets", arabic))
+                EditorUtility.SetDirty(settings);
 
             AssetDatabase.SaveAssets();
+        }
+
+        // Append an object reference to a serialized array property if absent.
+        // Returns true if a change was made; false if the property is missing or
+        // the value is already present.
+        private static bool AppendToArray(UnityEngine.Object owner, string propName, UnityEngine.Object value)
+        {
+            var so = new SerializedObject(owner);
+            var prop = so.FindProperty(propName);
+            if (prop == null || !prop.isArray) return false;
+            for (int i = 0; i < prop.arraySize; i++)
+                if (prop.GetArrayElementAtIndex(i).objectReferenceValue == value) return false;
+            prop.arraySize += 1;
+            prop.GetArrayElementAtIndex(prop.arraySize - 1).objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return true;
         }
 
         // ───── source font resolution ───────────────────────────────
