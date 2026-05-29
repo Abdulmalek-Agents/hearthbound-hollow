@@ -83,6 +83,11 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
+            // Phase 53 (D-066): start fully transparent AND non-blocking. The
+            // rootGroup is a full-screen letterbox overlay; a leftover
+            // blocksRaycasts=true after the beat would eat every click in the
+            // Lane scene while invisible.
+            SetBlocking(false);
             if (rootGroup != null) rootGroup.alpha = 0f;
             if (line1Text != null) line1Text.text = "";
             if (line2Text != null) line2Text.text = "";
@@ -131,6 +136,7 @@ namespace HearthboundHollow.UI
         private IEnumerator PlayCoroutine(string[] lines, string bucket)
         {
             if (rootGroup != null) rootGroup.alpha = 0f;
+            SetBlocking(true);
             yield return FadeRoot(0f, 1f, fadeInDuration);
 
             for (int i = 0; i < 3; i++)
@@ -159,6 +165,7 @@ namespace HearthboundHollow.UI
             }
 
             yield return FadeRoot(1f, 0f, fadeOutDuration);
+            SetBlocking(false);
 
             if (_state != null)
             {
@@ -167,6 +174,21 @@ namespace HearthboundHollow.UI
             }
 
             _onComplete?.Invoke();
+        }
+
+        private void SetBlocking(bool on)
+        {
+            if (rootGroup == null) return;
+            rootGroup.blocksRaycasts = on;
+            rootGroup.interactable = on;
+        }
+
+        // Safety net (D-066): a fully transparent overlay must never block
+        // clicks, even if the coroutine was stopped before it cleared.
+        private void LateUpdate()
+        {
+            if (rootGroup != null && rootGroup.blocksRaycasts && rootGroup.alpha <= 0.001f)
+                SetBlocking(false);
         }
 
         private IEnumerator FadeRoot(float from, float to, float dur)
