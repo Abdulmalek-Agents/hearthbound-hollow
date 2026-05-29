@@ -63,6 +63,27 @@ namespace HearthboundHollow.Player
     {
         public static DialogueCameraDirector Instance { get; private set; }
 
+        // Phase 54 (D-071) — speaker registry. The heuristic GameObject lookup
+        // fails when a scene's NPC isn't named after the speaker (e.g. the Hollow
+        // has no object literally named "Doris"), which collapsed every line to
+        // the wide/narrator fallback and jammed the camera against nearby walls.
+        // Directors now register their speakers' transforms by name up front, so
+        // the over-the-shoulder shot always frames the right character. Static so
+        // it survives the auto-spawn timing of the director itself.
+        private static readonly System.Collections.Generic.Dictionary<string, Transform> _registry
+            = new(System.StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Register (or update) the scene Transform for a dialogue speaker name,
+        /// e.g. RegisterSpeaker("Doris", dorisTransform). Safe to call before the
+        /// director instance exists. Null/empty args are ignored.
+        /// </summary>
+        public static void RegisterSpeaker(string speakerName, Transform t)
+        {
+            if (string.IsNullOrEmpty(speakerName) || t == null) return;
+            _registry[speakerName] = t;
+        }
+
         // ───── Tunables ────────────────────────────────────────────
 
         [Header("Targets")]
@@ -345,6 +366,14 @@ namespace HearthboundHollow.Player
         private Transform ResolveSpeakerTransform(string speakerName)
         {
             if (string.IsNullOrEmpty(speakerName)) return null;
+
+            // 0. Registered speakers win (Phase 54, D-071) — survives renamed /
+            //    non-eponymous NPC GameObjects. Drop stale (destroyed) entries.
+            if (_registry.TryGetValue(speakerName, out var reg))
+            {
+                if (reg != null) return reg;
+                _registry.Remove(speakerName);
+            }
 
             // 1. Explicit inspector override wins.
             foreach (var o in speakerOverrides)
