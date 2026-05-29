@@ -160,12 +160,13 @@ namespace HearthboundHollow.UI
             EnsureAdvancePromptExists();
             if (advancePrompt != null)
             {
-                // Phase 32.11 — if the prefab baked the old ▸ glyph (not in
-                // LiberationSans SDF), overwrite with ">" at runtime so the
-                // missing-character spam stops on installs that haven't
-                // re-run Phase 31's editor capstone yet.
-                if (!string.IsNullOrEmpty(advancePrompt.text) && advancePrompt.text.Contains("▸"))
-                    advancePrompt.text = advancePrompt.text.Replace("▸", ">");
+                // Phase 56 (D-073) — localize + Arabic-shape the advance prompt at
+                // runtime. The baked scene PRE-WIRES this label, so
+                // EnsureAdvancePromptExists() returns early and its build-time text
+                // would otherwise stay English ("Click or [Space] >"). Setting it
+                // here also supersedes the legacy ▸ glyph some old prefabs baked
+                // (it's overwritten wholesale), so the Phase 32.11 ▸→> fix is moot.
+                advancePrompt.text = LocalizationService.GetShaped("dialogue.advance");
                 advancePrompt.gameObject.SetActive(false);
             }
 
