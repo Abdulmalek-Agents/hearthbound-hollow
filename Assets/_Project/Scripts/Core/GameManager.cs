@@ -172,6 +172,25 @@ namespace HearthboundHollow.Core
                 return;
             }
 
+            // Phase 54 (D-069) — validate the scene is actually loadable BEFORE
+            // we tear anything down. A scene missing from Build Settings used to
+            // fail silently inside LoadSceneAsync, leaving the player on a frozen
+            // end-of-day panel with no way forward. Now we detect it up front and
+            // fall back to the main menu so the game is never stranded.
+            if (mode == LoadSceneMode.Single && !Application.CanStreamedLevelBeLoaded(sceneName))
+            {
+                Hh.Err(LogCategory.Boot,
+                    $"Scene '{sceneName}' is not in Build Settings / cannot be loaded.");
+                if (sceneName != mainMenuSceneName &&
+                    Application.CanStreamedLevelBeLoaded(mainMenuSceneName))
+                {
+                    Hh.Warn(LogCategory.Boot,
+                        $"Falling back to '{mainMenuSceneName}' so the player is never stranded.");
+                    LoadScene(mainMenuSceneName, LoadSceneMode.Single);
+                }
+                return;
+            }
+
             Hh.Log(LogCategory.Boot, $"Loading scene '{sceneName}' (mode {mode}).");
             OnSceneLoadStarted?.Invoke(sceneName);
 
