@@ -159,6 +159,12 @@ namespace HearthboundHollow.Player
         private float _zoomVelocity;
         private bool _zoomInit;
 
+        // Wall-clip: reusable cast buffer + cached target colliders so the probe
+        // can ignore the player's own body (Phase 32.21 — camera-in-player fix).
+        private readonly RaycastHit[] _clipHits = new RaycastHit[8];
+        private Transform _colliderCacheTarget;
+        private Collider[] _targetColliders;
+
         private void OnEnable()
         {
             if (cameraLookAction != null && cameraLookAction.action != null) cameraLookAction.action.Enable();
@@ -219,18 +225,31 @@ namespace HearthboundHollow.Player
             Vector3 desiredOffset = orbit * (Vector3.back * distance);
             Vector3 desiredPos = _smoothedTargetPos + desiredOffset;
 
-            // 3) Wall-clip protection.
+            // 3) Wall-clip protection — sphere-cast from the pivot toward the
+            //    desired camera position; if it hits geometry, slide the camera
+            //    in to the nearest hit. We IGNORE the player's own colliders:
+            //    the cast starts at the player's chest, so a naive probe hits the
+            //    character and yanks the camera into the body (the "camera clips
+            //    into the player" bug). Phase 32.21 — filter the target's
+            //    colliders + skip zero-distance (start-overlap) hits.
             if (clipAgainstGeometry)
             {
                 Vector3 dir = desiredPos - _smoothedTargetPos;
                 float dist = dir.magnitude;
                 if (dist > 0.01f)
                 {
-                    Ray r = new Ray(_smoothedTargetPos, dir.normalized);
-                    if (Physics.SphereCast(r, clipRadius, out RaycastHit hit, dist, clipMask, QueryTriggerInteraction.Ignore))
+                    Vector3 ndir = dir / dist;
+                    Ray r = new Ray(_smoothedTargetPos, ndir);
+                    int n = Physics.SphereCastNonAlloc(r, clipRadius, _clipHits, dist, clipMask, QueryTriggerInteraction.Ignore);
+                    float nearest = float.PositiveInfinity;
+                    for (int i = 0; i < n; i++)
                     {
-                        desiredPos = hit.point - dir.normalized * clipRadius;
+                        var h = _clipHits[i];
+                        if (h.collider == null || h.distance <= 0.01f || IsTargetCollider(h.collider)) continue;
+                        if (h.distance < nearest) nearest = h.distance;
                     }
+                    if (!float.IsPositiveInfinity(nearest))
+                        desiredPos = _smoothedTargetPos + ndir * nearest;
                 }
             }
 
@@ -241,6 +260,23 @@ namespace HearthboundHollow.Player
         }
 
         // ───── Helpers ─────────────────────────────────────────────
+
+        // True if the collider belongs to the follow target (the player) or any
+        // of its children. The target's collider set is cached and only refreshed
+        // when `target` changes, so the wall-clip probe stays allocation-free.
+        private bool IsTargetCollider(Collider c)
+        {
+            if (c == null || target == null) return false;
+            if (_colliderCacheTarget != target)
+            {
+                _targetColliders = target.GetComponentsInChildren<Collider>(true);
+                _colliderCacheTarget = target;
+            }
+            if (_targetColliders == null) return false;
+            for (int i = 0; i < _targetColliders.Length; i++)
+                if (_targetColliders[i] == c) return true;
+            return false;
+        }
 
         private Vector2 ReadLookDelta()
         {

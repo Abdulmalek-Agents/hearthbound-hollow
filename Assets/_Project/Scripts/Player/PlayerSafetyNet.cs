@@ -89,6 +89,7 @@ namespace HearthboundHollow.Player
         private CharacterController _cc;
         private Vector3 _lastPos;
         private float _stuckTimer;
+        private float _stuckAccum;   // metres actually covered in the current window
         private bool _stuckWarned;
         private bool _spawnCaptured;
         private int _respawnCount;
@@ -149,34 +150,54 @@ namespace HearthboundHollow.Player
             //    to nudge and movement input is being supplied. We assume the
             //    PlayerController publishes a "wants to move" bool we can read;
             //    if not, fall back to "horizontal cursor delta > 0".
+            // Accumulate ACTUAL movement over a rolling window while the player
+            // is asking to move. If they cover less than `stuckMinMove` metres
+            // across `stuckSeconds`, they're genuinely wedged → nudge up so the
+            // CharacterController can resolve it.
+            //
+            // Phase 32.21 fix: the old test compared the PER-FRAME delta against a
+            // window-scaled threshold (`stuckMinMove * dt / 0.016` ≈ 0.083 m ≈
+            // 5 m/s). A normally walking player (slower than that) was therefore
+            // flagged "stuck" every frame and got nudged +0.4 m every 1.5 s —
+            // the periodic hop + "wedged… nudging up" log spam seen in M1/M2.
             float delta = (transform.position - _lastPos).magnitude;
             bool wantsMove =
                 Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f ||
                 Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f;
-            if (wantsMove && delta < stuckMinMove * Time.deltaTime / 0.016f)
+            if (wantsMove)
             {
                 _stuckTimer += Time.deltaTime;
+                _stuckAccum += delta;
                 if (_stuckTimer >= stuckSeconds)
                 {
-                    if (_cc != null)
+                    if (_stuckAccum < stuckMinMove)
                     {
-                        _cc.enabled = false;
-                        transform.position += Vector3.up * stuckNudgeUp;
-                        _cc.enabled = true;
+                        if (_cc != null)
+                        {
+                            _cc.enabled = false;
+                            transform.position += Vector3.up * stuckNudgeUp;
+                            _cc.enabled = true;
+                        }
+                        if (!_stuckWarned)
+                        {
+                            Hh.Warn(LogCategory.Input,
+                                $"PlayerSafetyNet: player appears wedged at {transform.position}; " +
+                                $"nudging up by {stuckNudgeUp} m.");
+                            _stuckWarned = true;
+                        }
                     }
-                    if (!_stuckWarned)
+                    else
                     {
-                        Hh.Warn(LogCategory.Input,
-                            $"PlayerSafetyNet: player appears wedged at {transform.position}; " +
-                            $"nudging up by {stuckNudgeUp} m.");
-                        _stuckWarned = true;
+                        _stuckWarned = false; // covered ground fine this window
                     }
                     _stuckTimer = 0f;
+                    _stuckAccum = 0f;
                 }
             }
             else
             {
                 _stuckTimer = 0f;
+                _stuckAccum = 0f;
                 _stuckWarned = false;
             }
             _lastPos = transform.position;
