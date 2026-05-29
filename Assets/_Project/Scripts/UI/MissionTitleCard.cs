@@ -7,15 +7,11 @@
 // Display: Mission name + tone-one-line. Pulled from MissionSO when present;
 // falls back to inspector-set strings.
 //
-// ── Phase 25 hotfix ─────────────────────────────────────────────
-// Play() previously started a coroutine without guarding for an inactive
-// host. Mirrors the ToneCompass family of bugs — when Phase 23 deactivated
-// the panel-root (which was wired as the script-host), StartCoroutine
-// silently failed. Now Play() self-activates and routes through a
-// hierarchy-guarded path. If the host is inactive-in-hierarchy we just
-// snap to the fully-faded-in state and rely on Unity to advance on the
-// next active frame (rare in practice — only happens if a parent Canvas
-// is disabled, in which case we should not pretend to animate anyway).
+// ── Phase 60 — Arabic Localization MVP ──────────────────────────
+// Day label uses hud.day_label_fmt. MissionSO authors can register
+// stable localization keys (e.g. "mission.title.day1") as the
+// `displayName` / `toneOneLine` fields — runtime resolves them
+// transparently via LocalizationService.HasKey + Get.
 
 using System.Collections;
 using TMPro;
@@ -58,9 +54,6 @@ namespace HearthboundHollow.UI
         private void Awake()
         {
             if (canvasGroup != null) canvasGroup.alpha = 0f;
-            // Only hide a SEPARATE root child — never deactivate the script's
-            // own GameObject, otherwise Start() won't fire and the card never
-            // appears at all.
             if (root != null && root != gameObject) root.SetActive(false);
         }
 
@@ -71,7 +64,6 @@ namespace HearthboundHollow.UI
 
         public void Play()
         {
-            // Self-heal: ensure the host is active before requesting a coroutine.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
 
             if (_co != null) StopCoroutine(_co);
@@ -81,7 +73,6 @@ namespace HearthboundHollow.UI
             }
             else
             {
-                // Defensive: snap to fully-shown state without animation.
                 ApplyContent();
                 if (root != null) root.SetActive(true);
                 if (canvasGroup != null) canvasGroup.alpha = 1f;
@@ -97,10 +88,8 @@ namespace HearthboundHollow.UI
             if (root != null) root.SetActive(true);
             if (canvasGroup == null) yield break;
 
-            // Fade in.
             yield return FadeTo(0f, 1f, fadeInDuration);
 
-            // Hold (with optional skip).
             float t = 0f;
             while (t < holdDuration)
             {
@@ -109,7 +98,6 @@ namespace HearthboundHollow.UI
                 yield return null;
             }
 
-            // Fade out.
             yield return FadeTo(1f, 0f, fadeOutDuration);
             if (root != null && root != gameObject) root.SetActive(false);
         }
@@ -140,12 +128,41 @@ namespace HearthboundHollow.UI
         private void ApplyContent()
         {
             var vs = ServiceLocator.Get<VillageState>();
+            // Phase 60 — Localized title card. The DayLabel uses the
+            // canonical "hud.day_label_fmt" key; the title falls back to
+            // the inspector's `fallbackTitleText` when no localized key
+            // is set on the MissionSO.
+            var loc = ServiceLocator.Get<LocalizationService>();
+            bool rtl = loc != null && loc.IsRightToLeft;
+
             if (dayLabel != null)
-                dayLabel.text = vs != null ? $"Day {vs.currentDayIndex + 1}" : fallbackDayText;
+            {
+                string s = (loc != null && vs != null)
+                    ? loc.Format("hud.day_label_fmt", vs.currentDayIndex + 1)
+                    : (vs != null ? $"Day {vs.currentDayIndex + 1}" : fallbackDayText);
+                dayLabel.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                dayLabel.isRightToLeftText = rtl;
+            }
             if (titleLabel != null)
-                titleLabel.text = mission != null && !string.IsNullOrEmpty(mission.displayName) ? mission.displayName : fallbackTitleText;
+            {
+                string s = mission != null && !string.IsNullOrEmpty(mission.displayName)
+                    ? mission.displayName : fallbackTitleText;
+                // Treat the title as a localization key when it starts with
+                // "mission.title." — lets MissionSO designers register
+                // localizable keys without the runtime caring whether the
+                // string is canon English or a key.
+                if (loc != null && loc.HasKey(s)) s = loc.Get(s);
+                titleLabel.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                titleLabel.isRightToLeftText = rtl;
+            }
             if (toneLabel != null)
-                toneLabel.text = mission != null && !string.IsNullOrEmpty(mission.toneOneLine) ? mission.toneOneLine : fallbackToneText;
+            {
+                string s = mission != null && !string.IsNullOrEmpty(mission.toneOneLine)
+                    ? mission.toneOneLine : fallbackToneText;
+                if (loc != null && loc.HasKey(s)) s = loc.Get(s);
+                toneLabel.text = rtl ? ArabicTextShaper.Shape(s) : s;
+                toneLabel.isRightToLeftText = rtl;
+            }
         }
     }
 }
