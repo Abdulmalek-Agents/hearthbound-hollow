@@ -252,6 +252,15 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 47 — One More Day Hook",
                           "HearthboundHollow.EditorTools.Phase47_OneMoreDayBuilder", "Build")) ran++; else skipped++;
 
+                // Step 16: Phase 53 — Polish Menu Layer (language EN/العربية,
+                // Reset Game → title, and the New-Game Character Creator
+                // (skin / outfit / accessory / name). Builds the screens on the
+                // Main Menu + every gameplay Pause, and the avatar appearance
+                // applier. Idempotent; persists via SettingsService (PlayerPrefs).
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 53 (Polish Menu Layer) …", 0.99f);
+                if (TryRun("Phase 53 — Polish Menu Layer",
+                          "HearthboundHollow.EditorTools.Phase53_PolishMenuBuilder", "Build")) ran++; else skipped++;
+
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
                 if (System.IO.File.Exists(SceneBootstrap))
@@ -320,7 +329,7 @@ namespace HearthboundHollow.EditorTools
             return null;
         }
 
-        // ─── Summary builder ──────────────────────────────────────
+        // ─── Summary builder ────────────────────────────────────
 
         private static string BuildSummary(int ran, int skipped)
         {
@@ -361,6 +370,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • Phase 50 — Tone-Personalized Preface Beat on Lane scene (3 narrator lines, skippable)");
             sb.AppendLine("  • Phase 51 — Memory Web overlay (Tab opens it, 4 canonical Echo connections)");
             sb.AppendLine("  • Phase 47 — One More Day goodnight card on Hollow + Cottage (Ledger → Dream → card → next day)");
+            sb.AppendLine("  • Phase 53 — Polish Menu: Language (EN/العربية), Reset Game → title, Character Creator (skin/outfit/accessory/name)");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
             sb.AppendLine();
