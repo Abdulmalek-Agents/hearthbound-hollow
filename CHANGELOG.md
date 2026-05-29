@@ -4,6 +4,53 @@ All notable changes to this project will be documented here. Entries follow the 
 
 > **Older releases (v0.1.0 → v0.7.3)** are preserved in [`Docs/CHANGELOG_HISTORY.md`](Docs/CHANGELOG_HISTORY.md). The active CHANGELOG.md focuses on the most recent release for fast scanning. For verbose per-release detail older than v0.8.0, inspect git history of CHANGELOG.md prior to commit `8677f511`.
 
+## [0.8.2-polish-menu] — 2026-05-29
+
+**Branch:** `feat/mission-1-2-architecture` (on top of 0.8.1-one-more-day)
+**Theme:** Player-requested polish — **human-sounding voices**, **language select
+(English / العربية)**, **Reset Game → title**, and a **New-Game Character Creator**
+(skin / outfit / accessory / name).
+
+### Fixed
+
+- **Dialogue voices no longer say "dot dot dot" / "full stop".** `Phase46_VoiceGenerator`
+  (the espeak-ng path run by `🚀 Build Everything`) was feeding raw line text to the
+  engine, which verbalises punctuation literally. Added `CleanForTts` + `IsDirtySource`
+  (parity with `Tools/generate_voices.sh`): ellipses/dashes → comma pauses; stage
+  directions + `*emphasis*` stripped; pure-punctuation lines (e.g. `"..."`) are voiceless;
+  stale clips auto-purge + regenerate. Native-quality neural voices remain available via
+  the open-source Piper pipeline (D-059). (D-064b)
+
+### Added
+
+- **`Scripts/Core/LocalizationService.cs`** — runtime EN/العربية UI localization: key→{en,ar}
+  table, live `OnLanguageChanged`, `IsRightToLeft`. Persists via `SettingsService.Language`. (D-065)
+- **`Scripts/UI/LocalizedText.cs`** — TMP binder; refreshes on language change + flips RTL alignment.
+- **`Scripts/UI/SystemMenuUI.cs`** — Settings additions: **Language** (English / العربية, live),
+  **Customize Character**, **Reset Game** (gentle in-panel confirm). On Main Menu Settings + Pause → Settings.
+- **`Scripts/UI/CharacterCreationUI.cs`** — New-Game character creator: skin tone, outfit colour,
+  accessory (None / Cap / Flower / Scarf), name + live preview.
+- **`Scripts/Mission/CharacterAppearance.cs`** — `CharacterPalette` + `CharacterAppearanceApplier`:
+  applies the look to the avatar (procedural tints + code-built accessory). No new art. (D-066)
+- **`Scripts/Mission/PolishMenuCoordinator.cs`** — Save-aware bridge: Reset Game (wipe slots +
+  reset VillageState + clear character → title), Customize, and the New-Game character gate.
+- **`Scripts/Editor/Phase53_PolishMenuBuilder.cs`** — idempotent installer for the screens on the
+  Main Menu + every gameplay Pause + the avatar applier. Menu: `Hearthbound → ⚙️ Advanced → 🎭 Phase 53`.
+
+### Changed
+
+- `SettingsService` — adds `Language` + character-creation prefs + `ClearCharacterCreation()`.
+- `MainMenuController` — optional `systemMenu` (shown from Settings) + a `NewGameGate` hook so the
+  coordinator can gate New Game on character creation.
+- `Phase27_BuildEverything` — Step 16 chains Phase 53; summary updated.
+- `Docs/ARCHITECTURE.md` — D-064b, D-065, D-066. Bumped to v1.8.
+
+### Cozy Contract
+
+Reset uses a warm in-panel confirm (no scary modal) and keeps language/audio/comfort.
+Nothing punishes. Zero new external dependencies; all visuals are built-in UI primitives +
+procedural tints. Dialogue prose stays the canonical hand-written English (translation is a future writer pass).
+
 ## [0.8.1-one-more-day] — 2026-05-29
 
 **Branch:** `feat/mission-1-2-architecture` (on top of 0.8.0-depth-layer)
