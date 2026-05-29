@@ -87,8 +87,15 @@ namespace HearthboundHollow.Mission
             if (vs != null) saveService.Save(slot, vs);
         }
 
+        private bool _endOfDayHandled;
+
         private void OnEndOfDayConfirmed()
         {
+            // Single-fire guard (D-069) — never enter the night chain twice.
+            if (_endOfDayHandled) return;
+            _endOfDayHandled = true;
+            if (eveningLedger != null) eveningLedger.Hide();
+
             System.Action transition = () =>
             {
                 var gm = GameManager.Instance;
