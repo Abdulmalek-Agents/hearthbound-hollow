@@ -42,6 +42,11 @@ namespace HearthboundHollow.EditorTools
             int ran = 0, skipped = 0;
             try
             {
+                // Phase 76 — silence the ~30 chained phases' own completion dialogs so
+                // the user clicks OK once (the confirm above) + once (the summary below),
+                // not ~30 times. The same-namespace EditorUtility shim consults this flag.
+                EditorUtility.Silent = true;
+
                 if (TryRun("Phase 23 — POLISHED Mission 1 + 2",
                           "HearthboundHollow.EditorTools.Phase23_Mission1PolishCapstone", "Build")) ran++; else skipped++;
 
@@ -187,6 +192,7 @@ namespace HearthboundHollow.EditorTools
             }
             finally
             {
+                EditorUtility.Silent = false;   // Phase 76 — re-enable dialogs (incl. the summary below)
                 EditorUtility.ClearProgressBar();
             }
 
