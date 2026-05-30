@@ -27,6 +27,9 @@
 | **61.4** | P1 | **Code scaffolding:** `EngagementEvents.cs`, `DayAgenda.cs`, `DailyLoopService.cs` (+ metas) — inert, compile-safe | ✅ Done |
 | **61.5** | P1 | **Morning bookend live:** `AgendaCardUI` (self-installing, self-building) drives `DailyLoopService.BeginDay()` once per in-game day on Hollow entry. Evening recap + tease already existed (Ledger + `OneMoreDayCard`). | ✅ Done |
 | **61.6** | P1 | **Day flows through the loop (D-077):** `GameManager.EndDay()` delegates to `DailyLoopService.EndDay()` (single counter owner); `AgendaCardUI` wakes on the first gameplay scene of the day. `DayCycleManager.autoAdvance` deliberately deferred to a lighting phase (asmdef + authored-lighting). | ✅ Done |
+| **61.7** | P2/P3/P6 | **Data layer:** `RequestSO`, `RequestPoolSO`, `EchoSO`, `HollowUpgradeSO` (+metas) — pure-data contracts, inert until their services land. | ✅ Done |
+| **61.8** | P2 | **Request Board (teaser layer):** `RequestBoardService` self-installs and fills the morning Agenda with **rotating villagers** each day (built-in roster or optional `Resources/RequestPool`). Feeds the card's visitor list; interactive visits = Phase 62. | ✅ Done |
+| **61.9** | P6 | **Visible progression (D-076):** `CollectionGlanceUI` — a `[J]` journal (Day · Coin · Memories · Echoes) + an Agenda progression footer. | ✅ Done |
 | **62** | P2 | `RequestSO`/`RequestPoolSO`, `RequestBoardService`, `RequestBoardUI`, generalize directors → `VisitDirector`, re-express Doris+Gerrold as data, `AlmanacSO` | ⬜ Next |
 | **63** | P6 | `EchoSO`/`EchoWebService`, promote `MemoryWebOverlay` → Memory Wall, wire thread rewards | ⬜ |
 | **64** | P3 | `HollowUpgradeSO` + catalog, `HollowProgressionService`, `HollowShopUI`, coin-purse HUD, pre-placed hidden upgrade markers, wire transactions→coin | ⬜ |
@@ -45,13 +48,15 @@
 
 ```
   P1 Living Day (61.4–61.6 ✅)
-     ├──► P2 Request Board (62) ──► P7 Almanac/Festivals (67)
+     ├──► P2 Request Board (61.8 teaser ✅ → 62 interactive) ──► P7 Almanac/Festivals (67)
      │         └──► P6 Echo Wall (63) ◄── feeds new arcs back into P2
      ├──► P3 Hollow Progression (64) ◄── coin from P2 transactions
      └──► P4 Garden & Tea (65) ──► P5 Workbench variety (66, teas as tools)
 ```
 
-P1 is the root. Nothing else can compound without "tomorrow." **P1 is complete (61.4–61.6); P2 (Request Board, Phase 62) is next.**
+P1 is the root. Nothing else can compound without "tomorrow." **P1 is complete (61.4–61.6); the
+P2 teaser layer + P6 visible-progression seed landed in 61.7–61.9; the full interactive P2
+(VisitDirector, Phase 62) is next.**
 
 ---
 
@@ -79,6 +84,16 @@ P1 is the root. Nothing else can compound without "tomorrow." **P1 is complete (
 ---
 
 ## 6. Phase log (what landed, newest first)
+
+### Phase 61.7–61.9 — Data layer + Request Board teasers + visible progression 🟢 (2026-05-30)
+**61.7** — four pure-data SOs (`RequestSO`, `RequestPoolSO`, `EchoSO`, `HollowUpgradeSO`) materialize
+the P2/P3/P6 contracts (inert until Phases 62–64). **61.8** — `RequestBoardService` (self-installing,
+observer-only) fills the morning Agenda with rotating villager teasers each day, from an optional
+`Resources/RequestPool` or a built-in cozy roster (honest scope: card teasers, not yet interactive
+visits — that's Phase 62). **61.9** — `CollectionGlanceUI` adds a `[J]` journal (Day · Coin · Memories ·
+Echoes) and the Agenda card gains a celebratory progression footer — the first delivery of D-076
+(visible growth), directly answering the critique's Root Cause #2. All additive, self-installing,
+no scene/builder/flow edits.
 
 ### Phase 61.6 — Day flows through the loop (D-077) 🟢 (2026-05-30)
 `GameManager.EndDay()` now delegates to `DailyLoopService.EndDay()` (the single owner of
