@@ -171,7 +171,13 @@ namespace HearthboundHollow.EditorTools
             CreateGround(_matGroundGrass, size: 36f);
 
             var player = CreatePlayer();
-            player.transform.position = new Vector3(0, 1.0f, -8);
+            // Phase 32.21 fix: spawn INSIDE Phase 47.4's playable area (z ∈ [-2,16];
+            // the invisible south wall 'Block_S' sits at z=-3). The old z=-8 spawned
+            // the player SOUTH of that wall — boxed into the strip behind it, unable
+            // to enter the garden ("boundaries prevent movement"). z=-1 is the south
+            // entrance, facing north up the stepping path toward the herb beds.
+            player.transform.position = new Vector3(0, 1.0f, -1f);
+            player.transform.rotation = Quaternion.identity; // face +Z (north / up the path)
 
             // Lavender + Valerian plant interactables.
             var lavender = CreatePlantInteractable("LavenderPlant", new Vector3(-3.5f, 0.4f, 2f), new Color(0.65f, 0.55f, 0.85f));
