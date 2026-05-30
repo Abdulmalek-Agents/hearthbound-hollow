@@ -8,6 +8,8 @@
 // back to the canonical English line. Pure plumbing — ships with an empty table
 // (Pillar 1 / D-065: the Arabic prose is a human translation pass).
 
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HearthboundHollow.Core
@@ -32,7 +34,30 @@ namespace HearthboundHollow.Core
                 _table = Resources.Load<DialogueLocalizationSO>(ResourcesName);
                 _loaded = true;
             }
-            return _table != null && _table.TryGet(lineId, out text);
+            // 1) Human-authored SO override (translator pass) wins when present.
+            if (_table != null && _table.TryGet(lineId, out text)) return true;
+            // 2) D-077 machine-translated stopgap (explicit Pillar 1 override by
+            //    user request; replace with the human pass before ship).
+            return DialogueLocalizationData.Ar.TryGetValue(lineId, out text) &&
+                   !string.IsNullOrEmpty(text);
+        }
+
+        // Speaker-name transliterations for the dialogue box (D-077 stopgap).
+        private static readonly Dictionary<string, string> _speakerAr =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Doris"]    = "دوريس",
+                ["Gerrold"]  = "جيرولد",
+                ["Marin"]    = "مارين",
+                ["Pickle"]   = "بيكل",
+                ["Narrator"] = "الراوي",
+            };
+
+        /// <summary>Arabic display name for a known speaker; false otherwise.</summary>
+        public static bool TryGetSpeakerArabic(string speaker, out string ar)
+        {
+            ar = null;
+            return !string.IsNullOrEmpty(speaker) && _speakerAr.TryGetValue(speaker, out ar);
         }
 
         /// <summary>Drop the cached table (e.g. after a rebuild or a test).</summary>

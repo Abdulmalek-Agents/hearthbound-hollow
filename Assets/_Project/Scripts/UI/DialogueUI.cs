@@ -256,7 +256,17 @@ namespace HearthboundHollow.UI
 
             ApplyPickleStyle(isPickleLine);
 
-            if (speakerName != null) speakerName.text = speaker ?? string.Empty;
+            if (speakerName != null)
+            {
+                // Phase 57 (D-077) — show the Arabic speaker name when Arabic is
+                // active and a transliteration exists; the raw `speaker` is left
+                // untouched above for the Pickle style check.
+                string display = speaker ?? string.Empty;
+                if (LocalizationService.IsRightToLeft &&
+                    DialogueLocalization.TryGetSpeakerArabic(display, out var spAr))
+                    display = LocalizationService.Shape(spAr);
+                speakerName.text = display;
+            }
             if (portraitImage != null)
             {
                 if (isPickleLine)
