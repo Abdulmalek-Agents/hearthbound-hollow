@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Hearthbound Hollow — UI / AgendaCardUI  (Engagement Pillar P1 — Phase 61.5/61.6)
+// Hearthbound Hollow — UI / AgendaCardUI  (Engagement Pillar P1 — Phase 61.5/61.6/61.9)
 //
 // THE MORNING BOOKEND OF THE COZY DAILY LOOP.
 // The evening bookend already exists (EveningLedger recap + OneMoreDayCard
@@ -12,11 +12,10 @@
 //     player's "wake" (61.6 tuning). A short delay lets the scene's own title
 //     card settle first (no overlap). During first-play onboarding the Lane is
 //     skipped so the card doesn't stack on the tutorial overlay.
-//   • Lists the day label + (future) visitors + garden status + a gentle
-//     Marin margin-note suggestion. Opportunity, never obligation (D-076).
-//   • Until the Request Board (P2) / Garden (P4) services exist to populate
-//     DayAgenda, the card composes a few gentle baseline lines from
-//     VillageState so it is never empty.
+//   • Lists the day label + visitors (filled by RequestBoardService, 61.8) +
+//     garden status + a Marin margin-note nudge + a progression footer (61.9).
+//   • Until the Request Board (P2) / Garden (P4) services populate DayAgenda,
+//     the card composes gentle baseline lines from VillageState so it's never empty.
 //
 // COZY CONTRACT:
 //   • Non-blocking, fully dismissable (button OR Space/Enter/E/Esc/click).
@@ -142,8 +141,8 @@ namespace HearthboundHollow.UI
             var loop = DailyLoopService.Instance;
             if (loop != null)
             {
-                // Drives the Living Day live: fires DayStartedEvent (future P2/P4
-                // services populate the Agenda) then AgendaReadyEvent (we render).
+                // Drives the Living Day live: fires DayStartedEvent (RequestBoardService
+                // + future garden services populate the Agenda) then AgendaReadyEvent (we render).
                 loop.BeginDay(ServiceLocator.Get<VillageState>());
             }
             else
@@ -188,7 +187,7 @@ namespace HearthboundHollow.UI
             sb.AppendLine($"<i>{mood}</i>");
             sb.AppendLine();
 
-            // Visitors (populated by the Request Board once P2 ships; baseline for now).
+            // Visitors (populated by the Request Board, Phase 61.8; baseline otherwise).
             sb.AppendLine("<b>At your door today</b>");
             if (agenda != null && agenda.visitors.Count > 0)
                 foreach (var v in agenda.visitors) sb.AppendLine($"  · {v}");
@@ -209,6 +208,14 @@ namespace HearthboundHollow.UI
                 ? agenda.marinSuggestion
                 : MarinBaseline(vs);
             sb.AppendLine($"<i>Marin's note: \u201c{marin}\u201d</i>");
+
+            // Phase 61.9 — visible, celebratory progression footer (D-076).
+            int memories = vs != null && vs.heldMemoryIds != null ? vs.heldMemoryIds.Count : 0;
+            int echoes = vs != null && vs.revealedEchoConnectionIds != null ? vs.revealedEchoConnectionIds.Count : 0;
+            int coin = vs != null ? vs.coin : 0;
+            sb.AppendLine();
+            sb.AppendLine($"<size=85%>Your Hollow so far:  {memories} memories · {echoes} echoes · {coin} coin</size>");
+            sb.AppendLine("<size=85%><i>(press J any time for your journal)</i></size>");
 
             return (title, sb.ToString().TrimEnd());
         }
