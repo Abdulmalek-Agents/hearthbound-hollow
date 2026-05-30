@@ -26,8 +26,8 @@
 | **61.3** | — | Per-system implementation-guidance docs (`04`–`09`) | ✅ Done |
 | **61.4** | P1 | **Code scaffolding:** `EngagementEvents.cs`, `DayAgenda.cs`, `DailyLoopService.cs` (+ metas) — inert, compile-safe | ✅ Done |
 | **61.5** | P1 | **Morning bookend live:** `AgendaCardUI` (self-installing, self-building) drives `DailyLoopService.BeginDay()` once per in-game day on Hollow entry. Evening recap + tease already existed (Ledger + `OneMoreDayCard`). | ✅ Done |
-| **61.6** | P1 | Route `GameManager.EndDay()`→`DailyLoopService.EndDay()` (single counter owner, D-077); optional `DayCycleManager.autoAdvance` mood-only; per-day "wake" placement tuning | ⬜ Next |
-| **62** | P2 | `RequestSO`/`RequestPoolSO`, `RequestBoardService`, `RequestBoardUI`, generalize directors → `VisitDirector`, re-express Doris+Gerrold as data, `AlmanacSO` | ⬜ |
+| **61.6** | P1 | **Day flows through the loop (D-077):** `GameManager.EndDay()` delegates to `DailyLoopService.EndDay()` (single counter owner); `AgendaCardUI` wakes on the first gameplay scene of the day. `DayCycleManager.autoAdvance` deliberately deferred to a lighting phase (asmdef + authored-lighting). | ✅ Done |
+| **62** | P2 | `RequestSO`/`RequestPoolSO`, `RequestBoardService`, `RequestBoardUI`, generalize directors → `VisitDirector`, re-express Doris+Gerrold as data, `AlmanacSO` | ⬜ Next |
 | **63** | P6 | `EchoSO`/`EchoWebService`, promote `MemoryWebOverlay` → Memory Wall, wire thread rewards | ⬜ |
 | **64** | P3 | `HollowUpgradeSO` + catalog, `HollowProgressionService`, `HollowShopUI`, coin-purse HUD, pre-placed hidden upgrade markers, wire transactions→coin | ⬜ |
 | **65** | P4 | `GardenBedState` + `GardenService`, swap to HarvestGarden staged-growth, teas-as-tools, seed/tea economy | ⬜ |
@@ -44,14 +44,14 @@
 ## 3. The dependency graph (what unblocks what)
 
 ```
-  P1 Living Day (61.4–61.5)
+  P1 Living Day (61.4–61.6 ✅)
      ├──► P2 Request Board (62) ──► P7 Almanac/Festivals (67)
      │         └──► P6 Echo Wall (63) ◄── feeds new arcs back into P2
      ├──► P3 Hollow Progression (64) ◄── coin from P2 transactions
      └──► P4 Garden & Tea (65) ──► P5 Workbench variety (66, teas as tools)
 ```
 
-P1 is the root. Nothing else can compound without "tomorrow." 61.4–61.5 are done; build 61.6 then P2 next.
+P1 is the root. Nothing else can compound without "tomorrow." **P1 is complete (61.4–61.6); P2 (Request Board, Phase 62) is next.**
 
 ---
 
@@ -79,6 +79,16 @@ P1 is the root. Nothing else can compound without "tomorrow." 61.4–61.5 are do
 ---
 
 ## 6. Phase log (what landed, newest first)
+
+### Phase 61.6 — Day flows through the loop (D-077) 🟢 (2026-05-30)
+`GameManager.EndDay()` now delegates to `DailyLoopService.EndDay()` (the single owner of
+`currentDayIndex` + `DayEndedEvent`; legacy inline path kept only as a no-service fallback).
+Audited: all three end-of-day callers (`MissionRunner`, `Mission01/02Director`) route through
+`GameManager.EndDay()` → exactly one increment, one event. `AgendaCardUI` tuned to wake on the
+first gameplay scene of each day (Lane skipped during first-play onboarding). `DayCycleManager.autoAdvance`
+**deliberately deferred** to a lighting phase (Core can't reference Player's `DayCycleManager`;
+auto-rotating the sun would fight authored Lumen/URP lighting; the loop only needs the logical
+day phases). **P1 (the Living Day) is now complete end-to-end.**
 
 ### Phase 61.5 — Morning bookend live (the Living Day runs) 🟢 (2026-05-30)
 Added `Scripts/UI/AgendaCardUI.cs` (+meta) — a self-installing, self-building parchment
@@ -119,7 +129,7 @@ cozy, opt-in progression feedback).
 
 - **D-075** — The Engagement Bible un-defers the loop-critical subset of Depth-Bible codices 04/08/09/10/13. The Out-of-Scope Wall is revised; the Daily Loop, Request Board, Hollow Progression, Garden→Tea, Workbench variety, and Codex/Echo meta-game are in-scope. Cozy Contract + no-dark-monetization remain inviolable.
 - **D-076** — The "Cordray Principle" is relaxed to "no *anxiety-inducing* numbers." Cozy, opt-in, celebratory progression feedback (coin, shop level via art, collection %, agenda) is now **required**. Heavy/emotional UI stays number-free.
-- **D-077 (reserved, Phase 61.6)** — One owner of `currentDayIndex`: `DailyLoopService.EndDay()` is the single place the counter advances; `GameManager`/`MissionRunner` delegate to it (no double-increment).
+- **D-077 (adopted, Phase 61.6)** — One owner of `currentDayIndex`: `DailyLoopService.EndDay()` is the single place the counter advances + the single `DayEndedEvent` publisher; `GameManager.EndDay()` delegates to it (no double-increment).
 
 ---
 
