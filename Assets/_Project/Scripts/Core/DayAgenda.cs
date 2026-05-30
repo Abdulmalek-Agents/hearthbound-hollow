@@ -14,6 +14,27 @@ using System.Collections.Generic;
 
 namespace HearthboundHollow.Core
 {
+    /// <summary>
+    /// A single actionable Request Board entry for today — the data the
+    /// RequestBoardUI renders and the player can open into a visit. Built each
+    /// morning by RequestBoardService (Mission) from authored RequestSOs or a
+    /// built-in cozy roster. Plain Core type so UI can read it without a Mission
+    /// dependency (P2, Phase 62).
+    /// </summary>
+    public sealed class RequestTicket
+    {
+        public string requestId = "";
+        public string villagerName = "Someone";
+        public string villagerId = "";
+        public string teaser = "";
+        public string openingLine = "";
+        public string kind = "TakeMemory";   // RequestKind name
+        public string memoryId = "";          // optional — the orb at stake
+        public int coinReward = 4;            // gentle, never punishing
+        public bool pinnedArc = false;        // hand-sealed arc beat
+        public bool seasonal = false;         // Almanac-sourced
+    }
+
     public sealed class DayAgenda
     {
         public int dayIndex;
@@ -27,8 +48,17 @@ namespace HearthboundHollow.Core
         /// <summary>Visitor teasers, e.g. "Doris — \"a sweet thing to ask\"".</summary>
         public readonly List<string> visitors = new();
 
+        /// <summary>
+        /// The actionable Request Board entries for today (Phase 62). The
+        /// RequestBoardUI lists these; opening one runs a visit.
+        /// </summary>
+        public readonly List<RequestTicket> tickets = new();
+
         /// <summary>Garden status lines, e.g. "Lavender — ready to harvest".</summary>
         public readonly List<string> gardenNotes = new();
+
+        /// <summary>Almanac headline for today, e.g. "Market Day — the cart is in the lane.".</summary>
+        public string almanacLine = "";
 
         /// <summary>A single gentle, optional self-goal nudge in Marin's margin-note voice.</summary>
         public string marinSuggestion = "";
