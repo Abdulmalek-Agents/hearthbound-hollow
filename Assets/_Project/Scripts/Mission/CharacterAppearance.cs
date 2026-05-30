@@ -10,13 +10,16 @@
 //   • Outfit colour   — tints the player's body renderers (always visible).
 //   • Skin tone       — tints material slots whose name looks like skin
 //                        (best-effort; outfit is the guaranteed-visible knob).
+//   • Hair            — Phase 62.C: cozy procedural warm-brown hair so the avatar
+//                        is never a bald placeholder (the playtest video tell).
 //   • Accessory       — a tiny code-built cap / flower / scarf on the head.
 //
-// Robust: finds the player by tag "Player" with a short retry window (the
-// player rig may finish spawning a frame or two after this Start()).
+// Robust: SELF-INSTALLS (Phase 62.C) + finds the player by tag "Player" with a
+// short retry window, and re-applies on every gameplay scene load.
 
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using HearthboundHollow.Core;
 
 namespace HearthboundHollow.Mission
@@ -54,7 +57,53 @@ namespace HearthboundHollow.Mission
     {
         private const string AccessoryNodeName = "_KeeperAccessory";
 
-        private void Start() => StartCoroutine(ApplyWhenReady());
+        // Phase 62.C — SELF-INSTALL so the look (incl. the new hair) is applied in
+        // EVERY gameplay scene even if no builder placed an applier (the playtest
+        // video showed a bald, un-dressed placeholder — the applier wasn't running).
+        // A single DontDestroyOnLoad host re-applies on each gameplay scene load.
+        private static bool _installed;
+        private bool _persistent;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoInstall()
+        {
+            if (_installed) return;
+            _installed = true;
+            var go = new GameObject("_HHCharacterAppearance");
+            DontDestroyOnLoad(go);
+            go.AddComponent<CharacterAppearanceApplier>()._persistent = true;
+        }
+
+        private void Awake()
+        {
+            if (_persistent)
+            {
+                SceneManager.sceneLoaded += OnSceneLoaded;
+                if (IsGameplay(SceneManager.GetActiveScene().name)) StartCoroutine(ApplyWhenReady());
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_persistent) SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private void OnSceneLoaded(Scene s, LoadSceneMode m)
+        {
+            if (IsGameplay(s.name)) StartCoroutine(ApplyWhenReady());
+        }
+
+        private static bool IsGameplay(string n)
+        {
+            if (string.IsNullOrEmpty(n)) return false;
+            return n.IndexOf("Lane", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Hollow", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Garden", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Cottage", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        // Scene-baked appliers (if any) still apply once on their own Start().
+        private void Start() { if (!_persistent) StartCoroutine(ApplyWhenReady()); }
 
         private IEnumerator ApplyWhenReady()
         {
@@ -91,10 +140,77 @@ namespace HearthboundHollow.Mission
             Color outfit = CharacterPalette.Clamp(CharacterPalette.Outfit, outfitIdx);
 
             TintRenderers(player, skin, outfit);
+            BuildHair(player);
             BuildAccessory(player, accIdx, outfit);
 
             Hh.Log(LogCategory.Mission,
                 $"CharacterAppearanceApplier: skin={skinIdx} outfit={outfitIdx} accessory={accIdx} applied.");
+        }
+
+        // ───── Hair (Phase 62.C — never a bald test dummy) ─────────────────
+        // The base BoZo body ships bald; the video read the protagonist as a
+        // placeholder. We add a cozy, all-procedural warm-brown hair shell on the
+        // head so the avatar always looks intentional (no new art — D-066). Parented
+        // to the player ROOT (unit scale, follows body yaw) and placed at the head
+        // bone's height, so it never inherits a weird rig-bone scale (no giant/skewed
+        // hair). Idempotent: rebuilt on every apply.
+        private const string HairNodeName = "_KeeperHair";
+        private static readonly Color HairBrown = new Color(0.27f, 0.17f, 0.10f);
+
+        private static void BuildHair(GameObject player)
+        {
+            var existing = FindDeep(player.transform, HairNodeName);
+            if (existing != null) Destroy(existing.gameObject);
+
+            // Crown height above the root: prefer the head bone, else the renderer-bounds top.
+            Transform head = FindHead(player.transform);
+            float crownY;
+            if (head != null)
+            {
+                crownY = (head.position.y - player.transform.position.y) + 0.10f;
+            }
+            else
+            {
+                var rends = player.GetComponentsInChildren<Renderer>();
+                if (rends == null || rends.Length == 0) return;
+                Bounds b = rends[0].bounds;
+                for (int i = 1; i < rends.Length; i++) b.Encapsulate(rends[i].bounds);
+                crownY = (b.max.y - player.transform.position.y) - 0.10f;
+            }
+            if (crownY < 0.3f) crownY = 1.5f;   // sane fallback for an odd rig
+
+            var holder = new GameObject(HairNodeName);
+            holder.transform.SetParent(player.transform, false);   // root: ~unit scale, follows yaw
+            holder.transform.localPosition = Vector3.zero;
+            holder.transform.localRotation = Quaternion.identity;
+
+            const float w = 0.30f;   // chibi head width (m)
+            // Crown — a squashed sphere hugging the top/back of the scalp.
+            AddHairPiece(holder.transform, "Crown",
+                new Vector3(0f, crownY + 0.02f, -0.01f),
+                new Vector3(w * 1.02f, w * 0.80f, w * 1.06f));
+            // Back — a lower piece for nape coverage (gives a soft cut silhouette).
+            AddHairPiece(holder.transform, "Back",
+                new Vector3(0f, crownY - 0.10f, -0.06f),
+                new Vector3(w * 0.92f, w * 0.55f, w * 0.66f));
+        }
+
+        private static void AddHairPiece(Transform parent, string name, Vector3 localPos, Vector3 localScale)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            go.name = "Hair_" + name;
+            var col = go.GetComponent<Collider>(); if (col != null) Destroy(col);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale = localScale;
+            var r = go.GetComponent<Renderer>();
+            if (r != null)
+            {
+                var m = r.material;
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", HairBrown);
+                if (m.HasProperty("_Color"))     m.SetColor("_Color", HairBrown);
+                if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.15f);
+            }
         }
 
         private static void TintRenderers(GameObject player, Color skin, Color outfit)
@@ -103,6 +219,9 @@ namespace HearthboundHollow.Mission
             foreach (var r in renderers)
             {
                 if (r == null) continue;
+                // Skip our own procedural hair/accessory so they keep their colours.
+                if (r.transform.root == player.transform &&
+                    (IsUnder(r.transform, HairNodeName) || IsUnder(r.transform, AccessoryNodeName))) continue;
                 // Use .materials (instances) so we never mutate shared assets.
                 var mats = r.materials;
                 for (int m = 0; m < mats.Length; m++)
@@ -115,6 +234,12 @@ namespace HearthboundHollow.Mission
                 }
                 r.materials = mats;
             }
+        }
+
+        private static bool IsUnder(Transform t, string nodeName)
+        {
+            for (var p = t; p != null; p = p.parent) if (p.name == nodeName) return true;
+            return false;
         }
 
         private static bool LooksLikeSkin(string n)
