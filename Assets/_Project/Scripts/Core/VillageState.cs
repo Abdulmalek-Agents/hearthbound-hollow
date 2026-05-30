@@ -153,6 +153,11 @@ namespace HearthboundHollow.Core
         public int keeperHandCraftCount = 0;
         [Tooltip("Garden bed planting state (P4). Grows over real days via GardenService.")]
         public List<GardenBedState> gardenBeds = new();
+        [Tooltip("Phase 74 — a stable per-save variety seed, randomised once on a new game. " +
+                 "Mixed into the daily Request Board RNG so two DIFFERENT saves see different " +
+                 "early boards while a single save stays reproducible (cozy). 0 = unseeded " +
+                 "(old saves) → behaves exactly like the day-only roster, fully back-compatible.")]
+        public int villageSeed = 0;
 
         // ───── M1-2 dialogue flags (added playtest pass commit 1/6) ─────
 
@@ -294,6 +299,8 @@ namespace HearthboundHollow.Core
             completedEchoIds.Clear();
             keeperHandCraftCount = 0;
             gardenBeds.Clear();
+            // Phase 74 — fresh variety seed per new game (non-zero so it's "seeded").
+            villageSeed = UnityEngine.Random.Range(1, int.MaxValue);
 
             // Playtest pass commit 1/6 — clear newly added fields.
             pickleApproval = 50;

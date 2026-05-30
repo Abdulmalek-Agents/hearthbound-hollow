@@ -143,7 +143,7 @@ namespace HearthboundHollow.Mission
             {
                 var eligible = _pool.allRequests.Where(r => r != null && IsEligible(r)).ToList();
                 foreach (var r in eligible.Where(r => r.pinnedArcBeat)) AddTicket(FromSO(r));
-                var rng = new System.Random(unchecked(dayIndex * 73856093 + 19349663));
+                var rng = new System.Random(SeedFor(dayIndex));
                 var rest = eligible.Where(r => !r.pinnedArcBeat).ToList();
                 while (Today.Count < want && rest.Count > 0)
                 {
@@ -183,9 +183,12 @@ namespace HearthboundHollow.Mission
 
             // ── Fill remaining slots with rotating walk-ins (procedural texture) ──
             int n = WalkIns.Length;
+            // Phase 74 — a per-save rotation offset so two DIFFERENT saves see a
+            // different early walk-in order. 0 for unseeded (old) saves → unchanged.
+            int seedOff = (_vs != null && _vs.villageSeed != 0) ? (Mathf.Abs(_vs.villageSeed) % Mathf.Max(1, n)) : 0;
             for (int k = 0; Today.Count < want && k < n; k++)
             {
-                var entry = WalkIns[(dayIndex * want + k) % n];
+                var entry = WalkIns[(dayIndex * want + k + seedOff) % n];
                 string reqId = $"walkin_{entry.id}_{dayIndex}";
                 if (IsResolved(reqId)) continue;
                 AddTicket(new RequestTicket
@@ -213,6 +216,16 @@ namespace HearthboundHollow.Mission
 
         private bool IsResolved(string id)
             => _vs != null && _vs.resolvedRequestIds != null && _vs.resolvedRequestIds.Contains(id);
+
+        // Phase 74 — day RNG seed, blended with the per-save villageSeed so that a
+        // single save stays reproducible (same save + day ⇒ same board, cozy) while
+        // different saves diverge. villageSeed == 0 (old saves) ⇒ the original
+        // day-only seed, fully back-compatible.
+        private int SeedFor(int dayIndex)
+        {
+            int vseed = _vs != null ? _vs.villageSeed : 0;
+            return unchecked(dayIndex * 73856093 + 19349663 + vseed * 83492791);
+        }
 
         private void AddTicket(RequestTicket t)
         {

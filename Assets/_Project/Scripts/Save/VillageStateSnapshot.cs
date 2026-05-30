@@ -74,6 +74,7 @@ namespace HearthboundHollow.Save
         public List<string> completedEchoIds = new();
         public int keeperHandCraftCount = 0;
         public List<GardenBedState> gardenBeds = new();
+        public int villageSeed = 0;   // Phase 74 — per-save variety seed (0 = old save, back-compatible)
 
         public static VillageStateSnapshot FromState(VillageState s)
         {
@@ -127,6 +128,7 @@ namespace HearthboundHollow.Save
                 completedEchoIds = s.completedEchoIds != null ? new List<string>(s.completedEchoIds) : new List<string>(),
                 keeperHandCraftCount = s.keeperHandCraftCount,
                 gardenBeds = CloneBeds(s.gardenBeds),
+                villageSeed = s.villageSeed,
             };
         }
 
@@ -199,6 +201,7 @@ namespace HearthboundHollow.Save
             s.completedEchoIds = completedEchoIds != null ? new List<string>(completedEchoIds) : new List<string>();
             s.keeperHandCraftCount = keeperHandCraftCount;
             s.gardenBeds = CloneBeds(gardenBeds);
+            s.villageSeed = villageSeed;   // Phase 74 (0 for pre-v74 saves → day-only roster, unchanged)
         }
     }
 }
