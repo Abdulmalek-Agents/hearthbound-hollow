@@ -4,46 +4,13 @@
 // PHASE 27 — The "one menu click" master capstone, promoted in Phase 32 to
 // the *only* top-level entry point the user ever needs: `🚀 Build Everything`.
 //
-// Phase 23 builds the polished scenes. Phase 26 (Player Controller + Animation)
-// builds the AnimatorController + upgrades cameras. Phase 26 (NPC Animators)
-// wires Doris/Gerrold's IsTalking dialogue beats. Phase 26 (Narrative Hooks)
-// drops Marin's Note on the workbench. Phase 29 runs the Player Rig Doctor
-// foot-bone anchor pass. Phase 30 wires the OnboardingOverlay + ControlHintsHUD.
-// Phase 31 surgically repairs the dialogue choice cards. Phase 32 layers the
-// Mission 1 polish v2 (cottages, facade, hearth dressing, cozy URP volumes)
-// AND, in the Voice Acting MVP track, rebuilds the Resources/HearthboundVoice
-// Library.asset from any .wav files the user has dropped under
-// Assets/_Project/Audio/Voice/ (per D-058). Phase 46 (Voice Generator) auto-
-// generates those .wav files via espeak-ng if it's on PATH (cross-platform),
-// so the voice library is no longer empty on Linux/Windows installs. Phase 36
-// builds the Dream 2 + Listen Timeline library. Phase 37 generates the
-// procedural audio (music, ambience, missing SFX, mumble VO). Phase 45 migrates
-// the audio libraries to Resources/ for runtime Resources.Load fallback. Phase
-// 38 wires every audio asset to the scenes + dialogue UI + cutscene timelines.
-// Phase 42 wires the Listen Scene Camera Director onto the Cottage scene.
-// Phase 47 layers the level boundaries, autumn skybox, interior polish,
-// collider hardening, and onboarding wayfinding on top of everything — fixes
-// the four pre-greenlight polish gaps (narrow lane, no boundaries, no skybox,
-// thin cottage interior). PHASES 48-51 (NEW — the Depth Layer) add: a Cold
-// Open cinematic on Bootstrap (the hook), Marin's Echo Hologram on the Hollow
-// workbench (first predecessor encounter), a tone-personalized Preface Beat on
-// the Lane scene (3 narrator lines), and a Tab-key Memory Web overlay with 4
-// canonical Echo connections. Phase 27 chains them all — single click, ~115 s.
-//
-// Phase 53 builds the Polish Menu (language EN/العربية, reset, character creator).
-// Phase 54 bakes the HollowGlyphs emoji TMP sprite asset. Phase 56 installs the
-// Arabic TMP font fallback. Phase 60 enriches the Hollow interior + retires the
-// red trigger-zone quads. As of Phase 57 these are all chained here, and the
-// Hearthbound menu shows a single entry — 🚀 Build Everything.
-//
 // IDEMPOTENT — every step is safe to re-run any number of times. Re-running
 // this after `git pull` is the supported user flow (see D-051 in PROGRESS.md).
 //
 // USE: Menu → Hearthbound → 🚀 Build Everything
 //
-// Detection-driven: if any phase's prerequisites aren't present (e.g. Phase 26
-// Narrative Hooks isn't installed because the Narrative thread hasn't shipped
-// yet), this capstone skips that phase gracefully with a warning logged.
+// Detection-driven: if any phase's prerequisites aren't present, this capstone
+// skips that phase gracefully with a warning logged (TryRun via reflection).
 
 using System;
 using System.Reflection;
@@ -57,32 +24,15 @@ namespace HearthboundHollow.EditorTools
     {
         private const string SceneBootstrap = "Assets/_Project/Scenes/00_Bootstrap.unity";
 
-        // ─── Master menu ──────────────────────────
-        //
-        // Promoted in Phase 32 to the single top-level user entry point.
-        // Priority -100 puts it above every other Hearthbound menu item.
-        // The legacy `✨ Build EVERYTHING (Phase 27 — one click)` label has
-        // been retired; the same method now backs `🚀 Build Everything`.
-        // (D-051 / D-074 — this is now the ONLY Hearthbound menu entry; the
-        // Phase 57 consolidator prunes Diagnose + Advanced at editor load.)
-
         [MenuItem("Hearthbound/🚀 Build Everything", priority = -100)]
         public static void Build()
         {
-            // Phase 32 — Safety note. The chain rebuilds 6 scenes + every
-            // capstone-managed prefab. Re-running is safe (idempotent) but
-            // any *manual* scene tweaks made directly to the GameObjects
-            // owned by the chain (e.g. `_Phase27Env_Lane`, the auto-built
-            // cottage prefabs, the Player AnimatorController) will be
-            // overwritten. Inspector overrides on user-owned GameObjects
-            // and on the per-scene Player / NPC instances survive because
-            // every chained phase uses load-or-create + heal-then-save.
             if (!EditorUtility.DisplayDialog(
                 "Build Everything",
-                "This runs the full Phase 13 → 60 chain (~120 s) — scenes, player +\n" +
+                "This runs the full Phase 13 → 62 chain — scenes, player +\n" +
                 "NPC rigs, audio, cutscenes, level polish, the Depth Layer, the One\n" +
-                "More Day hook, the Polish Menu, emoji glyphs, the Arabic font, and\n" +
-                "the environment-enrichment pass.\n\n" +
+                "More Day hook, the Polish Menu, emoji glyphs, the Arabic font, the\n" +
+                "environment-enrichment pass, and the Garden enrichment + wayfinding.\n\n" +
                 "Safe to re-run after every pull — every step is idempotent.\n\n" +
                 "Continue?",
                 "Build", "Cancel")) return;
@@ -114,8 +64,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 4: Phase 26 — Narrative Hooks (Marin's Note). Optional;
-                // not all branches have this thread.
+                // Step 4: Phase 26 — Narrative Hooks (Marin's Note). Optional.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 26 (Narrative Hooks) …", 0.55f);
                 if (TryRun("Phase 26 — Narrative Hooks",
                           "HearthboundHollow.EditorTools.Phase26_NarrativeHooks", "WireNarrativeHooks") ||
@@ -167,8 +116,7 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 8.5: Phase 32 — Voice Acting MVP. Rebuilds
-                // Resources/HearthboundVoiceLibrary.asset.
+                // Step 8.5: Phase 32 — Voice Acting MVP. Rebuilds the voice library.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 32 (Voice Library) …", 0.86f);
                 if (TryRun("Phase 32 — Voice Library (D-058)",
                           "HearthboundHollow.EditorTools.Phase32_VoiceLibraryBuilder", "Build"))
@@ -216,8 +164,8 @@ namespace HearthboundHollow.EditorTools
                 else
                     skipped++;
 
-                // Step 13: Phase 47 — Level Boundaries + Wider Environment +
-                // Skybox + Interior Polish + Collider Hardening + Wayfinding.
+                // Step 13: Phase 47 — Level Boundaries + Wider Environment + Skybox +
+                // Interior Polish + Collider Hardening + Wayfinding.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 47 (Level Boundaries + Polish) …", 0.98f);
                 if (TryRun("Phase 47.1 — Autumn Skybox + Lighting",
                           "HearthboundHollow.EditorTools.Phase47_AutumnSkyboxAndLighting", "Build")) ran++; else skipped++;
@@ -234,14 +182,7 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 47.7 — Guide Lights + Wayfinding",
                           "HearthboundHollow.EditorTools.Phase47_GuideLightsAndWayfinding", "Build")) ran++; else skipped++;
 
-                // Step 14: Phase 48-51 Depth Layer (the Hook + deep system family).
-                // - 48: Cold Open Cinematic on the Bootstrap scene (the hook).
-                // - 49: Echo Hologram of Marin on the Hollow workbench.
-                // - 50: Tone-Personalized Preface Beat on the Lane scene.
-                // - 51: Memory Web Overlay on the Bootstrap scene (Tab to open).
-                // Each phase is fully idempotent and re-runs cleanly on every
-                // `git pull` cycle. Skipped gracefully when a phase isn't
-                // shipped on this branch.
+                // Step 14: Phase 48-51 Depth Layer.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 48-51 (Depth Layer) …", 0.985f);
                 if (TryRun("Phase 48 — Cold Open Cinematic (the hook)",
                           "HearthboundHollow.EditorTools.Phase48_BootstrapHookCinematic", "Build")) ran++; else skipped++;
@@ -252,48 +193,40 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 51 — Memory Web Overlay (Tab)",
                           "HearthboundHollow.EditorTools.Phase51_MemoryWebBuilder", "Build")) ran++; else skipped++;
 
-                // Step 15: Phase 47 — "One More Day" goodnight beat (the cozy
-                // "press continue WANTING tomorrow" retention hook). Builds the
-                // two TomorrowTeaseSO assets + OneMoreDayCard.prefab, then wires
-                // the EndOfDaySequencer (Ledger → Dream → Goodnight Card → load)
-                // into the Hollow + Cottage scenes. Idempotent; opt-in at runtime
-                // (directors fall back to the legacy path when unwired — D-064).
+                // Step 15: Phase 47 — "One More Day" goodnight beat.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 47 (One More Day Hook) …", 0.988f);
                 if (TryRun("Phase 47 — One More Day Hook",
                           "HearthboundHollow.EditorTools.Phase47_OneMoreDayBuilder", "Build")) ran++; else skipped++;
 
-                // Step 16: Phase 53 — Polish Menu Layer (language EN/العربية,
-                // Reset Game → title, and the New-Game Character Creator
-                // (skin / outfit / accessory / name). Builds the screens on the
-                // Main Menu + every gameplay Pause, and the avatar appearance
-                // applier. Idempotent; persists via SettingsService (PlayerPrefs).
+                // Step 16: Phase 53 — Polish Menu Layer.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 53 (Polish Menu Layer) …", 0.99f);
                 if (TryRun("Phase 53 — Polish Menu Layer",
                           "HearthboundHollow.EditorTools.Phase53_PolishMenuBuilder", "Build")) ran++; else skipped++;
 
-                // Step 17: Phase 54 — Hollow Glyphs. Bakes the on-brand gold emoji
-                // TMP Sprite Asset + registers it as the TMP default sprite asset /
-                // emoji fallback so onboarding/help/hint emoji render as glyphs
-                // (never a tofu box). Idempotent; also auto-installs on editor load.
+                // Step 17: Phase 54 — Hollow Glyphs.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 54 (Hollow Glyphs) …", 0.992f);
                 if (TryRun("Phase 54 — Hollow Glyphs (emoji → TMP sprites)",
                           "HearthboundHollow.EditorTools.Phase54_HollowGlyphsBuilder", "Build")) ran++; else skipped++;
 
-                // Step 18: Phase 56 — Arabic Font Installer. Builds an Arabic-capable
-                // dynamic TMP font + registers it as a fallback so العربية renders
-                // real connected glyphs (no tofu). Idempotent; also auto-installs.
+                // Step 18: Phase 56 — Arabic Font Installer.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 56 (Arabic Font) …", 0.994f);
                 if (TryRun("Phase 56 — Arabic Font Installer (fix tofu)",
                           "HearthboundHollow.EditorTools.Phase56_ArabicFontInstaller", "Install")) ran++; else skipped++;
 
                 // Step 19: Phase 60 — Environment enrichment + placement accuracy.
-                // Silently hides the red trigger-zone quads across the gameplay
-                // scenes and dresses the Hollow interior with a grounded, collider'd
-                // "baker's corner" from packs already in the project. Idempotent
-                // (managed root rebuilt each run); saves the touched scenes.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 60 (Environment Enrichment) …", 0.996f);
                 if (TryRun("Phase 60 — Hollow Dressing Enrichment + quad fix",
                           "HearthboundHollow.EditorTools.Phase60_HollowDressingEnrichment", "Build")) ran++; else skipped++;
+
+                // Step 20: Phase 62 — Garden enrichment + wayfinding. Retextures the
+                // flat green Garden ground (warm meadow), warms the lighting, dresses
+                // the meadow with Medieval Village trees + market/farm props (grounded,
+                // collider'd, under a reversible managed root), and lays a glowing
+                // lantern path from the player's spawn to Garden_Exit_Trigger so the
+                // route to Gerrold's cottage is unmistakable (the "stuck at M2" fix).
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 62 (Garden Enrichment + Wayfinding) …", 0.997f);
+                if (TryRun("Phase 62 — Garden Enrichment + Wayfinding",
+                          "HearthboundHollow.EditorTools.Phase62_GardenEnrichment", "Build")) ran++; else skipped++;
 
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
@@ -311,13 +244,8 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ─── Reflection runner ────────────────────────
+        // ─── Reflection runner ───────────────────────────────────
 
-        /// <summary>
-        /// Invokes the named static method on the named type via reflection.
-        /// Returns false (and logs a graceful warning) if the type or method
-        /// is missing — so an absent phase doesn't break the whole chain.
-        /// </summary>
         private static bool TryRun(string label, string typeFullName, string methodName)
         {
             Type t = FindType(typeFullName);
@@ -342,7 +270,6 @@ namespace HearthboundHollow.EditorTools
             }
             catch (Exception e)
             {
-                // Unwrap reflection target exceptions so the real cause shows.
                 var inner = e.InnerException ?? e;
                 Debug.LogError($"[Hearthbound/Build Everything] ✗ {label} threw: {inner}");
                 return false;
@@ -363,7 +290,7 @@ namespace HearthboundHollow.EditorTools
             return null;
         }
 
-        // ─── Summary builder ───────────────────────
+        // ─── Summary builder ──────────────────────────────
 
         private static string BuildSummary(int ran, int skipped)
         {
@@ -376,53 +303,22 @@ namespace HearthboundHollow.EditorTools
                 sb.AppendLine("Check the Console for the per-phase log; missing phases don't break the build.");
             }
             sb.AppendLine();
-            sb.AppendLine("Result on disk:");
+            sb.AppendLine("Highlights on disk:");
             sb.AppendLine("  • 6 scenes in Build Settings (Bootstrap → Cottage)");
-            sb.AppendLine("  • Assets/_Project/Animations/Hearthbound_Player.controller built");
-            sb.AppendLine("  • Assets/_Project/Animations/Hearthbound_NPC.controller built");
-            sb.AppendLine("  • Player prefab Animator wired to player controller + foot-bone anchor (Phase 29)");
-            sb.AppendLine("  • Doris / Gerrold / SilentLane prefabs wired with NPC controller + NpcAnimatorBridge");
-            sb.AppendLine("  • Lane / Hollow / Garden / Cottage — SmoothFollowCamera in place");
-            sb.AppendLine("  • Lane / Hollow / Garden / Cottage — PlayerController.cameraReference set");
-            sb.AppendLine("  • Marin's Note dropped on the Hollow workbench (if Narrative Hooks shipped)");
-            sb.AppendLine("  • Lane — OnboardingOverlay (6-step walkthrough on first play)");
-            sb.AppendLine("  • Every gameplay scene — ControlHintsHUD (always-visible key chips)");
-            sb.AppendLine("  • Phase 32 v2 — 8 cottages + Hollow facade + cozy URP volume (if shipped)");
-            sb.AppendLine("  • Phase 46 — Doris voice clips generated by espeak-ng if available (cross-platform)");
-            sb.AppendLine("  • Phase 32 Voice MVP — Resources/HearthboundVoiceLibrary.asset built from Audio/Voice/**/*.wav (D-058)");
-            sb.AppendLine("  • Phase 36 — MemoryDreamRig.prefab wired with Dream 1 + 5× Dream 2 variants + Listen scene Timelines");
-            sb.AppendLine("  • Phase 37 — MusicLibrarySO, AmbienceLibrarySO, MumbleVoiceLibrarySO built");
-            sb.AppendLine("                + 30+ procedural WAV cues in Assets/_Project/Audio/Generated/");
-            sb.AppendLine("  • Phase 45 — Libraries migrated to Resources/ for runtime Resources.Load fallback");
-            sb.AppendLine("  • Phase 38 — Per-scene MusicPlayer + AmbientAudio attached, DialogueUI MumbleVoicePlayer wired");
-            sb.AppendLine("  • Phase 42 — ListenSceneCameraDirector on Cottage scene with 4-waypoint cinematic path");
-            sb.AppendLine("  • Phase 47 — Autumn skybox, 24×36m Lane with stone-wall perimeter + void blockers,");
-            sb.AppendLine("                Hollow + Cottage interior polish, cottage hearth flicker, guide lanterns,");
-            sb.AppendLine("                firefly wayfinding, every prop has a Collider (no clipping)");
-            sb.AppendLine("  • Phase 48 — Cold Open cinematic on Bootstrap (candle, Marin's letter, Pickle eyes, title)");
-            sb.AppendLine("  • Phase 49 — Echo Hologram of Marin on the Hollow workbench (3-line monologue)");
-            sb.AppendLine("  • Phase 50 — Tone-Personalized Preface Beat on Lane scene (3 narrator lines, skippable)");
-            sb.AppendLine("  • Phase 51 — Memory Web overlay (Tab opens it, 4 canonical Echo connections)");
-            sb.AppendLine("  • Phase 47 — One More Day goodnight card on Hollow + Cottage (Ledger → Dream → card → next day)");
-            sb.AppendLine("  • Phase 53 — Polish Menu: Language (EN/العربية), Reset Game → title, Character Creator (skin/outfit/accessory/name)");
-            sb.AppendLine("  • Phase 54 — HollowGlyphs TMP sprite asset baked + registered (onboarding/help/hint emoji never tofu)");
-            sb.AppendLine("  • Phase 56 — Arabic TMP font installed + registered as fallback (العربية renders real connected glyphs)");
-            sb.AppendLine("  • Phase 60 — Red trigger-zone quads hidden; Hollow interior dressed with a grounded baker's corner (packs already in-project)");
+            sb.AppendLine("  • Player + NPC rigs, cameras, audio, cutscenes wired");
+            sb.AppendLine("  • Phase 47 — boundaries, autumn skybox, interior polish, wayfinding");
+            sb.AppendLine("  • Phase 48-51 — Depth Layer (Cold Open, Echo Hologram, Preface, Memory Web)");
+            sb.AppendLine("  • Phase 47 — One More Day goodnight card");
+            sb.AppendLine("  • Phase 53 — Polish Menu (language, reset, character creator)");
+            sb.AppendLine("  • Phase 54/56 — emoji glyphs + Arabic font");
+            sb.AppendLine("  • Phase 60 — Hollow dressing + red-quad retire");
+            sb.AppendLine("  • Phase 62 — Garden meadow ground + warm lighting + medieval dressing");
+            sb.AppendLine("                + a glowing lantern path to Gerrold's cottage (un-stuck)");
             sb.AppendLine();
-            sb.AppendLine("The Hearthbound menu now shows a single entry — 🚀 Build Everything (Phase 57).");
+            sb.AppendLine("The Engagement loop (Request Board [B], Memory Wall [M], Hollow Shop [U],");
+            sb.AppendLine("Garden [G], Workbench [K], Journal [J]) self-installs at Play — no build step.");
             sb.AppendLine();
             sb.AppendLine("Press Play in 00_Bootstrap.unity.");
-            sb.AppendLine();
-            sb.AppendLine("Controls (visible any time via H, also via the on-screen ControlHintsHUD):");
-            sb.AppendLine("  Move      WASD / Arrows / Left Stick");
-            sb.AppendLine("  Sprint    Left Shift / LStick click   (Gentle Mode disables)");
-            sb.AppendLine("  Jump      Space / Gamepad south       (Gentle Mode disables)");
-            sb.AppendLine("  Interact  E / Gamepad south");
-            sb.AppendLine("  Look      Hold Right Mouse + drag / Right Stick");
-            sb.AppendLine("  Zoom      Mouse scroll / Gamepad LB-RB");
-            sb.AppendLine("  Pause     Escape");
-            sb.AppendLine("  Help      H");
-            sb.AppendLine("  Memory Web  Tab");
             return sb.ToString();
         }
     }
