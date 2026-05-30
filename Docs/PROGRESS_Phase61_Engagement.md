@@ -21,6 +21,35 @@ variety, no "tomorrow"). Reject as product; greenlight as foundation. Full canon
 
 ---
 
+## Phase 61.5 — Wire the Living Day live (the morning bookend) 🟢 (2026-05-30)
+
+### What shipped
+| File | Role |
+|---|---|
+| `Assets/_Project/Scripts/UI/AgendaCardUI.cs` (+.meta) | **The morning Agenda card** — self-installing, self-building parchment overlay. On Hollow entry (after a short delay so it never overlaps the scene title card), it calls `DailyLoopService.BeginDay()` (firing `DayStartedEvent` + `AgendaReadyEvent`) and renders the day label + visitors + garden + a Marin margin-note nudge. Once per in-game day. |
+
+### Why this is the right 61.5 scope
+- The **evening** bookend already exists (`EveningLedgerUI` recap + `OneMoreDayCard` "tomorrow" tease). The **missing** beat was the **morning**. This adds it and makes `DailyLoopService` (Phase 61.4) actually run — so the Living Day (P1) loop spine is now live end-to-end (morning Agenda → day → evening ledger → goodnight tease).
+
+### Why this drop is safe (no compile/scene risk)
+- **Self-installing** via `[RuntimeInitializeOnLoadMethod]` (mirrors `RuntimeAudioBootstrap` / `MissionAudioHooks`): **no scene edit, no Editor builder, no `Phase27_BuildEverything` change.** It runs on Play. So after a pull, the workflow is unchanged: `🚀 Build Everything` → Play. Nothing in Advanced; nothing extra to click.
+- **Self-builds its canvas** mirroring the proven `MiniGameTutorialUI` idiom (`CreateOverlayCanvas` + `MakeLabel`); TMP default font via `UIAutoFitText`. UI asmdef already references Core → `DailyLoopService`/`DayAgenda`/`VillageState`/`EventBus` in scope (no asmdef change, D-035).
+- **Cozy Contract:** non-blocking, dismissable (button OR Space/Enter/E/Esc/click), no `timeScale` pause, no fail state, no countdown. D-068 safety net (a transparent card never strands `blocksRaycasts`). Legacy `Input.GetKeyDown` used — verified active (the same API `OneMoreDayCard`/`MiniGameTutorialUI` rely on).
+- **Deliberately NOT touched this phase:** `GameManager.EndDay` (the `currentDayIndex` owner) and `DayCycleManager.autoAdvance` — deferred to **Phase 61.6 (D-077)** so they can be Play-tested before a counter-ownership refactor.
+
+### How to validate (in-engine — this was authored without a Unity compile)
+1. Pull → open in Unity → `Hearthbound → 🚀 Build Everything` → Play.
+2. Walk into the Hollow (M1) or wake there (M2). After ~1.4 s a parchment **Agenda card** fades in: *"Spire-Month · Day N — …"*, who's at your door, a Marin nudge.
+3. Dismiss with the **Open the day** button or any of Space/Enter/E/Esc/click. It shows **once per in-game day**.
+4. Report any console error/visual issue → hotfix (the project's normal pull→test→fix loop).
+
+### Known follow-ups
+- **Phase 61.6:** route `GameManager.EndDay()` → `DailyLoopService.EndDay()` (single counter owner, **D-077**); optionally enable `DayCycleManager.autoAdvance` as mood-only.
+- **Phase 62 (P2):** the Request Board service will populate `DayAgenda.visitors`, replacing the baseline visitor line automatically (the card already reads `CurrentAgenda`).
+- Placement tuning: morning card currently fires on Hollow entry; per-day "wake" placement is refined once the day-advance routing (61.6) lands.
+
+---
+
 ## Phase 61.4 — P1 code scaffolding (the Living Day spine) 🟢 (2026-05-30)
 
 ### Files added (Core asmdef — inert, compile-safe, ZERO behaviour change)
@@ -28,20 +57,12 @@ variety, no "tomorrow"). Reject as product; greenlight as foundation. Full canon
 |---|---|
 | `Assets/_Project/Scripts/Core/EngagementEvents.cs` (+.meta) | 6 new EventBus `readonly struct`s: `DayStartedEvent`, `AgendaReadyEvent`, `RequestResolvedEvent`, `HollowUpgradePurchasedEvent`, `EchoThreadCompletedEvent`, `MemorySortedEvent`. Kept separate from `GameEvents.cs` (clean diffs). |
 | `Assets/_Project/Scripts/Core/DayAgenda.cs` (+.meta) | Transient per-day model (visitors / garden notes / Marin suggestion). Plain class, not an SO. |
-| `Assets/_Project/Scripts/Core/DailyLoopService.cs` (+.meta) | The day-lifecycle owner (Waking→OpenDay→Evening→Asleep). Self-installs via `RuntimeInitializeOnLoad` (matches `RuntimeAudioBootstrap`), registers in `ServiceLocator`, subscribes to `VillageStateLoadedEvent`. `BeginDay()`/`EndDay()` exist but are **not yet called by any director** → inert. |
+| `Assets/_Project/Scripts/Core/DailyLoopService.cs` (+.meta) | The day-lifecycle owner (Waking→OpenDay→Evening→Asleep). Self-installs via `RuntimeInitializeOnLoad`, registers in `ServiceLocator`, subscribes to `VillageStateLoadedEvent`. `BeginDay()` is now called live by `AgendaCardUI` (61.5); `EndDay()` awaits the 61.6 routing. |
 
-### Why this is safe to land now
+### Why this was safe to land
 - **Core asmdef only** (depends on `UnityEngine` + `Unity.TextMeshPro`); no new asmdef refs → D-035 satisfied, no cycle.
 - Verified against the real APIs: `EventBus.Subscribe/Publish/Unsubscribe<T> where T:struct`, `ServiceLocator.Register/Get<T> where T:class`, `Hh.Log(LogCategory,…)`, `VillageState.currentDayIndex`.
-- `GameEvents.cs` and `VillageState.cs` **deliberately untouched** this phase (no save-schema/serialization risk). New `VillageState` fields (`purchasedUpgradeIds`, `gardenBeds`, etc.) land additively in later phases per their system docs.
-- `DailyLoopService` is inert: nothing calls `BeginDay`/`EndDay`, so the shipping M1/M2 flow is byte-for-byte unchanged at runtime.
-
-### Follow-up (Phase 61.5 — next)
-Wire P1 live: `AgendaCardUI` (clone `OneMoreDayCard` + D-068 raycast safety net),
-`Phase61_DailyLoopBuilder` (idempotent; drops the Agenda card, sets `DayCycleManager.autoAdvance`),
-route `GameManager.EndDay()` → `DailyLoopService.EndDay()` (single counter owner — **D-077**),
-extend `EveningLedgerUI` into the celebratory recap, make `TomorrowTeaseSO` the day-closer.
-Chain the builder into `🚀 Build Everything`.
+- `GameEvents.cs` and `VillageState.cs` **deliberately untouched** (no save-schema/serialization risk). New `VillageState` fields (`purchasedUpgradeIds`, `gardenBeds`, etc.) land additively in later phases per their system docs.
 
 ---
 
@@ -63,8 +84,8 @@ Added `Docs/Engagement_Bible/`:
 
 - **D-075** — Engagement Bible un-defers the loop-critical subset of Depth-Bible codices 04/08/09/10/13. Out-of-Scope Wall revised. Cozy Contract + no-dark-monetization remain inviolable.
 - **D-076** — Cordray Principle relaxed to "no *anxiety-inducing* numbers." Cozy, opt-in, celebratory progression feedback is now required.
-- **D-077** *(reserved, Phase 61.5)* — `DailyLoopService.EndDay()` is the single owner of `currentDayIndex`; `GameManager`/`MissionRunner` delegate (no double-increment).
+- **D-077** *(reserved, Phase 61.6)* — `DailyLoopService.EndDay()` is the single owner of `currentDayIndex`; `GameManager`/`MissionRunner` delegate (no double-increment).
 
 ---
 
-*Last updated: 2026-05-30 — Phase 61.4. See `Docs/Engagement_Bible/10_IMPLEMENTATION_ROADMAP.md` for the full forward plan.*
+*Last updated: 2026-05-30 — Phase 61.5 (Living Day live). See `Docs/Engagement_Bible/10_IMPLEMENTATION_ROADMAP.md` for the full forward plan.*
