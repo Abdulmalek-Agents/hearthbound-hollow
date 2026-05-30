@@ -242,7 +242,11 @@ namespace HearthboundHollow.Player
             Vector3 playerPivot = (player != null ? player.position : Vector3.zero) + Vector3.up * cameraHeight;
             Vector3 fwd = player != null ? player.forward : (cameraTransform != null ? cameraTransform.forward : Vector3.forward);
             Vector3 right = player != null ? player.right : Vector3.right;
-            Quaternion pitch = Quaternion.AngleAxis(-widePitch, right);
+            // Phase 32.22 fix: tilt the "behind player" vector UP (+widePitch) so the
+            // camera sits ABOVE and behind, looking gently DOWN — a proper cozy
+            // establishing shot. The old -widePitch tilted it DOWN, dropping the
+            // camera to knee height looking UP at the player (the QA screenshot).
+            Quaternion pitch = Quaternion.AngleAxis(widePitch, right);
             Vector3 back = pitch * (-fwd);
             pos = playerPivot + back * wideDistance;
 
@@ -333,6 +337,17 @@ namespace HearthboundHollow.Player
                 var nested = FindChildStartingWith(r.transform, speakerName);
                 if (nested != null) return nested;
             }
+
+            // Robust fallback (Phase 32.22): any transform whose name CONTAINS the
+            // speaker (e.g. "NPC_Doris", "Doris_Rig", "Doris (1)"). This recursive
+            // walk also reaches INACTIVE objects (unlike GameObject.Find), so the
+            // camera frames the speaker instead of collapsing to the wide shot.
+            foreach (var r in roots)
+            {
+                if (r.name.IndexOf(speakerName, System.StringComparison.OrdinalIgnoreCase) >= 0) return r.transform;
+                var nested = FindChildContaining(r.transform, speakerName);
+                if (nested != null) return nested;
+            }
             return null;
         }
 
@@ -343,6 +358,18 @@ namespace HearthboundHollow.Player
                 var c = parent.GetChild(i);
                 if (c.name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)) return c;
                 var nested = FindChildStartingWith(c, prefix);
+                if (nested != null) return nested;
+            }
+            return null;
+        }
+
+        private static Transform FindChildContaining(Transform parent, string needle)
+        {
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var c = parent.GetChild(i);
+                if (c.name.IndexOf(needle, System.StringComparison.OrdinalIgnoreCase) >= 0) return c;
+                var nested = FindChildContaining(c, needle);
                 if (nested != null) return nested;
             }
             return null;

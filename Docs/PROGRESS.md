@@ -10,6 +10,25 @@
 
 ---
 
+## 🆕 Phase 32.22 — Dialogue camera (Doris) clipping/low-angle fix  🟢 (2026-05-31)
+
+**User report (QA screenshot):** during Doris's dialogue the camera jams low behind the player,
+looking up at the legs — no speaker in frame.
+
+`DialogueCameraDirector` had its anti-clip hardened already (it ignores the player/speaker
+colliders via `ClipBetween`), but two issues remained:
+- **Wide-shot pitch inverted** — the fallback used `AngleAxis(-widePitch)`, dropping the camera
+  *below* the pivot looking *up*. Fixed to `+widePitch` → a proper above-and-behind establishing
+  shot looking gently down.
+- **Speaker lookup too narrow** — when "Doris" wasn't matched, it fell back to that (broken) wide
+  shot. `ResolveSpeakerTransform` now also matches any transform whose name *contains* the speaker
+  and recurses **inactive** objects, so dialogue reliably uses the good over-the-shoulder 2-shot.
+
+Runtime scripts → apply on **recompile** (no rebake). File:
+[DialogueCameraDirector.cs](Assets/_Project/Scripts/Player/DialogueCameraDirector.cs).
+
+---
+
 ## 🆕 D-077 — Arabic dialogue + voice STOPGAP (Pillar 1 override)  🟢 (2026-05-30)
 
 **Explicit user override of Pillar 1 / D-065.** The player repeatedly asked for spoken, on-screen
