@@ -42,6 +42,18 @@ namespace HearthboundHollow.Core
         public HollowUpgradePurchasedEvent(string upgradeId) { UpgradeId = upgradeId; }
     }
 
+    /// <summary>
+    /// INTENT: the player asked to buy a Hollow upgrade from the shop UI. Published
+    /// by UI (HollowShopUI); consumed by the Mission HollowProgressionService, which
+    /// validates coin/prereqs, deducts, persists, reveals the scene marker, and
+    /// publishes HollowUpgradePurchasedEvent. (UI never references Mission — D-035.)
+    /// </summary>
+    public readonly struct HollowPurchaseRequestedEvent
+    {
+        public readonly string UpgradeId;
+        public HollowPurchaseRequestedEvent(string upgradeId) { UpgradeId = upgradeId; }
+    }
+
     /// <summary>Fired when an Echo thread reaches its completion threshold on the Memory Wall.</summary>
     public readonly struct EchoThreadCompletedEvent
     {
