@@ -222,6 +222,18 @@ namespace HearthboundHollow.UI
             sb.AppendLine(Row("🔍", "Zoom", "التقريب", "Mouse scroll / Gamepad LB-RB", "عجلة الفأرة / LB-RB"));
             sb.AppendLine(Row("❓", "Help", "المساعدة", "H to toggle this card", "H لإظهار/إخفاء هذه البطاقة"));
             sb.AppendLine(Row("⏸", "Pause", "الإيقاف المؤقت", "Esc", "Esc"));
+
+            // Phase 71 — the daily-loop hub keys (Engagement Bible P2–P7). The
+            // “full reference” card now lists every place the Hollow's day asks
+            // you to visit, so a returning player never forgets a hotkey.
+            sb.AppendLine();
+            sb.AppendLine($"{gold}<b>{L("Your day's places", "أماكن يومك")}</b>{end}");
+            sb.AppendLine(Row("🪔", "Journal", "الدفتر", "J — today's agenda", "J — جدول اليوم"));
+            sb.AppendLine(Row("✋", "Requests", "الطلبات", "B — village request board", "B — لوحة طلبات القرية"));
+            sb.AppendLine(Row("✨", "Memory Wall", "جدار الذكريات", "M — memories you've kept", "M — الذكريات التي حفظتها"));
+            sb.AppendLine(Row("🔑", "Your Hollow", "جوفك", "U — comforts & upgrades", "U — وسائل الراحة والترقيات"));
+            sb.AppendLine(Row("🍂", "Garden", "الحديقة", "G — tend beds & brew tea", "G — اعتنِ بالأحواض واصنع الشاي"));
+            sb.AppendLine(Row("🫖", "Workbench", "طاولة العمل", "K — craft & mend", "K — اصنع وأصلح"));
             sb.AppendLine();
             sb.AppendLine($"{brown}<i>{L("“There is no wrong way to keep a memory.", "”لا توجد طريقة خاطئة لحفظ ذكرى.")}</i>{end}");
             sb.AppendLine($"{brown}<i>{L("There is only the gentle way, and the others.”", "هناك فقط الطريقة اللطيفة، والطرق الأخرى.“")}</i>{end}");
