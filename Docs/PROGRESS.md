@@ -10,6 +10,35 @@
 
 ---
 
+## 🆕 D-077 — Arabic dialogue + voice STOPGAP (Pillar 1 override)  🟢 (2026-05-30)
+
+**Explicit user override of Pillar 1 / D-065.** The player repeatedly asked for spoken, on-screen
+Arabic dialogue now and chose "machine-translate + Arabic TTS." This is logged as a deviation:
+the English Yarn stays canonical; this stopgap is **not greenlight-canon** and should be replaced
+by a human translation + VO pass.
+
+- **Also fixed the compile error that masked everything:** `Phase57…ToArray()` vs `List<Entry>`
+  ([Phase57_ArabicLocalizationScaffold.cs:152](Assets/_Project/Scripts/Editor/Phase57_ArabicLocalizationScaffold.cs:152)).
+  A compile error blocks the whole project, so until it cleared, *none* of the earlier fixes ran —
+  which is why dialogue/voice/stuck all still looked broken.
+- **One source of truth:** `Tools/generate_voices_ar.sh` holds the 77 Arabic line translations and
+  emits BOTH: (1) `Audio/Voice_ar/<Char>/<lineId>.wav` (22 kHz mono PCM16, via `say -v Majed`→ffmpeg)
+  and (2) `Core/DialogueLocalizationData.cs` (lineId→Arabic) — so text + voice can't drift.
+- **Runtime:** `DialogueLocalization` now serves the stopgap table (human SO override still wins);
+  `DialogueUI` shows shaped Arabic + transliterated speaker names; `VoicePlayer` plays the AR clip
+  when Arabic is active (Phase 57 plumbing).
+- **Known cosmetic limit:** the dialogue typewriter reveals shaped RTL text from its visual-left
+  (builds from the sentence end). Functional; a proper RTL-reveal is a follow-up.
+
+### Activate
+1. **⏹ Stop Play mode** → Unity recompiles (clears the error) + imports the 77 new `.wav`s.
+2. **Hearthbound → ⚙️ Advanced → Phase 57 — Scaffold Arabic Dialogue + Voice** (builds
+   `Resources/HearthboundVoiceLibrary_ar` from the clips).
+3. Play in Arabic → dialogue box + Doris/Gerrold voices are Arabic. (Text works on recompile alone;
+   voice needs step 2.)
+
+---
+
 ## 🆕 Phase 32.21 — M2/M1 gameplay-feel fixes (wedge + camera + menu)  🟢 (2026-05-30)
 
 **User report (2 QA videos):** *"player stuck at the green arena of Mission 2 Garden; a UI
