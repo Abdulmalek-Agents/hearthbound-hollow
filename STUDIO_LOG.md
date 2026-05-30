@@ -15,6 +15,50 @@
 
 ---
 
+## 🎬 Phase 72 — Village Backdrop + Atmosphere + Depth Verification 🟢 (2026-05-30)
+
+**Owner ask:** full environment polish with lots of assets, **bigger arenas**, cutscenes
+if needed, best-in-class onboarding, and **verify M1/M2 depth** against the Engagement +
+Depth bibles.
+
+**Specialists convened:** Lead Unity Architect · 2× 3D Modelers · Lighting Expert ·
+Technical Artist · 4× Senior QA · 3× Market Critics · 2× Game Designers · Narrative Director.
+
+### What shipped
+| Item | Player-facing | Where | Commit |
+|---|---|---|---|
+| **Village Backdrop** | each arena now reads as one corner of a **big, living autumn town** — authored-cottage skyline ring + two autumn tree belts + grass scatter + warm dusk lights/torch/chimney atmosphere + a Lane market row | new `Editor/Phase72_VillageBackdrop.cs` (Build Everything Step 22) | `d41e9138` |
+| **Depth verification** | re-graded M1/M2 on the Engagement Bible's own 7-engine Stardew scorecard: **0/7 → 6 🟢 / 1 🟡** | `Docs/DEPTH_VERIFICATION_Mission1_2_Phase72.md` | (this) |
+
+### Asset sourcing (Tech Artist + 3D Modelers)
+All from packs **already on disk** — Medieval Village (`SM_Alder_Fall`, `SM_PineTree`,
+`SM_ShopStand`, produce crates, `SM_FoodSac`, `SM_Signboard`, `SM_FlagGurland`,
+`SM_Grass_01a_Foliage`, `PS_TorchFire`/`PS_CandleFire`, `SM_FakeCloudPlane`), the 4 authored
+`_Project/Prefabs/Environment/Cottage_*` and **VertexField VoluSmoke FX** for chimney smoke
+(soft built-in plume fallback). Every prop is raycast-grounded; the whole layer is one
+deletable root per scene (`_Phase72_Backdrop`); **background props carry no colliders**, so
+nothing touches the Phase 47 gameplay walls or the Phase 71 progression net.
+
+### Depth verdict (Market Critics + Designers)
+The pre-loop critique scored the slice **0/7** and rejected it. With the cozy daily loop
+(Phases 62–67) the same scorecard is now **6 🟢 / 1 🟡**: compounding loop (Garden/coin/save
+v3), player-authored goals (Request Board), **visible ownership** (Hollow upgrades reveal
+pre-placed scene markers), six interleaving systems, visible progression (coin HUD/agenda),
+a calendar of anticipation (Almanac). The lone 🟡 (surprise/variety) is deterministic-per-day
+by cozy design. **Cutscenes:** coverage is adequate (Cold Open, Dream 1+2, Listen Scene,
+goodnight card) — no new cutscene recommended (high blind-risk, low marginal depth).
+
+### Residual quick wins (non-blocking — documented, awaiting greenlight)
+1. Editor builder to **pre-place hidden Hollow upgrade markers** (makes "visible growth" airtight).
+2. **Per-save variety seed** in `RequestBoardService` (needs one new `VillageState` field) → last 🟡 to 🟢.
+3. Evening-Ledger **"the Hollow grew"** prose line.
+
+Detail: `Docs/DEPTH_VERIFICATION_Mission1_2_Phase72.md`.
+
+**Next:** owner playtest of Phases 71–72; then (optionally) the three Part-D quick wins.
+
+---
+
 ## 🎬 Phase 71 — Onboarding depth + Mission-2 never-stranded + green garden 🟢 (2026-05-30)
 
 **Two streams:** (1) the open *best-in-class onboarding* request, and (2) the player
