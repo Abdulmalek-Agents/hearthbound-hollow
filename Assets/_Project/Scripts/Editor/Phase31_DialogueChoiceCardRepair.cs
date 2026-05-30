@@ -218,15 +218,22 @@ namespace HearthboundHollow.EditorTools
             foreach (var ui in dialogueUis)
             {
                 if (ui == null) continue;
-                if (ui.choiceContainer != null && RepairChoicesContainer(ui.choiceContainer))
+                try
                 {
-                    EditorUtility.SetDirty(ui.choiceContainer.gameObject);
-                    changed = true;
+                    if (ui.choiceContainer != null && RepairChoicesContainer(ui.choiceContainer))
+                    {
+                        EditorUtility.SetDirty(ui.choiceContainer.gameObject);
+                        changed = true;
+                    }
+                    if (ui.choiceButtonPrefab != null && RepairChoiceTile(ui.choiceButtonPrefab))
+                    {
+                        EditorUtility.SetDirty(ui.choiceButtonPrefab);
+                        changed = true;
+                    }
                 }
-                if (ui.choiceButtonPrefab != null && RepairChoiceTile(ui.choiceButtonPrefab))
+                catch (System.Exception e)
                 {
-                    EditorUtility.SetDirty(ui.choiceButtonPrefab);
-                    changed = true;
+                    notes.Add($"{Path.GetFileName(scenePath)} — DialogueUI '{ui.name}' skipped ({e.GetType().Name}).");
                 }
             }
 
@@ -235,15 +242,22 @@ namespace HearthboundHollow.EditorTools
             foreach (var card in choiceCards)
             {
                 if (card == null) continue;
-                if (card.choiceContainer != null && RepairChoicesContainer(card.choiceContainer))
+                try
                 {
-                    EditorUtility.SetDirty(card.choiceContainer.gameObject);
-                    changed = true;
+                    if (card.choiceContainer != null && RepairChoicesContainer(card.choiceContainer))
+                    {
+                        EditorUtility.SetDirty(card.choiceContainer.gameObject);
+                        changed = true;
+                    }
+                    if (card.choiceTilePrefab != null && RepairChoiceTile(card.choiceTilePrefab))
+                    {
+                        EditorUtility.SetDirty(card.choiceTilePrefab);
+                        changed = true;
+                    }
                 }
-                if (card.choiceTilePrefab != null && RepairChoiceTile(card.choiceTilePrefab))
+                catch (System.Exception e)
                 {
-                    EditorUtility.SetDirty(card.choiceTilePrefab);
-                    changed = true;
+                    notes.Add($"{Path.GetFileName(scenePath)} — ChoiceCardUI '{card.name}' skipped ({e.GetType().Name}).");
                 }
             }
 
@@ -265,12 +279,22 @@ namespace HearthboundHollow.EditorTools
         private static bool RepairChoicesContainer(Transform container)
         {
             if (container == null) return false;
+
+            // A layout group requires a RectTransform host. choiceContainer is typed
+            // `Transform`, so a scene/prefab can legitimately point it at a non-UI
+            // object — and AddComponent<VerticalLayoutGroup>() then returns null
+            // (RequireComponent(RectTransform) can't be satisfied), which previously
+            // NRE'd at the first `vlg.` access and aborted Build Everything's Phase 31.
+            // Bail gracefully instead; this container simply isn't layout-repairable.
+            if (container is not RectTransform) return false;
+
             bool changed = false;
 
             var vlg = container.GetComponent<VerticalLayoutGroup>();
             if (vlg == null)
             {
                 vlg = container.gameObject.AddComponent<VerticalLayoutGroup>();
+                if (vlg == null) return false;   // defensive: AddComponent refused — never NRE
                 changed = true;
             }
             if (!vlg.childControlWidth) { vlg.childControlWidth = true; changed = true; }
