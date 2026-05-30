@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Hearthbound Hollow — UI / AgendaCardUI  (Engagement Pillar P1 — Phase 61.5/61.6/61.9)
+// Hearthbound Hollow — UI / AgendaCardUI  (Engagement Pillar P1 — Phase 61.5/61.6/61.9, +67)
 //
 // THE MORNING BOOKEND OF THE COZY DAILY LOOP.
 // The evening bookend already exists (EveningLedger recap + OneMoreDayCard
@@ -13,7 +13,8 @@
 //     card settle first (no overlap). During first-play onboarding the Lane is
 //     skipped so the card doesn't stack on the tutorial overlay.
 //   • Lists the day label + visitors (filled by RequestBoardService, 61.8) +
-//     garden status + a Marin margin-note nudge + a progression footer (61.9).
+//     garden status + a Marin margin-note nudge + a progression footer (61.9) +
+//     the Almanac headline (67).
 //   • Until the Request Board (P2) / Garden (P4) services populate DayAgenda,
 //     the card composes gentle baseline lines from VillageState so it's never empty.
 //
@@ -66,7 +67,7 @@ namespace HearthboundHollow.UI
         private static readonly Color DimBackdrop  = new Color(0.04f, 0.03f, 0.02f, 0.45f);
         private static readonly Color ButtonAmber  = new Color(0.78f, 0.55f, 0.25f, 1f);
 
-        // ───── Self-install ────────────────────────────────────────────────
+        // ───── Self-install ────────────────────────────────
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void AutoInstall()
@@ -97,7 +98,7 @@ namespace HearthboundHollow.UI
             if (Instance == this) Instance = null;
         }
 
-        // ───── Scene trigger ────────────────────────────────────────────────
+        // ───── Scene trigger ──────────────────────────────────
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
@@ -154,7 +155,7 @@ namespace HearthboundHollow.UI
 
         private void OnAgendaReady(AgendaReadyEvent e) => ShowCard(e.DayIndex);
 
-        // ───── Presentation ─────────────────────────────────────────────────
+        // ───── Presentation ──────────────────────────────────
 
         private void ShowCard(int dayIndex)
         {
@@ -187,6 +188,13 @@ namespace HearthboundHollow.UI
             sb.AppendLine($"<i>{mood}</i>");
             sb.AppendLine();
 
+            // Almanac headline (Phase 67) — the calendar of anticipation.
+            if (agenda != null && !string.IsNullOrWhiteSpace(agenda.almanacLine))
+            {
+                sb.AppendLine($"<b>{agenda.almanacLine}</b>");
+                sb.AppendLine();
+            }
+
             // Visitors (populated by the Request Board, Phase 61.8; baseline otherwise).
             sb.AppendLine("<b>At your door today</b>");
             if (agenda != null && agenda.visitors.Count > 0)
@@ -215,7 +223,7 @@ namespace HearthboundHollow.UI
             int coin = vs != null ? vs.coin : 0;
             sb.AppendLine();
             sb.AppendLine($"<size=85%>Your Hollow so far:  {memories} memories · {echoes} echoes · {coin} coin</size>");
-            sb.AppendLine("<size=85%><i>(press J any time for your journal)</i></size>");
+            sb.AppendLine("<size=80%><i>[B] board · [M] wall · [U] shop · [G] garden · [K] bench · [J] journal</i></size>");
 
             return (title, sb.ToString().TrimEnd());
         }
