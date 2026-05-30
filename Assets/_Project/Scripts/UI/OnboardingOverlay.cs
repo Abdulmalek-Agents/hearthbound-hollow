@@ -337,6 +337,9 @@ namespace HearthboundHollow.UI
         // and each step carries a `locKey` so its headline/body/caption localize +
         // Arabic-shape at display. The literal strings below are the English copy
         // (and the fallback if a table key is ever missing).
+        // Phase 71 — added the "Your little world" step so a first-run player learns
+        // the cozy daily-loop hub keys (Engagement Bible P2-P7) instead of meeting
+        // those systems blind.
         private static Step[] DefaultSteps() => new[]
         {
             new Step {
@@ -371,6 +374,17 @@ namespace HearthboundHollow.UI
                        "Slower is kinder. Cover all four sides — like a kindness with four corners.",
                 keyChip = "Hold LMB",
                 keyCaption = "Draw slow circles",
+                expects = ""
+            },
+            new Step {
+                emoji = "🔑", locKey = "onboard.rhythm",
+                headline = "Your little world",
+                body = "Each day has a gentle rhythm. Open your <b>journal [J]</b> for today's agenda, " +
+                       "then visit the corners that need you:\n\n" +
+                       "<b>[B]</b> Requests    <b>[M]</b> Memory Wall    <b>[U]</b> Your Hollow\n" +
+                       "<b>[G]</b> Garden    <b>[K]</b> Workbench",
+                keyChip = "J",
+                keyCaption = "Open your journal anytime",
                 expects = ""
             },
             new Step {
