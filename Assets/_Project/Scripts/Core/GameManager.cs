@@ -215,10 +215,23 @@ namespace HearthboundHollow.Core
             SceneManager.UnloadSceneAsync(sceneName);
         }
 
-        /// <summary>Increment the day index and publish DayEndedEvent.</summary>
+        /// <summary>
+        /// Advance the day. D-077: the DailyLoopService is the single owner of the
+        /// day counter + DayEndedEvent when present (it self-installs at runtime).
+        /// GameManager delegates so the counter can never be advanced twice. The
+        /// inline path is a legacy fallback for the (unexpected) case where no
+        /// DailyLoopService exists. All EndDay() callers (MissionRunner,
+        /// Mission01/02Director) route through here, so the loop service is the
+        /// single funnel.
+        /// </summary>
         public void EndDay()
         {
             if (villageState == null) return;
+
+            var loop = DailyLoopService.Instance;
+            if (loop != null) { loop.EndDay(); return; }   // single counter owner (D-077)
+
+            // Legacy fallback — no DailyLoopService present.
             int day = villageState.currentDayIndex;
             villageState.currentDayIndex = day + 1;
             EventBus.Publish(new DayEndedEvent(day));
