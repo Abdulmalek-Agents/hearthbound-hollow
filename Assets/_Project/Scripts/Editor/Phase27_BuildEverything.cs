@@ -164,6 +164,15 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 63 — World Polish (all arenas)",
                           "HearthboundHollow.EditorTools.Phase63_WorldPolish", "Build")) ran++; else skipped++;
 
+                // Step 22: Phase 72 — Village backdrop + atmosphere. A reversible
+                // background layer (authored-cottage skyline ring, autumn tree belt,
+                // grass-foliage scatter, warm dusk lights + torch/chimney atmosphere,
+                // Lane market row) so each arena reads as one corner of a big, living
+                // autumn town. Background props carry no colliders; one managed root.
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 72 (Village Backdrop + Atmosphere) …", 0.9985f);
+                if (TryRun("Phase 72 — Village Backdrop + Atmosphere",
+                          "HearthboundHollow.EditorTools.Phase72_VillageBackdrop", "Build")) ran++; else skipped++;
+
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
                 if (System.IO.File.Exists(SceneBootstrap))
@@ -252,6 +261,8 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("                + a glowing lantern path to Gerrold's cottage (un-stuck)");
             sb.AppendLine("  • Phase 63 — World polish: vista grounds, tree/hedge rings, market stalls,");
             sb.AppendLine("                garden crops + cottage dressing across every arena");
+            sb.AppendLine("  • Phase 72 — Village backdrop: cottage skyline ring, autumn tree belt,");
+            sb.AppendLine("                grass scatter + warm dusk atmosphere + Lane market row");
             sb.AppendLine();
             sb.AppendLine("The Engagement loop (Request Board [B], Memory Wall [M], Hollow Shop [U],");
             sb.AppendLine("Garden [G], Workbench [K], Journal [J]) self-installs at Play — no build step.");
