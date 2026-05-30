@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Hearthbound Hollow — UI / AgendaCardUI  (Engagement Pillar P1 — Phase 61.5)
+// Hearthbound Hollow — UI / AgendaCardUI  (Engagement Pillar P1 — Phase 61.5/61.6)
 //
 // THE MORNING BOOKEND OF THE COZY DAILY LOOP.
 // The evening bookend already exists (EveningLedger recap + OneMoreDayCard
@@ -8,9 +8,10 @@
 // live so the Living Day (P1) is actually running.
 //
 // DESIGN (Docs/Engagement_Bible/03 §2 + 04 §4):
-//   • Shows once per in-game day, when the player enters the Hollow (the
-//     natural "wake in your shop" location). A short delay lets the scene's
-//     own title card settle first (no overlap).
+//   • Shows once per in-game day, on the FIRST gameplay scene of the day — the
+//     player's "wake" (61.6 tuning). A short delay lets the scene's own title
+//     card settle first (no overlap). During first-play onboarding the Lane is
+//     skipped so the card doesn't stack on the tutorial overlay.
 //   • Lists the day label + (future) visitors + garden status + a gentle
 //     Marin margin-note suggestion. Opportunity, never obligation (D-076).
 //   • Until the Request Board (P2) / Garden (P4) services exist to populate
@@ -31,10 +32,6 @@
 //     MiniGameTutorialUI idiom (TMP default font via UIAutoFitText).
 //   • UI asmdef references Core already, so DailyLoopService/DayAgenda/
 //     VillageState/EventBus are all in-scope (no asmdef change — D-035).
-//
-// NOTE: this phase does NOT touch GameManager.EndDay (the currentDayIndex
-// owner) or DayCycleManager.autoAdvance — those land in Phase 61.6 (D-077)
-// once they can be Play-tested, to keep this drop strictly additive.
 
 using System.Collections;
 using System.Text;
@@ -106,15 +103,36 @@ namespace HearthboundHollow.UI
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             string n = scene.name ?? string.Empty;
-            // The morning beat fires in the Hollow (the player's shop/home).
-            // Skip menus/bootstrap and the onboarding-heavy Lane.
-            bool isMorningScene = n.IndexOf("Hollow", System.StringComparison.OrdinalIgnoreCase) >= 0
-                                  && n.IndexOf("Menu", System.StringComparison.OrdinalIgnoreCase) < 0;
-            if (!isMorningScene) return;
+
+            // Phase 61.6 — the morning beat fires on the FIRST gameplay scene of
+            // each day (the player's "wake"), not just the Hollow. Skip the
+            // Bootstrap + Main Menu, and skip the Lane during first-play
+            // onboarding so the Agenda never stacks on the tutorial overlay — on
+            // the very first day it then naturally shows when the player enters
+            // the Hollow.
+            bool isMenuOrBootstrap = n.IndexOf("Menu", System.StringComparison.OrdinalIgnoreCase) >= 0
+                                     || n.IndexOf("Bootstrap", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            if (isMenuOrBootstrap) return;
+
+            bool isGameplayScene = n.IndexOf("Lane", System.StringComparison.OrdinalIgnoreCase) >= 0
+                                   || n.IndexOf("Hollow", System.StringComparison.OrdinalIgnoreCase) >= 0
+                                   || n.IndexOf("Garden", System.StringComparison.OrdinalIgnoreCase) >= 0
+                                   || n.IndexOf("Cottage", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!isGameplayScene) return;
+
+            // During first-play onboarding, defer the Lane card to the Hollow.
+            bool isLane = n.IndexOf("Lane", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            if (isLane && !OnboardingComplete()) return;
 
             int day = ResolveDay();
             if (day == _lastAgendaDay) return;   // once per in-game day
             StartCoroutine(ShowAfterDelay());
+        }
+
+        private static bool OnboardingComplete()
+        {
+            var vs = ServiceLocator.Get<VillageState>();
+            return vs != null && vs.onboardingCompleted;
         }
 
         private IEnumerator ShowAfterDelay()
