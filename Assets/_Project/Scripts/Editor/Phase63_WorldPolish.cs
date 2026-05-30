@@ -98,20 +98,11 @@ namespace HearthboundHollow.EditorTools
 
         private static Material GroundMat(string kind)
         {
-            foreach (var kw in new[] { "grass", "meadow", "soil", "ground", "dirt", "field" })
-                foreach (var g in AssetDatabase.FindAssets("t:Material " + kw, new[] { MV }))
-                {
-                    var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
-                    if (m != null) return m;
-                }
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            var mat = new Material(shader) { name = "Phase63_Vista_" + kind };
-            var c = kind == "lane" ? new Color(0.30f, 0.27f, 0.20f)      // earth
-                                   : new Color(0.32f, 0.36f, 0.23f);     // meadow
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
-            if (mat.HasProperty("_Color"))     mat.SetColor("_Color", c);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.04f);
-            return mat;
+            // Phase 71 — shared cozy-ground helper (see HHGroundMaterials). The
+            // Lane reads as warm earth; Garden/Cottage read as lush GREEN grass
+            // (texture-backed, never the dried/brown variant that produced the
+            // "green garden not available" report).
+            return HHGroundMaterials.MakeCozyGround(kind == "lane" ? "lane" : "garden");
         }
 
         // ── 2) Warm lighting ────────────────────────────────────

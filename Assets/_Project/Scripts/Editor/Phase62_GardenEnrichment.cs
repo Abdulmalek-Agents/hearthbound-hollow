@@ -97,23 +97,12 @@ namespace HearthboundHollow.EditorTools
 
         private static Material MakeGroundMaterial()
         {
-            // Prefer a real grass/soil texture from the pack if present.
-            foreach (var kw in new[] { "grass", "soil", "dirt", "ground", "field", "meadow" })
-            {
-                foreach (var g in AssetDatabase.FindAssets("t:Material " + kw, new[] { MVRoot }))
-                {
-                    var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
-                    if (m != null) return m;
-                }
-            }
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            var mat = new Material(shader) { name = "Phase62_Meadow" };
-            var c = new Color(0.34f, 0.38f, 0.24f); // muted autumn olive-grass (not neon green)
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
-            if (mat.HasProperty("_Color"))     mat.SetColor("_Color", c);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.05f);
-            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.05f);
-            return mat;
+            // Phase 71 — delegate to the shared cozy-ground helper. The old blind
+            // FindAssets("t:Material grass") could return the DRIED (brown) grass
+            // material → the reported "green garden not available". The helper
+            // builds a fresh URP Lit material backed by the GREEN grass diffuse
+            // (T_Grass_Fo_01a_D) with tiling, and never falls back to brown.
+            return HHGroundMaterials.MakeCozyGround("garden");
         }
 
         // ── 2) Lighting ──────────────────────────────────
