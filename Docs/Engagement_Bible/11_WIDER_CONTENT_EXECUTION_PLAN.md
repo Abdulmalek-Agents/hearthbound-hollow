@@ -31,7 +31,7 @@ bench had two flat verbs, there was no calendar. Score vs Stardew's seven retent
 | "DayCycleManager dims one light" | P7 | 67 | ✅ |
 | "Memory Web overlay dormant" | P6 | 63 | ✅ |
 | "VillageState 14 dims at defaults" | all | 62–67 | ✅ written-to + surfaced |
-| Recommendation: new gate G-Engage (≥15/20 start Day 4) | all | 70 | 🟡 plan shipped (`Docs/PHASE70_GENGAGE_PLAYTEST.md`) |
+| Recommendation: new gate G-Engage (≥15/20 start Day 4) | all | 70 | 🟡 plan + telemetry shipped |
 
 ## 2. Engineering discipline (the contract every phase held)
 
@@ -60,6 +60,7 @@ your Hollow's growth, and the key map) **→ choose your day:**
 
 **→ close the ledger on visible growth → the tomorrow tease → sleep → a different morning.**
 Coin compounds: visits/echoes/teas → coin → upgrades & garden → more capacity → more memories.
+Hand-sealed villagers (Doris/Gerrold/Mariska) deepen across days as you help them.
 
 ---
 
@@ -74,14 +75,30 @@ Coin compounds: visits/echoes/teas → coin → upgrades & garden → more capac
 | 66 | P5 | Living Workbench — Sort/Steep verbs, gentle mastery ([K]) | ✅ |
 | 67 | P7 | The Almanac — festivals, market day, bard, birthdays | ✅ |
 | 68 | P2/P6 | Un-defer content — procedural roster + built-in pools | ✅ (built-in; authored SO pools extend with zero code) |
+| 68b | P2 | Hand-sealed multi-beat villager arcs (Doris/Gerrold/Mariska) | ✅ |
 | 69 | all | Cozy feedback pass — coin purse + agenda footer + journal | ✅ core (Evening-Ledger growth section = follow-up) |
-| 70 | all | G-Engage looped playtest + instrumentation | 🟡 plan doc shipped |
+| 70 | all | G-Engage looped playtest + instrumentation | 🟡 plan + telemetry shipped |
 | 71 | all | Heavy-beat pacing across the loop | 🟡 documented guidance |
 | 72 | all | Marketing-truth pass | 🟡 `Docs/MARKETING_TRUTH_Phase72.md` |
 
 ---
 
 ## 5. What landed, by phase (newest on top)
+
+### Phase 68b / 70 — Hand-sealed arcs · telemetry · tests 🟢
+
+**Deepening pass after the loop spine landed.**
+- **`Mission/RequestBoardService.cs` (arcs):** Doris, Gerrold and Mariska now each have an
+  ordered **multi-beat arc**; the board offers the *next unresolved* beat per villager (pinned),
+  so helping someone today unlocks their next chapter — **relationships that deepen over days**.
+  Arc progress rides `resolvedRequestIds` (no new save fields); rotating walk-ins fill the rest;
+  a gentle "quiet caller" is the never-empty fallback.
+- **`Core/EngagementTelemetry.cs` (Phase 70):** dev-only (`UNITY_EDITOR || DEVELOPMENT_BUILD`),
+  opt-in, local CSV of the loop's EventBus signals — flags the **voluntary Day-4** milestone
+  (the G-Engage gate). No PII, no network, never affects gameplay.
+- **`Tests/EditMode/EngagementLoopTests.cs`:** unit stubs (clean-architecture rule) for
+  `VillageStateFlags`, `CraftVerbs`, `DayAgenda`/`RequestTicket`, and the **schema-v3 save
+  round-trip** + `ResetToDefault` clearing (guards the "loop compounds across save/load" promise).
 
 ### Phase 67 — P7 The Almanac 🟢
 `Mission/AlmanacService.cs` (self-installing, observer-only) resolves one gentle event per day —
@@ -120,7 +137,7 @@ or a built-in cozy thread set. **The self-set-goal engine.**
 
 ### Phase 62 — P2 Request Board, interactive 🟢
 `Core/VillageStateFlags.cs` (string→bool gating, D-079), `Core/DayAgenda.cs` (+`RequestTicket`),
-loop events, `Mission/RequestBoardService.cs` (faucet: authored pool or built-in 7-villager roster,
+loop events, `Mission/RequestBoardService.cs` (faucet: authored pool or built-in roster,
 flag/echo gating, carry-over), `Mission/RequestVisitService.cs` (consequences: keep/listen/defer/
 refuse), `UI/RequestBoardUI.cs` ([B]). Save schema v3 persists the loop. **The real economy + agency.**
 
@@ -138,4 +155,4 @@ refuse), `UI/RequestBoardUI.cs` ([B]). Save schema v3 persists the loop. **The r
 
 ---
 
-*Execution Plan v2.0 — `feat/mission-1-2-architecture` · 2026. Maintained by the studio.*
+*Execution Plan v2.1 — `feat/mission-1-2-architecture` · 2026. Maintained by the studio.*
