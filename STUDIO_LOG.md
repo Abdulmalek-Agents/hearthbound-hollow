@@ -15,6 +15,45 @@
 
 ---
 
+## 🎬 Phase 71 — Onboarding depth + Mission-2 never-stranded + green garden 🟢 (2026-05-30)
+
+**Two streams:** (1) the open *best-in-class onboarding* request, and (2) the player
+playtest commit `3a8241fb` — *"green garden not available same issue of stuck at
+mission 2 still"* (filed against a build that already had the Phase 62.D garden
+enrichment).
+
+**Specialists convened:** unity-engineer · 4× Senior QA · Technical Artist + 3D
+Modelers (environment review) · engagement-polish · UX/UI Designer · Narrative
+Director (Pickle nudge voice) · 2× Package/asmdef Experts.
+
+### What shipped (pushed + verified byte-identical)
+| Fix | Player-facing | File(s) | Commit |
+|---|---|---|---|
+| **Onboarding loop card** | new "Your little world" first-run step names the hub keys `[J][B][M][U][G][K]` | `UI/OnboardingOverlay.cs` | `e1bf823f` |
+| **Help card completeness** | `H` now has a "Your day's places" section (loop hub keys, EN/AR) | `UI/HelpOverlayUI.cs` | `44e66fcc` |
+| **Stuck-at-M2 (CRITICAL)** | Garden→cottage can **never** strand you: redundant position-exit + gentle ~40 s Pickle nudge + ~120 s never-stranded auto-advance | `Mission/Mission02Director.cs` | `006b5980` |
+| **Green garden** | meadow is lush **green** again (was brown/dead); shared `HHGroundMaterials` builds a URP Lit mat on the green grass diffuse, never the Dried variant | new `Editor/HHGroundMaterials.cs` + `Phase62`/`Phase63` delegate | `797df874` |
+
+### Root-cause notes (QA)
+- **Stuck:** the committed Garden scene's exit trigger was *mechanically correct*
+  (z=12, enabled trigger, wired, player tagged `Player`, cottage in Build Settings,
+  M1→Garden hand-off wired). The flaw was a **single point of failure** — one
+  walk-through box was the only way forward. The Mission02Director fix is **runtime**
+  (the baked director shares the script), so it lands on pull **without a scene
+  rebuild**, and the never-stranded layer guarantees progression regardless of the
+  true trigger-miss cause.
+- **Green garden:** both enrichment builders' blind `FindAssets("t:Material grass")`
+  could return `M_DriedGrass_Fo_01a` (brown) or fall back to flat olive. Now a shared
+  helper paints the green grass diffuse `T_Grass_Fo_01a_D` (excludes Dried/`_OR`/normal
+  maps) and only ever falls back to lush green — applied on next `🚀 Build Everything`.
+
+### Cozy Contract ✅ — never stranded (rescue guarantees it), soft one-time nudge, no
+fail framing, hand-written Pickle lines. Detail: `Docs/PROGRESS_Phase71_PolishAndFixes.md`.
+
+**Next:** depth-verification audit (M1/M2 vs Engagement + Depth bibles); `onboard.rhythm.*` AR strings.
+
+---
+
 ## 🎬 Phases 62–67 — The Cozy Daily Loop (Engagement Bible P2–P7) 🟢 (2026-05-30)
 
 **User request:** *Assign 20+ senior specialists, read every doc + the `Docs/` tree + the
@@ -307,158 +346,8 @@ implement `Docs/Phase47_OneMoreDay_Implementation.md` (adding/removing to make t
 game more hooky, fun and engaging via a review cycle), fix issues found, polish the
 environment + asset placement, and push every phase to the same branch.
 
-### Specialists convened (24)
-
-| Discipline | Named specialists on this phase |
-|---|---|
-| **Lead** | Lead Unity Architect (owns the night-chain contract + zero-regression gate) |
-| **Engineering** | 3× Senior Unity Devs, 2× C# Scripters, 1× Build/DevOps (Phase27 chain), 1× Package/asmdef Expert (graph audit) |
-| **UI / UX** | UX/UI Designer, 2× 2D/UI Artists (parchment card layout, contrast pass) |
-| **Cinematic & Presentation** | 1× Cutscene Director (night-order lock), 1× Camera Expert (fade feel), 1× Lighting Expert (night palette) |
-| **Design & Narrative** | 2× Game Designers (retention loop), Esme Cordray (forward-look prose), Mochi Tannenbaum (Pickle sign-offs), 1× Narrative Director |
-| **Quality + Environment** | 3× Senior QA Testers, 1× Technical Artist, 1× 3D Modeler (joint environment/asset-placement pass) |
-| **Market & Community Critics** | 3× Market Critics (Stardew sleep-transition / cozy-retention benchmark review) |
-
-### Design intent (why this ships)
-
-The day previously ended on a *bookkeeping* beat (Evening Ledger → save slot →
-cut to next scene). There was no warm, forward-looking moment — the engine of the
-cozy **"one more day"** hook (Stardew's sleep-transition, at our memory register).
-We add a fully Cozy-Contract-compliant Goodnight Card: **no numbers, no fail
-state, fully skippable, gentle fade only, Gentle-Mode safe**, with a refusal-path
-variant that gets its own goodnight.
-
-**Night order (locked by the Cutscene Director):**
-`Evening Ledger confirm → Dream (if any) → Goodnight Card → next scene.`
-
-### What shipped (Tier 1)
-
-| Kind | Item | Status |
-|---|---|---|
-| New runtime | `Scripts/UI/OneMoreDayCard.cs` — presentational parchment overlay (UI asmdef) | 🟢 |
-| New runtime | `Scripts/Mission/TomorrowTeaseSO.cs` — per-day data (Mission asmdef) | 🟢 |
-| New runtime | `Scripts/Mission/EndOfDaySequencer.cs` — owns Ledger→Dream→Card→load | 🟢 |
-| New editor | `Scripts/Editor/Phase47_OneMoreDayBuilder.cs` — idempotent builder + Build-Everything step | 🟢 |
-| Edits | `Mission01Director.cs` · `Mission02Director.cs` · `MissionRunner.cs` — opt-in delegation, guarded | 🟢 |
-| Data | `ScriptableObjects/Missions/Tomorrow_M1_Day1.asset` + `Tomorrow_M2_Day2.asset` (hand-authored, builder-healed) | 🟢 |
-| Prose | `Yarn/EveningLedger.yarn` (+3 nodes) · `Yarn/Pickle.yarn` (+2 nodes) | 🟢 |
-| Docs | `PROGRESS_Phase47_OneMoreDay.md` (supplement) · `ARCHITECTURE.md` (D-064) · `CHANGELOG.md` · this log | 🟢 |
-
-**Zero-regression guarantee:** every runtime edit is guarded by
-`if (endOfDaySequencer != null)`. With the sequencer unwired, day-end runs the
-exact legacy code path. The builder wires it on `🚀 Build Everything`.
-
-### Review cycle — what we *changed* vs. the implementation guide (and why)
-
-The guide is a strong blueprint, but the Senior Devs + QA found three integration
-gaps against the *actual* codebase and one accessibility gap. We fixed them and
-documented the deviations (all hold the Cozy Contract):
-
-1. **Day-index off-by-one (latent bug, fixed).** The guide resolved the tease by
-   comparing `afterDayIndex` to `VillageState.currentDayIndex` directly. But
-   `currentDayIndex` is **0-based** and is only incremented by `GameManager.EndDay()`
-   *after* the card resolves (so it is `0` during M1, `1` during M2 at card time).
-   The card would therefore **never resolve**. Fix: `EndOfDaySequencer.ResolveTease()`
-   matches against `currentDayIndex + 1` (the fiction Day, matching
-   `MissionTitleCard`'s convention) **and** a single-tease sequencer always returns
-   its one tease — the beat can never silently vanish.
-2. **Mission 2 double-dream (avoided).** In `Mission02Director`, Dream 2 already
-   plays during the cleanse outro (`PostCleanseFlow` / `OpenLedgerListen` /
-   `OpenLedgerDefer`), *before* the ledger. The guide's M2 wiring would replay it.
-   Fix: the M2 director calls `BeginNightSequence(playDream:false, …)` — the card
-   still shows; Dream 2 is never played twice.
-3. **Wrong branch-flag field name (fixed).** The guide referenced a VillageState
-   bool `dorisRefused` that does not exist; the real field is `refusedDorisOrb`.
-   The M1 tease + builder now use `refusedDorisOrb`, so the **refusal path correctly
-   shows `Tomorrow_M1_Day1_Refused`**.
-4. **Accessibility add (engagement polish).** The card now also advances on
-   Space / Return / E / Esc / click (mirrors the directors' advance affordance,
-   D-049) and supports a **Gentle-Mode instant-fade** path (identical content,
-   zero stress) driven by the sequencer reading `VillageState.gentleModeEnabled`,
-   keeping `OneMoreDayCard` free of any game-state dependency.
-
-Decision ID: the guide proposed **D-060**, which **collides** with the Depth Layer's
-D-060 (Cold Open). Allocated **D-064** instead (see `ARCHITECTURE.md`).
-
-### asmdef / architecture audit (Package Expert)
-
-- `OneMoreDayCard` lives in **`HearthboundHollow.UI`** (refs Core/Memory/Audio only) —
-  presentational, **no** Mission/Cutscene dependency → no asmdef cycle (D-035 ✅).
-- `TomorrowTeaseSO` + `EndOfDaySequencer` live in **`HearthboundHollow.Mission`**
-  (already refs Core/Memory/UI/Cutscene). Builder lives in **`HearthboundHollow.Editor`**.
-- No new external packages. All card visuals use **Unity built-in UI sprites**
-  (`UI/Skin/Background.psd`, `UISprite.psd`) so references persist cleanly in the
-  prefab + scenes (no runtime-generated textures to lose) — matches the Depth
-  Layer's "procedural primitives only" performance discipline.
-
-### Cozy-review checklist (Critic Board)
-
-- [x] No player-visible numbers on the card.
-- [x] No "FAILED"/score language anywhere.
-- [x] Goodnight button always advances; card is fully skippable.
-- [x] Refusal path shows `Tomorrow_M1_Day1_Refused`, not the standard line.
-- [x] Fade-in only — no shake, no flash, no harsh sting.
-- [x] Gentle Mode: identical content, instant fade.
-- [x] Pickle line respects Tannenbaum's budget (one short line).
-
-### QA acceptance (Senior QA — to verify in-Editor after pull)
-
-1. **Regression gate:** with `endOfDaySequencer` unwired, day-end is byte-for-byte today.
-2. Day 1 confirm → (Dream 1) → Tomorrow card → `03→01_MainMenu` flow, in order.
-3. Missing Yarn/SO degrades gracefully (forward-look only; **no NRE**).
-4. `🔍 Diagnose Build` clean; EditMode + PlayMode smoke green.
-5. Boot → Day 1 → card → next, **zero NRE** in the Console.
-
-### Environment / asset-placement pass (Tech Artist + QA + 3D Modeler)
-
-The Goodnight Card is a **screen-space overlay**, so the "placement" pass here is
-UI-spatial: panel centred on a 1920×1080 reference canvas, parchment 9-sliced
-(no corner distortion at any aspect), dark backdrop full-bleed with `raycastTarget`
-ON (blocks world clicks), labels inside safe margins with dark-wash backings for
-contrast over the parchment. The builder parents the card under the **same canvas
-that hosts the Evening Ledger** so it shares the overlay layer + sort order and
-never z-fights the HUD. No floating/clipping; sort order `SetAsLastSibling`.
-
-> The broader 3D environment/asset-grounding audit (lane props, hollow interior
-> dressing, cottage interior, collider hardening) was completed by the **Phase 47
-> Level-Boundaries family** + **Phase 32 polish** already on this branch. Re-verified:
-> guide lanterns + firefly wayfinding present, every prop carries a Collider, autumn
-> skybox bound. No regressions introduced by this phase (UI-only runtime surface).
-
-### How to run after pulling
-
-```
-1. git pull origin feat/mission-1-2-architecture
-2. Unity recompiles (~10 s)
-3. Hearthbound → 🚀 Build Everything → Build   (Phase 47-OMD is the final step)
-4. Hearthbound → 🔍 Diagnose Build             (confirm clean)
-5. Press Play in 00_Bootstrap.unity → finish Day 1 → watch:
-   Evening Ledger → (Dream) → "Tomorrow" card → Goodnight → Day 2
-```
-
-### Next steps / deferred (tracked)
-
-- **HH-OMD-T2** — Tier 2 visual anticipation: visitor silhouette + half-lit Echo
-  Web thread glimmer on the card (`TomorrowTeaseSO` already reserves the fields).
-- **HH-OMD-T3** — Tier 3 payoff: the promise pays off next morning (a waiting cue
-  in the world on load).
-- **HH-OMD-YARN** — switch SO mirrored text → runtime Yarn-dispatcher when that
-  pass lands (Yarn remains canonical source today).
-- Composer: a 4–6 s "goodnight" music sting under the fade (currently silent-safe).
-
----
-
-## 🧭 Project state at session start (read by the team)
-
-- **Phases on branch:** 0 → 47 (level boundaries/polish), 48 → 51 (Depth Layer:
-  Cold Open, Echo Hologram, Preface Beat, Memory Web). Decisions D-001 → D-063.
-- **Scenes:** `00_Bootstrap → 01_MainMenu → 02_Mission01_Lane → 03_Mission01_Hollow
-  → 04_Mission02_Garden → 05_Mission02_Cottage`.
-- **Out-of-Scope Wall respected** (`ARCHITECTURE.md §13`): no Weave/Sever/Listen-room
-  expansion, no extra villagers, no full Marin arc. This phase is engagement polish
-  on the existing day-end — squarely in scope.
-- **Cozy Contract is non-negotiable**: nothing punishes kindness, no scored failure,
-  refusal honored, no "FAILED" string, no player-visible numbers in emotional UI.
+*(Full Phase 47-OMD detail retained in `Docs/PROGRESS_Phase47_OneMoreDay.md` and
+`Docs/ARCHITECTURE.md` D-064. Earlier phase history continues in `Docs/PROGRESS.md`.)*
 
 ---
 
