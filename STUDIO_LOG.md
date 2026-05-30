@@ -6,12 +6,76 @@
 > (decision ledger `D-0xx`), and `CHANGELOG.md` (release notes).
 >
 > **Engine:** Unity 6000.4.4f1 · **Pipeline:** URP-Mobile · **Target:** PC (Win64, Steam) + mobile-class perf discipline.
-> **Branch:** `feat/mission-1-2-architecture` · **State:** narrative-complete vertical slice (M1 + M2) + Depth Layer (48–51) + One More Day hook (47-OMD).
+> **Branch:** `feat/mission-1-2-architecture` · **State:** narrative-complete vertical slice (M1 + M2) + Depth Layer (48–51) + One More Day hook (47-OMD) + **the cozy daily loop (Engagement Bible P1–P7, Phases 61–67).**
 
 ---
 
 ## Legend
 ✅ Done & merged · 🟢 Done in branch (awaiting your pull + `🚀 Build Everything`) · 🟡 In progress · ⬜ Not started · 🔴 Blocked
+
+---
+
+## 🎬 Phases 62–67 — The Cozy Daily Loop (Engagement Bible P2–P7) 🟢 (2026-05-30)
+
+**User request:** *Assign 20+ senior specialists, read every doc + the `Docs/` tree + the
+Depth_Bible + Engagement_Bible on `feat/mission-1-2-architecture`, understand the project, then
+**extend the game beyond Mission 1 & 2** — address each Engagement-Bible point one by one,
+implement the recommendations in phases and push, and **add the deferred content (no need to
+defer it)** to make the game deeper, more engaging and fun.*
+
+### Specialists convened (24)
+Lead Unity Architect · 6× Senior Unity Devs · 4× C# Scripters · 2× Systems/Progression
+Architects · Build/DevOps · 2× Package/asmdef Experts · UX/UI Designer · 2× 2D/UI Artists ·
+2× Game Designers · Mini-Game Designer · Economy/Garden Designer · Choice & Consequence Architect ·
+2× Writers · Narrative Director · 4× Senior QA · 3× Market Critics.
+
+### Verdict acted on
+The Engagement Review scored the slice **0/7** against Stardew's retention engines: a 75-minute
+corridor with no compounding loop. The owner greenlit building the loop **and** un-deferring the
+loop-critical content. We did — **Pillars P2–P7 now all ship** (P1 was already live), so the
+slice is a game you can live in.
+
+### What shipped (pushed to the branch) — 17 new runtime scripts + docs
+
+| Phase | Pillar | Player-facing | Key |
+|---|---|---|---|
+| **62** | P2 | Interactive **Request Board** — choose a villager, Keep / Listen / Not-today; the **real coin economy**; save schema v3 (the loop persists/compounds) | **B** |
+| **63** | P6 | **Memory Wall** — kept memories connect into Echo threads you chase & complete (+coin, celebratory beat) | **M** |
+| **64** | P3 | **My Hollow** shop — coin → cozy upgrades (shelf, relit room, garden bed, Marin's cloth, Pickle's cushion) + a visible **coin purse** | **U** |
+| **65** | P4 | **Garden & Tea** — plant → ripen over days → harvest → brew (teas are gentle tools) → sell; the garden→tea→coin wheel | **G** |
+| **66** | P5 | **Living Workbench** — tend kept memories with varied verbs (Polish/Cleanse/Sort/Steep) + gentle "Perfect" Keeper's-Hand mastery | **K** |
+| **67** | P7 | **The Almanac** — Market Day / Festival / bard / birthday anticipation in the morning Agenda | — |
+
+Every system is **self-installing, fallback-safe (works with zero authored content), asmdef-clean
+(no UI→Mission edge — UI reads Core blackboards + publishes intent on the EventBus; Mission owns
+mutations), and Cozy-Contract-compliant** (no fail, refusal honoured, opt-in, celebratory feedback
+only). Reachable purely via pull + `🚀 Build Everything` + Play — **no scene edits required.**
+
+### Un-deferred content (Phase 68)
+Procedural village texture now ships via a built-in 7-villager Request roster + built-in Echo
+threads + built-in upgrade catalog + built-in herb table. Authored `RequestPool` / `EchoPool` /
+`HollowCatalog` / `MemoryHerb` SOs extend or override any of it with **zero code change**.
+
+### Decisions
+**D-079** string-flag content gating (`VillageStateFlags`) · **D-080** companion Memory Wall screen ·
+**D-081** self-installing loop screens bridged via Core blackboards + intent events.
+
+### Docs
+`Docs/Engagement_Bible/11_WIDER_CONTENT_EXECUTION_PLAN.md` (mandate tracker) · roadmap `10` updated ·
+`Docs/PROGRESS_Phase62_67_EngagementLoop.md` · `Docs/PHASE70_GENGAGE_PLAYTEST.md` (the validation
+gate + instrumentation) · `Docs/MARKETING_TRUTH_Phase72.md`.
+
+### QA acceptance (verify after pull + 🚀 Build Everything + Play)
+1. Gameplay scene → morning Agenda lists almanac / visitors / garden + the key map (B/M/U/G/K/J).
+2. [B] keep a memory → coin purse ticks up; [J]/[M] reflect the new memory/echo counts.
+3. [G] harvest+brew; [U] buy the window shelf with earned coin; [K] tend a memory ("Perfect"?).
+4. End day → Day 2's board differs, garden advanced, coin persisted across save/load.
+5. `🔍 Diagnose Build` clean; zero NRE boot → menu → Day 1 → Day 2.
+
+### Next
+G-Engage playtest (≥15/20 testers voluntarily start Day 4) → tune (Phase 71). Optional Editor
+builder to author the `Resources/` SO pools + pre-place hidden upgrade markers, chained into
+Build Everything. Evening-Ledger "The Hollow grew" growth section (Phase 69 polish).
 
 ---
 
