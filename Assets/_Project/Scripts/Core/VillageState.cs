@@ -6,7 +6,7 @@
 // default values per the Krieg Discipline (Focus 00 § 5) — the schema is the
 // architectural contract that prevents rework when we scale to Mission 3+.
 //
-// ── Playtest pass fix (commit 1/6) ──────────────────────────────
+// ── Playtest pass fix (commit 1/6) ────────────────
 // QA simulated-playthrough audit found the following fields referenced by
 // the expanded Yarn files (Doris_M1, Gerrold_M2, Pickle, EveningLedger,
 // Codex, ChoiceCards) had no corresponding VillageState fields, breaking
@@ -25,14 +25,14 @@
 //
 // Added all 14 fields below + cleared in ResetToDefault().
 //
-// ── Phase 43 (2026-05-26) ───────────────────────────────────────
+// ── Phase 43 (2026-05-26) ──────────────────────
 // Added 3 audio-resume fields so saves restore the music + ambient cue
 // the player was hearing when they last saved:
 //   - lastMusicId (MusicLibrarySO id)
 //   - lastAmbienceId (AmbienceLibrarySO id)
 //   - playedDreamVariants (List<string> of Dream Timeline names already seen)
 //
-// ── Phase 48 → 54 (Depth Layer) ─────────────────────────────────
+// ── Phase 48 → 54 (Depth Layer) ─────────────────
 // 9 fields added at the bottom for the Cold Open Hook, Echo Hologram,
 // Preface Beat, Memory Web view, and Reading Nook subsystems. None are
 // mandatory for M1-2 completion — each gates a depth feature that can be
@@ -44,10 +44,24 @@ using UnityEngine;
 
 namespace HearthboundHollow.Core
 {
+    /// <summary>
+    /// Persisted planting state for one garden bed (Engagement Pillar P4, Phase 65).
+    /// A bed ripens at <c>dayPlanted + herb.daysToRipe</c>. Empty <c>plantedHerbId</c>
+    /// means the bed is free. Serializable so it round-trips through the save snapshot.
+    /// </summary>
+    [System.Serializable]
+    public class GardenBedState
+    {
+        public string bedId = "";           // "BED_LAVENDER_1"
+        public string plantedHerbId = "";   // "" = empty
+        public int dayPlanted = 0;          // ripens at dayPlanted + daysToRipe
+        public bool watered = false;
+    }
+
     [CreateAssetMenu(menuName = "Hearthbound/State/Village State", fileName = "VillageState")]
     public class VillageState : ScriptableObject
     {
-        // ───── M1-2 ACTIVE dimensions ───────────────────────────────────
+        // ───── M1-2 ACTIVE dimensions ──────────────────────────
 
         [Header("M1-2 ACTIVE — Trust (0–100)")]
         [Range(0, 100)] public int trustDoris = 50;
@@ -78,7 +92,7 @@ namespace HearthboundHollow.Core
                  "Spent in M5+ at the Confession Booth.")]
         public int cinder = 0;
 
-        // ───── M3+ DORMANT dimensions (Krieg architectural seam) ────────
+        // ───── M3+ DORMANT dimensions (Krieg architectural seam) ────
 
         [Header("M3+ DORMANT — Trust")]
         [Range(0, 100)] public int trustMayor = 50;
@@ -99,7 +113,7 @@ namespace HearthboundHollow.Core
         [Range(0, 100)] public int vow5Integrity = 50;
         [Range(0, 100)] public int vow6Integrity = 50;
 
-        // ───── Player progression ───────────────────────────────────────
+        // ───── Player progression ──────────────────────────
 
         [Header("Player progression")]
         public int currentDayIndex = 0;
@@ -118,6 +132,27 @@ namespace HearthboundHollow.Core
         public List<string> heldMemoryIds = new();
         public List<string> harvestedHerbIds = new();
         public List<string> readMarinNoteIds = new();
+
+        // ───── Engagement loop state (Phase 62+ — the compounding loop) ─────
+        // Added additively + default-valued + persisted in VillageStateSnapshot
+        // (schema v3) so the daily loop actually COMPOUNDS across save/load.
+
+        [Header("Engagement loop (Phase 62+)")]
+        [Tooltip("Request ids the player has resolved (kept/listened). Resolved requests " +
+                 "stop reappearing on the board; arc beats advance via their blockedByFlags.")]
+        public List<string> resolvedRequestIds = new();
+        [Tooltip("Hollow upgrade ids the player has purchased (P3). Re-applied on scene load " +
+                 "so the shop looks right after a save.")]
+        public List<string> purchasedUpgradeIds = new();
+        [Tooltip("Crafting/foraging materials the player holds (P3/P4). Stable string ids.")]
+        public List<string> materials = new();
+        [Tooltip("Echo thread ids completed on the Memory Wall (P6).")]
+        public List<string> completedEchoIds = new();
+        [Tooltip("Hidden 'Keeper's Hand' craft tally (P5) — surfaced only as warm flavor, " +
+                 "never a number in emotional UI. Drives Pickle's occasional compliment + shimmer.")]
+        public int keeperHandCraftCount = 0;
+        [Tooltip("Garden bed planting state (P4). Grows over real days via GardenService.")]
+        public List<GardenBedState> gardenBeds = new();
 
         // ───── M1-2 dialogue flags (added playtest pass commit 1/6) ─────
 
@@ -163,7 +198,7 @@ namespace HearthboundHollow.Core
         [Tooltip("Seeded by Erase Crossed-Core or Cleanse Crossed-Core. M6+ recovery arc unlock.")]
         public bool mission6RecoveryArcSeeded = false;
 
-        // ───── Audio state (Phase 43) ───────────────────────────────────
+        // ───── Audio state (Phase 43) ──────────────────────────
         // Persisted so saves resume the exact music + ambient cue that was
         // playing when the player last saved. Per D-055 (Phase 43): audio
         // continuity is a save-restore obligation, not a scene-bootstrap
@@ -180,7 +215,7 @@ namespace HearthboundHollow.Core
                  "Dream Cinema (Codex 11) replay menu.")]
         public List<string> playedDreamVariants = new();
 
-        // ───── Depth Layer flags (Phase 48 → 54) ────────────────────────
+        // ───── Depth Layer flags (Phase 48 → 54) ────────────────
         // The "Hook & Deep" expansion that runs on top of the M1-2 slice.
         // None of these are mandatory for completion — every one of them
         // is gated by an opt-out so players can ignore the depth layer
@@ -226,7 +261,7 @@ namespace HearthboundHollow.Core
         [Tooltip("Phase 52 — count of Marin's letters read from the Reading Nook.")]
         public int letterFragmentsRead = 0;
 
-        // ───── Operations ────────────────────────────────────────────────
+        // ───── Operations ──────────────────────────────────
 
         /// <summary>Reset every field to a fresh-play default.</summary>
         public void ResetToDefault()
@@ -251,6 +286,14 @@ namespace HearthboundHollow.Core
             heldMemoryIds.Clear();
             harvestedHerbIds.Clear();
             readMarinNoteIds.Clear();
+
+            // Phase 62+ — engagement loop state.
+            resolvedRequestIds.Clear();
+            purchasedUpgradeIds.Clear();
+            materials.Clear();
+            completedEchoIds.Clear();
+            keeperHandCraftCount = 0;
+            gardenBeds.Clear();
 
             // Playtest pass commit 1/6 — clear newly added fields.
             pickleApproval = 50;
@@ -306,6 +349,12 @@ namespace HearthboundHollow.Core
             readMarinNoteIds ??= new List<string>();
             // Phase 43 — guard against null lists for legacy saves.
             playedDreamVariants ??= new List<string>();
+            // Phase 62+ — guard the engagement-loop lists for legacy saves.
+            resolvedRequestIds ??= new List<string>();
+            purchasedUpgradeIds ??= new List<string>();
+            materials ??= new List<string>();
+            completedEchoIds ??= new List<string>();
+            gardenBeds ??= new List<GardenBedState>();
         }
     }
 }
