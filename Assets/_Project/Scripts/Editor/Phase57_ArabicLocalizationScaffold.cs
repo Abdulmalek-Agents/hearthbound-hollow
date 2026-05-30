@@ -149,7 +149,7 @@ namespace HearthboundHollow.EditorTools
                 }
             }
 
-            lib.entries = entries.ToArray();
+            lib.entries = entries;   // VoiceLibrarySO.entries is List<Entry> (not an array)
             EditorUtility.SetDirty(lib);
             return entries.Count;
         }

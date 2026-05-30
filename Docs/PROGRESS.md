@@ -10,6 +10,40 @@
 
 ---
 
+## 🆕 Phase 32.21 — M2/M1 gameplay-feel fixes (wedge + camera + menu)  🟢 (2026-05-30)
+
+**User report (2 QA videos):** *"player stuck at the green arena of Mission 2 Garden; a UI
+issue at the beginning; camera clips into the player — fix all of those."*
+
+- **Player "stuck" / periodic hop (both M1 & M2)** — `PlayerSafetyNet`'s stuck-detector compared
+  the PER-FRAME move delta against a window-scaled threshold (`stuckMinMove * dt / 0.016` ≈
+  0.083 m/frame ≈ **5 m/s**), so any player walking slower than that — i.e. *normal walking* —
+  was flagged "wedged" and nudged **+0.4 m every 1.5 s** (the hop + the repeating
+  "appears wedged… nudging up" log in both scenes). Fixed to accumulate **actual** movement over
+  the window and nudge only when the player truly covers < `stuckMinMove` metres across
+  `stuckSeconds`. [PlayerSafetyNet.cs](Assets/_Project/Scripts/Player/PlayerSafetyNet.cs)
+- **Camera clips into the player** — `SmoothFollowCamera`'s wall-clip sphere-cast used
+  `clipMask = ~0` and started at the player's chest, so it hit the **player's own collider** and
+  yanked the camera into the body. Now uses `SphereCastNonAlloc` + skips the target's own
+  colliders (cached) and zero-distance start-overlaps.
+  [SmoothFollowCamera.cs](Assets/_Project/Scripts/Player/SmoothFollowCamera.cs)
+- **Mixed-language main menu (D-076)** — only the auto-built Settings button was localized, so
+  under Arabic the menu showed "الإعدادات" beside English **"Open The Hollow" / "Quit"** + an
+  English rotating tip. `MainMenuController` now binds every CTA to the table via `LocalizedText`
+  and localizes the tip (added `tipsAr`). [MainMenuController.cs](Assets/_Project/Scripts/UI/MainMenuController.cs)
+- **Cold-open / title cinematic chrome (D-076)** — the tagline, the "Press Enter / Space to Begin"
+  hint, and the Begin/Continue buttons now localize (the game name "Hearthbound Hollow" stays).
+  Marin's letter body is authored narrative (Pillar 1 / D-065), so it ships English behind a
+  **dormant `coldopen.letter` / `coldopen.letter_sig` hook** — a human Arabic note drops in with no
+  code change. [ColdOpenCinematicUI.cs](Assets/_Project/Scripts/UI/ColdOpenCinematicUI.cs)
+
+All three are runtime scripts → apply on **recompile** (no rebake needed). *Note:* the cold-open
+letter renders fine (QA frame caught it mid-typewriter); a benign
+`MusicPlayer.Play('cold_open_hook') — id not found` warning means the intro cue is silent
+(graceful, audio-only).
+
+---
+
 ## 🆕 Phase 57 — Arabic dialogue + voice PLUMBING (D-074)  🟢 (2026-05-30)
 
 **User request (QA video):** *"Arabic voice localization for dialogue not working — fix."*

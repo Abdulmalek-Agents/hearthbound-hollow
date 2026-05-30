@@ -196,6 +196,13 @@ namespace HearthboundHollow.Core
             // Dialogue chrome
             ["dialogue.advance"]   = ("Click or [Space] >", "انقر أو اضغط مسافة"),
 
+            // Cold-open / title cinematic chrome (the game name stays as-is).
+            ["coldopen.tagline"]       = ("Some memories want to be sold. Some don't.",
+                                          "بعض الذكريات تريد أن تُباع. وبعضها لا."),
+            ["coldopen.begin_hint"]    = ("Press Enter / Space to Begin", "اضغط Enter / مسافة للبدء"),
+            ["coldopen.continue_hint"] = ("Press Enter to Continue · Esc to Begin Anew",
+                                          "اضغط Enter للمتابعة · Esc للبدء من جديد"),
+
             // Tone Compass — first-launch 90-second tone/content primer (Focus 07 §7.1).
             // Plain text only (shaped line-by-line). EN is the canonical Pell Doyne copy.
             ["tone.body"]          = (

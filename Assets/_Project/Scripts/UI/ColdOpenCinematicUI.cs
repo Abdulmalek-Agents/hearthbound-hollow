@@ -282,6 +282,21 @@ namespace HearthboundHollow.UI
             if (!string.IsNullOrEmpty(letterBodyDefault)) body = letterBodyDefault;
             string sig = !string.IsNullOrEmpty(letterSignatureDefault) ? letterSignatureDefault : "— Marin";
 
+            // Phase 57 (D-074) — Arabic letter PLUMBING. Marin's note is authored
+            // narrative (Pillar 1 / D-065 → human translation pass), so it ships
+            // English. The hook is dormant until a translator adds a non-empty
+            // 'coldopen.letter' / 'coldopen.letter_sig' entry to LocalizationService;
+            // then Arabic players see the shaped Arabic note. No AI-authored prose.
+            if (LocalizationService.IsRightToLeft)
+            {
+                string arBody = LocalizationService.Get("coldopen.letter");
+                if (!string.IsNullOrEmpty(arBody) && arBody != "coldopen.letter")
+                    body = LocalizationService.Shape(arBody);
+                string arSig = LocalizationService.Get("coldopen.letter_sig");
+                if (!string.IsNullOrEmpty(arSig) && arSig != "coldopen.letter_sig")
+                    sig = LocalizationService.Shape(arSig);
+            }
+
             if (letterBodyText != null) letterBodyText.text = "";
             if (letterSignature != null) letterSignature.text = "";
             yield return FadeGroup(letterGroup, 0f, 1f, 0.6f);
@@ -372,11 +387,25 @@ namespace HearthboundHollow.UI
 
         private IEnumerator StageTitle(float fadeIn = 1.2f)
         {
-            if (titleText != null) titleText.text = string.IsNullOrEmpty(titleText.text) ? titleDefault : titleDefault;
-            if (subtitleText != null) subtitleText.text = string.IsNullOrEmpty(subtitleText.text) ? subtitleDefault : subtitleDefault;
+            // Title is the game name (kept as-is). Phase 56/57 — the tagline is
+            // chrome, so it localizes; Arabic pulls the shaped table value.
+            if (titleText != null) titleText.text = titleDefault;
+            if (subtitleText != null)
+                subtitleText.text = LocalizationService.IsRightToLeft
+                    ? LocalizationService.GetShaped("coldopen.tagline")
+                    : subtitleDefault;
             yield return FadeGroup(titleGroup, 0f, 1f, fadeIn);
             float hold = 0f;
             while (hold < titleHoldDuration && !_skipRequested) { hold += Time.unscaledDeltaTime; yield return null; }
+        }
+
+        // Phase 57 (D-076) — set a choice button's label from the localization
+        // table (shaped for Arabic). No-op if the button/label is missing.
+        private static void SetButtonLabel(Button b, string key)
+        {
+            if (b == null) return;
+            var lbl = b.GetComponentInChildren<TextMeshProUGUI>(true);
+            if (lbl != null) lbl.text = LocalizationService.GetShaped(key);
         }
 
         private IEnumerator StageChoiceGate()
@@ -386,9 +415,12 @@ namespace HearthboundHollow.UI
             if (continueButton != null) continueButton.interactable = saveExists;
             if (continueButton != null) continueButton.gameObject.SetActive(saveExists);
             if (beginButton != null) beginButton.gameObject.SetActive(true);
-            if (skipHintLabel != null) skipHintLabel.text = saveExists
-                ? "Press Enter to Continue · Esc to Begin Anew"
-                : "Press Enter / Space to Begin";
+            if (skipHintLabel != null)
+                skipHintLabel.text = LocalizationService.GetShaped(
+                    saveExists ? "coldopen.continue_hint" : "coldopen.begin_hint");
+            // Localize the choice buttons (chrome). Reuses existing keys.
+            SetButtonLabel(beginButton, "char.begin");
+            SetButtonLabel(continueButton, "menu.continue");
 
             yield return FadeGroup(choiceGroup, 0f, 1f, 0.6f);
 

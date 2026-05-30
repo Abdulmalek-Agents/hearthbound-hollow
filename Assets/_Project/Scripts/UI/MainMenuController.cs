@@ -57,6 +57,20 @@ namespace HearthboundHollow.UI
             "What you choose to remember is what you become.",
         };
 
+        [Tooltip("Phase 57 (D-076) — Arabic tips, index-matched to `tips`. Used when " +
+                 "Arabic is the active language (shaped at display). Leave an entry " +
+                 "empty to fall back to the English tip at that index.")]
+        public string[] tipsAr = new[]
+        {
+            "بعض الذكريات تريد أن تُباع. وبعضها لا.",
+            "لمّع بدوائر بطيئة.",
+            "غطِّ كل الجوانب — للجوهرة أربعة أوجه.",
+            "المركز الدافئ هو الذكرى نفسها.",
+            "الشاي يفتح باب الحديث.",
+            "لا توجد طريقة خاطئة لحفظ ذكرى.",
+            "ما تختار تذكّره هو ما تصير إليه.",
+        };
+
         /// <summary>
         /// Fired when the player clicks Continue. A Save-aware coordinator
         /// (spawned by Phase 23) listens to this and loads the autosave.
@@ -78,8 +92,25 @@ namespace HearthboundHollow.UI
             if (creditsButton != null) creditsButton.onClick.AddListener(() => { if (creditsPanel != null) creditsPanel.SetActive(true); });
             if (quitButton != null) quitButton.onClick.AddListener(OnQuit);
 
+            // Phase 57 (D-076) — localize the main-menu CTAs so they follow the
+            // selected language. The menu shipped with only the auto-built
+            // Settings button localized, so Arabic showed "الإعدادات" beside an
+            // English "Open The Hollow" / "Quit". LocalizedText re-pulls + shapes
+            // on every language change.
+            LocalizeButton(openTheHollowButton, "menu.open_hollow");
+            LocalizeButton(continueButton,      "menu.continue");
+            LocalizeButton(settingsButton,      "menu.settings");
+            LocalizeButton(creditsButton,       "menu.credits");
+            LocalizeButton(quitButton,          "menu.quit");
+
             if (tipLabel != null && tips != null && tips.Length > 0)
-                tipLabel.text = tips[UnityEngine.Random.Range(0, tips.Length)];
+            {
+                int i = UnityEngine.Random.Range(0, tips.Length);
+                string tip = (LocalizationService.IsRightToLeft && tipsAr != null &&
+                              i < tipsAr.Length && !string.IsNullOrEmpty(tipsAr[i]))
+                    ? tipsAr[i] : tips[i];
+                tipLabel.text = LocalizationService.Shape(tip);
+            }
 
             // Continue button is dim until a coordinator confirms an autosave exists.
             // The coordinator (Mission asmdef) will call SetContinueEnabled(true) on Start
@@ -93,6 +124,19 @@ namespace HearthboundHollow.UI
             // and, if there is no Settings button, build one (styled like the menu's
             // other buttons) wired to OnSettings.
             EnsureSettingsAccess();
+        }
+
+        // Phase 57 (D-076) — bind a Bamao button's label to the localization
+        // table via LocalizedText so it follows language changes (mirrors the
+        // auto-built Settings button path). No-op if the button/label is missing.
+        private static void LocalizeButton(Button b, string key)
+        {
+            if (b == null) return;
+            var lbl = b.GetComponentInChildren<TextMeshProUGUI>(true);
+            if (lbl == null) return;
+            var lt = lbl.GetComponent<LocalizedText>();
+            if (lt == null) lt = lbl.gameObject.AddComponent<LocalizedText>();
+            lt.SetKey(key);
         }
 
         /// <summary>
