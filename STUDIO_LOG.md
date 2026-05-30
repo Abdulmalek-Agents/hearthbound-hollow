@@ -15,6 +15,33 @@
 
 ---
 
+## 🎬 Phases 73–75 — Depth-audit quick wins (the last 🟡 → 🟢) 🟢 (2026-05-30)
+
+Implemented all three non-blocking quick wins from `Docs/DEPTH_VERIFICATION_Mission1_2_Phase72.md`,
+hardening the engagement scorecard from **6🟢/1🟡 to 7🟢**.
+
+**Specialists:** unity-engineer · Economy/Progression Architect · 2× Game Designers ·
+Narrative Director · 4× Senior QA.
+
+| Phase | Quick win | Engine | What | Commit |
+|---|---|---|---|---|
+| **73** | Visible Hollow growth | 3 (Ownership) | Buying an upgrade now puts a **real object in the room**. New `HollowUpgradeMarker` tag + `HollowProgressionService` now resolves markers by component (`FindObjectsInactive.Include`) so *hidden* props are findable (the old `GameObject.Find` couldn't see inactive objects). New `Phase73_HollowUpgradeMarkers` builder pre-places each upgrade's cozy prop hidden in the Hollow (Build Everything Step 23). | `f477e43d` |
+| **74** | Per-save variety | 7 (Surprise) | New `VillageState.villageSeed` (randomised on new game, `0` = old saves) persisted in the snapshot; `RequestBoardService` blends it into the RNG + walk-in rotation so **two different saves see different early boards** while one save stays reproducible. | `fbe1b3bc` |
+| **75** | "The Hollow grew" coda | 5 (Visible progression) | Every Evening Ledger now ends with a warm **"Before you rest"** line when the day advanced (kept memories / upgrades / echoes) — D-076 celebratory, gated on growth, no anxiety numbers. One choke-point in `EveningLedgerUI.Show`. | `ff3686c2` |
+
+### Engineering notes
+- **The marker bug the audit flagged was real:** `GameObject.Find` returns null for inactive
+  objects, so "hidden until purchased" markers were unfindable. Fixed by a component lookup;
+  the original active/named path is kept (authored catalogs). Reversible managed root.
+- **Save compatibility:** `villageSeed` defaults to `0` for pre-v74 saves → identical to the old
+  day-only roster. Schema stays v3 (new field defaults gracefully).
+- **Cozy Contract ✅** throughout: upgrades are warmth not power, the ledger coda celebrates only
+  when there's growth, no fail states, hand-written prose.
+
+**Next:** owner playtest of Phases 71–75. M1/M2 now grades **7/7** on the engagement scorecard.
+
+---
+
 ## 🎬 Phase 72 — Village Backdrop + Atmosphere + Depth Verification 🟢 (2026-05-30)
 
 **Owner ask:** full environment polish with lots of assets, **bigger arenas**, cutscenes
