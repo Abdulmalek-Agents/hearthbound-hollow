@@ -200,9 +200,21 @@ namespace HearthboundHollow.Mission
         private void ApplyMarker(Entry e)
         {
             if (string.IsNullOrEmpty(e.sceneMarkerId)) return;
-            var marker = GameObject.Find(e.sceneMarkerId);
-            if (marker != null) marker.SetActive(true);   // a builder pre-places it hidden; purchase reveals
+            // Path A — an ACTIVE, named marker (authored-catalog style). Original behaviour.
+            var byName = GameObject.Find(e.sceneMarkerId);
+            if (byName != null) { byName.SetActive(true); return; }
+            // Path B (Phase 73) — markers pre-placed HIDDEN by the editor builder.
+            // GameObject.Find can't see inactive objects, so resolve by component
+            // (FindObjectsInactive.Include DOES) and reveal the matching one.
+            foreach (var mk in FindHiddenMarkers())
+                if (mk != null && mk.markerId == e.sceneMarkerId)
+                    mk.gameObject.SetActive(true);
         }
+
+        // All HollowUpgradeMarker components in the loaded scenes, including
+        // inactive ones (that's the whole point — they start hidden).
+        private static HollowUpgradeMarker[] FindHiddenMarkers()
+            => Object.FindObjectsByType<HollowUpgradeMarker>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
         /// <summary>Re-activate every purchased upgrade's marker on scene load.</summary>
         public void ReapplyAll()

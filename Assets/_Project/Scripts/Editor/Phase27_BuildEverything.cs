@@ -173,6 +173,13 @@ namespace HearthboundHollow.EditorTools
                 if (TryRun("Phase 72 — Village Backdrop + Atmosphere",
                           "HearthboundHollow.EditorTools.Phase72_VillageBackdrop", "Build")) ran++; else skipped++;
 
+                // Step 23: Phase 73 — Hollow upgrade markers. Pre-places each
+                // built-in upgrade's cozy prop HIDDEN in the Hollow so a shop
+                // purchase visibly appears in the room (Depth-audit Engine-3).
+                EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 73 (Hollow Upgrade Markers) …", 0.9988f);
+                if (TryRun("Phase 73 — Hollow Upgrade Markers",
+                          "HearthboundHollow.EditorTools.Phase73_HollowUpgradeMarkers", "Build")) ran++; else skipped++;
+
                 // Final: Open Bootstrap so the user can press Play.
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Opening Bootstrap …", 0.99f);
                 if (System.IO.File.Exists(SceneBootstrap))
@@ -263,6 +270,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("                garden crops + cottage dressing across every arena");
             sb.AppendLine("  • Phase 72 — Village backdrop: cottage skyline ring, autumn tree belt,");
             sb.AppendLine("                grass scatter + warm dusk atmosphere + Lane market row");
+            sb.AppendLine("  • Phase 73 — Hollow upgrade markers: shop purchases appear in the room");
             sb.AppendLine();
             sb.AppendLine("The Engagement loop (Request Board [B], Memory Wall [M], Hollow Shop [U],");
             sb.AppendLine("Garden [G], Workbench [K], Journal [J]) self-installs at Play — no build step.");
