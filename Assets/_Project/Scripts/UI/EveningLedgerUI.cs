@@ -135,13 +135,41 @@ namespace HearthboundHollow.UI
             if (root != null) root.SetActive(true);
             if (dayLabel != null && vs != null) dayLabel.text = LocalizationService.GetShaped("hud.day", vs.currentDayIndex);
             if (coinLabel != null && vs != null) coinLabel.text = LocalizationService.GetShaped("hud.coins", vs.coin);
-            if (summaryProse != null) summaryProse.text = summary;
+            if (summaryProse != null) summaryProse.text = summary + GrowthReflection(vs);
             if (heldMemoriesList != null)
             {
                 var sb = new System.Text.StringBuilder();
                 foreach (var t in heldMemoryTitles) sb.AppendLine($"• {t}");
                 heldMemoriesList.text = sb.ToString();
             }
+        }
+
+        // Phase 74 — a gentle "the Hollow grew" coda appended to every Evening
+        // Ledger when the daily loop actually advanced (kept memories / Hollow
+        // upgrades / completed echo threads). Celebratory progression feedback
+        // per D-076 (the relaxed Cordray Principle) — warm prose with at most a
+        // gentle count, never an anxiety number, and shown ONLY when there is
+        // growth to celebrate. Reads cumulative VillageState (Core) — no Mission
+        // dependency, so it stays clean in the UI asmdef.
+        private static string GrowthReflection(VillageState vs)
+        {
+            if (vs == null) return string.Empty;
+            int kept = vs.heldMemoryIds        != null ? vs.heldMemoryIds.Count        : 0;
+            int upg  = vs.purchasedUpgradeIds  != null ? vs.purchasedUpgradeIds.Count  : 0;
+            int echo = vs.completedEchoIds     != null ? vs.completedEchoIds.Count     : 0;
+            if (kept <= 0 && upg <= 0 && echo <= 0) return string.Empty;   // nothing to celebrate yet
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append("\n\n— Before you rest —");
+            if (kept > 0)
+                sb.Append(kept == 1 ? "\nYou are keeping one memory now."
+                                    : $"\nYou are keeping {kept} memories now.");
+            if (upg > 0)
+                sb.Append(upg == 1 ? "\nThe Hollow has grown a little warmer."
+                                   : "\nThe Hollow has grown, corner by corner.");
+            if (echo > 0)
+                sb.Append("\nThreads of memory have begun to find each other.");
+            return sb.ToString();
         }
 
         public void SetSlotLabel(int slot, string label)
