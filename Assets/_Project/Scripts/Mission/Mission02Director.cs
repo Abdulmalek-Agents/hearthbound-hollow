@@ -111,6 +111,13 @@ namespace HearthboundHollow.Mission
         [Header("Routing")]
         public string sceneAfterEndOfDay = "01_MainMenu";
 
+        [Header("Phase 47 — One More Day (optional)")]
+        [Tooltip("When wired (by Phase47_OneMoreDayBuilder), the Goodnight card " +
+                 "shows after the Evening Ledger confirm. Note: Dream 2 already " +
+                 "plays during the cleanse outro (before the ledger), so the " +
+                 "card is wired playDream:false here — no double dream (D-064).")]
+        public EndOfDaySequencer endOfDaySequencer;
+
         // ───── Runtime state ──────────────────────────────────────
 
         private bool _gardenIntroPlayed;
@@ -121,6 +128,20 @@ namespace HearthboundHollow.Mission
         private bool _cleanseStarted;
         private bool _ledgerShown;
         private MoralChoice _selectedChoice;
+
+        // ── Phase 71 — "stuck in the Garden" safety net (player report:
+        // "stuck at mission 2 still"). The garden→cottage hand-off used to
+        // rely solely on a single walk-through trigger box; if the player
+        // never wandered into that exact volume they could be stranded with
+        // no way forward, which violates the Cozy Contract ("never stranded",
+        // GameManager.LoadScene §). These fields back a redundant, position-
+        // based exit + a gentle linger nudge + a last-resort auto-advance so
+        // the player is *guaranteed* a way to Gerrold's cottage.
+        private bool  _leftGarden;       // idempotency guard for the hand-off
+        private float _gardenClock;      // seconds the player has spent free in the garden
+        private bool  _gardenNudged;     // soft "the path is north" nudge fired once
+        private const float GardenNudgeAfter   = 40f;   // gentle wayfinding hint
+        private const float GardenRescueAfter  = 120f;  // never-stranded auto-advance
 
         // ───── Lifecycle ──────────────────────────────────────────
 
@@ -157,6 +178,76 @@ namespace HearthboundHollow.Mission
             EventBus.Unsubscribe<TeaBrewedEvent>(OnTeaBrewed);
         }
 
+        // ── Phase 71 — Garden progression safety net ───────────────
+        // Runs only in the Garden scene, only until the player has left.
+        // Three layers, gentlest first:
+        //   1) Redundant exit  — if the player physically reaches the exit
+        //      band but the trigger box somehow didn't fire, hand off anyway.
+        //   2) Linger nudge    — after a while wandering, a soft Pickle line
+        //      points north (one-time, dismissible, no fail framing).
+        //   3) Never-stranded  — as a last resort, auto-walk them to Gerrold
+        //      so the Cozy Contract ("never stranded") is honoured no matter
+        //      what blocks the normal path.
+        private void Update()
+        {
+            if (sceneRole != SceneRole.Garden || _leftGarden || !_gardenIntroPlayed) return;
+
+            // Don't advance the clock while a dialogue/UI is mid-beat (the
+            // player is reading, not stuck).
+            bool busy = dialogueUI != null && dialogueUI.IsBusy;
+            if (!busy) _gardenClock += Time.deltaTime;
+
+            // 1) Redundant, position-based exit (covers a missed trigger).
+            if (gardenExitTrigger != null && playerController != null)
+            {
+                float exitZ = gardenExitTrigger.transform.position.z;
+                float pz    = playerController.transform.position.z;
+                if (pz >= exitZ - 0.85f)
+                {
+                    OnPlayerExitedGarden();
+                    return;
+                }
+            }
+
+            // 2) Gentle wayfinding nudge.
+            if (!_gardenNudged && _gardenClock > GardenNudgeAfter)
+            {
+                _gardenNudged = true;
+                StartCoroutine(GardenWayNudge());
+            }
+
+            // 3) Last-resort never-stranded auto-advance.
+            if (_gardenClock > GardenRescueAfter)
+                StartCoroutine(GardenRescue());
+        }
+
+        // Soft, one-time "the path is north" hint — Pickle's voice, kept light
+        // so it never reads as a scold (Cozy Contract). The wayfinding lanterns
+        // + exit beacon (Phase 62 enrichment) make the route visible; this just
+        // names it for a player who has genuinely lost the thread.
+        private IEnumerator GardenWayNudge()
+        {
+            yield return Line(null, "Pickle",
+                "When you're ready, follow the lanterns north — Gerrold's cottage is at the top of the path.");
+            yield return Line(null, "Pickle",
+                "No hurry. The garden is yours for as long as you like.");
+            if (dialogueUI != null) dialogueUI.Hide();
+        }
+
+        // Guaranteed exit if the player is somehow blocked from reaching the
+        // trigger at all. Fires once, with a kind line, then hands off.
+        private IEnumerator GardenRescue()
+        {
+            if (_leftGarden) yield break;
+            _leftGarden = true; // claim the hand-off so OnPlayerExitedGarden no-ops
+            Hh.Warn(LogCategory.Mission,
+                "Mission02: garden rescue auto-advance (player lingered past the safety threshold).");
+            yield return Line(null, "Pickle", "Come — let's go and see Gerrold together.");
+            if (dialogueUI != null) dialogueUI.Hide();
+            var gm = GameManager.Instance;
+            if (gm != null) gm.LoadScene(cottageSceneName);
+        }
+
         // ───── Garden: intro + harvest + brew ─────────────────────
         // Per Mission 2 Guide § 11 — the garden is bright, silent, and
         // the player walks through it observing. NO narration except the
@@ -165,6 +256,11 @@ namespace HearthboundHollow.Mission
         private IEnumerator GardenIntro()
         {
             if (titleCard != null) yield return new WaitForSeconds(2.0f);
+            // Defensive unlock — the garden is free-roam from the first frame.
+            // (Mission 1 unlocks on its intro; the garden never explicitly did,
+            //  so any stray lock from a prior scene/title card could strand the
+            //  player. Harmless if already unlocked.)
+            LockPlayer(false);
             _gardenIntroPlayed = true;
             // Silent garden — the player observes. Marin's narration removed
             // per Mission 2 Guide § 11.2 (cozy contract: bright outdoor
@@ -234,10 +330,18 @@ namespace HearthboundHollow.Mission
 
         internal void OnPlayerExitedGarden()
         {
+            // Idempotent — the walk-through trigger, the redundant position
+            // check in Update(), and the rescue coroutine can all race to call
+            // this; only the first one transitions (Phase 71).
+            if (_leftGarden) return;
+            _leftGarden = true;
+
             // The player may exit WITHOUT tea (No-Tea path) per Mission 2
             // Guide § 11.2.3. Both paths are valid; no gating.
             var gm = GameManager.Instance;
             if (gm != null) gm.LoadScene(cottageSceneName);
+            else Hh.Err(LogCategory.Mission,
+                "Mission02: GameManager missing — cannot load the cottage scene.");
         }
 
         // ───── Cottage: intro + greeting + choice + cleanse ───────
@@ -866,10 +970,25 @@ namespace HearthboundHollow.Mission
         {
             var gm = GameManager.Instance;
             if (gm == null) return;
-            gm.EndDay();
-            EventBus.Publish(new MissionCompletedEvent(null, "Mission02",
-                $"Day {ServiceLocator.Get<VillageState>()?.currentDayIndex ?? 0} — Gerrold's choice."));
-            gm.LoadScene(sceneAfterEndOfDay);
+
+            // Original day-end behaviour, captured so the optional
+            // EndOfDaySequencer can show the Goodnight card first.
+            System.Action transition = () =>
+            {
+                gm.EndDay();
+                EventBus.Publish(new MissionCompletedEvent(null, "Mission02",
+                    $"Day {ServiceLocator.Get<VillageState>()?.currentDayIndex ?? 0} — Gerrold's choice."));
+                gm.LoadScene(sceneAfterEndOfDay);
+            };
+
+            if (endOfDaySequencer != null)
+                // playDream:false — Dream 2 already played during the cleanse
+                // outro (PostCleanseFlow / OpenLedgerListen / OpenLedgerDefer),
+                // before this ledger was shown. Replaying it here would show
+                // Dream 2 twice. The card alone is the night beat for M2.
+                endOfDaySequencer.BeginNightSequence(false, null, transition);
+            else
+                transition();   // unchanged legacy path
         }
 
         // ───── Helpers ────────────────────────────────────────────

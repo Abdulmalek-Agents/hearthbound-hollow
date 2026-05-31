@@ -22,7 +22,7 @@ namespace HearthboundHollow.EditorTools
 {
     public static class Phase23_DiagnosticReport
     {
-        [MenuItem("Hearthbound/\ud83d\udd0d Diagnose Phase 23 Build", priority = 50)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🔍 Diagnose Phase 23 Build", priority = 50)]
         public static void Diagnose()
         {
             var sb = new System.Text.StringBuilder();
@@ -34,7 +34,7 @@ namespace HearthboundHollow.EditorTools
 
             sb.AppendLine("Hearthbound Hollow — Phase 23 Build Diagnostic\n");
 
-            // ─── ScriptableObjects ─────────────────────────────────
+            // ─── ScriptableObjects ────────────────────────────────
             sb.AppendLine("Seed assets:");
             CheckAsset<VillageState>("Assets/_Project/ScriptableObjects/State/VillageState.asset", Pass, Fail);
             CheckAsset<MissionSO>("Assets/_Project/ScriptableObjects/Missions/Mission01_OpeningTheHollow.asset", Pass, Fail);
@@ -66,7 +66,7 @@ namespace HearthboundHollow.EditorTools
             }
             sb.AppendLine();
 
-            // ─── Scene contents ────────────────────────────────────
+            // ─── Scene contents ─────────────────────────────────────
             sb.AppendLine("Scene 00_Bootstrap contents:");
             DiagnoseScene("Assets/_Project/Scenes/00_Bootstrap.unity",
                 requireComponents: new[] { typeof(GameManager), typeof(SettingsServiceBootstrap) },
@@ -99,7 +99,7 @@ namespace HearthboundHollow.EditorTools
 
             sb.AppendLine();
 
-            // ─── Build settings ────────────────────────────────────
+            // ─── Build settings ──────────────────────────────────────
             sb.AppendLine("Build Settings:");
             var bs = EditorBuildSettings.scenes;
             if (bs.Length < 4) Fail($"Only {bs.Length}/6 scenes in Build Settings. Re-run Phase 23.");
@@ -107,7 +107,7 @@ namespace HearthboundHollow.EditorTools
             else Pass($"{bs.Length}/6 scenes in Build Settings.");
             sb.AppendLine();
 
-            // ─── Audio library ─────────────────────────────────────
+            // ─── Audio library ────────────────────────────────────────
             sb.AppendLine("Audio:");
             var sfxLib = AssetDatabase.LoadAssetAtPath<SfxLibrarySO>("Assets/_Project/Audio/SfxLibrary.asset");
             if (sfxLib == null) Warn("SfxLibrary.asset not present — run Phase 18.");
@@ -122,7 +122,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine();
 
             // ─── Summary ───────────────────────────────────────────
-            sb.AppendLine("─────────────────────────────────────");
+            sb.AppendLine("────────────────────────────────────");
             sb.AppendLine($"Pass: {pass} · Warn: {warn} · Fail: {fail}");
             sb.AppendLine();
             if (fail == 0 && warn == 0) sb.AppendLine("✅ ALL CHECKS PASSED — press Play!");

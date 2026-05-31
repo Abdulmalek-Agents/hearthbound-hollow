@@ -86,9 +86,9 @@ namespace HearthboundHollow.EditorTools
             "leftankle", "rightankle", "ankle_l", "ankle_r",
         };
 
-        // ───── Menu entry ───────────────────────────────
+        // ───── Menu entry ─────────────────
 
-        [MenuItem("Hearthbound/\ud83e\uddb6 Phase 29 — Player Rig Doctor", priority = 1)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🦶 Phase 29 — Player Rig Doctor", priority = 1)]
         public static void Build()
         {
             var report = new RigReport();
@@ -123,7 +123,7 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ───── Prefab pass ──────────────────────────────
+        // ───── Prefab pass ──────────────
 
         private static void TreatPlayerPrefab(RigReport report)
         {
@@ -156,7 +156,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ───── Scene pass ───────────────────────────────
+        // ───── Scene pass ───────────────
 
         private static void TreatScene(string scenePath, RigReport report)
         {
@@ -192,7 +192,7 @@ namespace HearthboundHollow.EditorTools
             EditorSceneManager.SaveScene(scene);
         }
 
-        // ───── The actual rig treatments ────────────────────────
+        // ───── The actual rig treatments ────────────────
 
         /// <summary>
         /// Idempotent. Applies every Phase 29 fix to a Player (prefab root or
@@ -343,7 +343,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ───── Foot bone discovery ─────────────────────────
+        // ───── Foot bone discovery ──────────────────
 
         /// <summary>
         /// Walks every Transform under `body` and returns the best foot/toe bone
@@ -380,7 +380,7 @@ namespace HearthboundHollow.EditorTools
             return null;
         }
 
-        // ───── Scale-chain sanity ─────────────────────────
+        // ───── Scale-chain sanity ──────────────────
 
         private static void CheckScaleChain(GameObject root, Transform body, string ctx, RigReport report)
         {
@@ -402,7 +402,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ───── Ground collider check ────────────────────────
+        // ───── Ground collider check ──────────────────
 
         private static void EnsureGroundCollider(GameObject[] roots, RigReport report)
         {
@@ -434,7 +434,7 @@ namespace HearthboundHollow.EditorTools
                 WalkAddingGroundCollider(t.GetChild(i), report);
         }
 
-        // ───── Report builder ──────────────────────────────
+        // ───── Report builder ────────────────────
 
         private class RigReport
         {

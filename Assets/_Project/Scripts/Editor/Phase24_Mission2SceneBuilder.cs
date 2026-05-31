@@ -14,7 +14,11 @@
 //   * Wires Mission02Director with every reference it needs (no manual setup).
 //   * Adds both scenes to Build Settings (index 4 and 5).
 //
-// USE: Menu → Hearthbound → Phase 24 — Build Mission 2 Scenes
+// USE: Menu → Hearthbound → ⚙️ Advanced → Phase 24 — Build Mission 2 Scenes
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is now `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 24 internally via Phase 23.
 
 using System.Collections.Generic;
 using System.IO;
@@ -55,7 +59,7 @@ namespace HearthboundHollow.EditorTools
 
         // ─── Master menu ──────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Phase 24 — Build Mission 2 Scenes", priority = 24)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 24 — Build Mission 2 Scenes", priority = 24)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 24", "Verifying prereqs…", 0.05f);
@@ -167,7 +171,13 @@ namespace HearthboundHollow.EditorTools
             CreateGround(_matGroundGrass, size: 36f);
 
             var player = CreatePlayer();
-            player.transform.position = new Vector3(0, 1.0f, -8);
+            // Phase 32.21 fix: spawn INSIDE Phase 47.4's playable area (z ∈ [-2,16];
+            // the invisible south wall 'Block_S' sits at z=-3). The old z=-8 spawned
+            // the player SOUTH of that wall — boxed into the strip behind it, unable
+            // to enter the garden ("boundaries prevent movement"). z=-1 is the south
+            // entrance, facing north up the stepping path toward the herb beds.
+            player.transform.position = new Vector3(0, 1.0f, -1f);
+            player.transform.rotation = Quaternion.identity; // face +Z (north / up the path)
 
             // Lavender + Valerian plant interactables.
             var lavender = CreatePlantInteractable("LavenderPlant", new Vector3(-3.5f, 0.4f, 2f), new Color(0.65f, 0.55f, 0.85f));

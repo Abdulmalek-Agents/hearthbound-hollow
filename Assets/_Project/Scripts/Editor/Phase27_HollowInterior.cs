@@ -49,7 +49,7 @@ namespace HearthboundHollow.EditorTools
 
         private const string EnvParentName   = "_Phase27Env_Hollow";
 
-        [MenuItem("Hearthbound/🏠 Phase 27.3 — Polish Hollow Interior", priority = 7)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🏠 Phase 27.3 — Polish Hollow Interior", priority = 7)]
         public static void Build()
         {
             if (!System.IO.File.Exists(SceneHollow))

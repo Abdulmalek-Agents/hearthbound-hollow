@@ -96,7 +96,11 @@ namespace HearthboundHollow.Mission
         [Header("Instruction strings")]
         public string polishHeadline      = "Polish the memory";
         [TextArea(2, 4)]
-        public string polishInstructions  = "Hold <b>Left Mouse</b> · Draw <b>slow circles</b> · Cover every side of the orb";
+        // Phase 32.14: clearer copy. The PolishOrbHighlighter pulses a ring
+        // around the orb so the player knows WHERE to draw; this line tells
+        // them WHAT to do.
+        public string polishInstructions  =
+            "Hold <b>Left Mouse</b> and draw <b>slow circles</b> around the <b>glowing orb</b>.";
         public string cleanseHeadline     = "Cleanse the orb";
         [TextArea(2, 4)]
         public string cleanseInstructions = "Hold <b>Left Mouse</b> · Trace the cracks · <b>Don't cross the core</b>";
@@ -122,11 +126,75 @@ namespace HearthboundHollow.Mission
         private void OnEnable()
         {
             DiscoverAndSubscribeAll();
+            // Phase 32.17 — fail-safe: if a watched game is ALREADY in the
+            // Active state by the time we enable (i.e. BeginGame fired
+            // BEFORE this component was attached / re-enabled), the
+            // OnGameStarted event is gone and the tutorial HUD would
+            // never show. Detect that here and replay the handler.
+            CatchUpAlreadyActiveGames();
         }
 
         private void OnDisable()
         {
             UnsubscribeAll();
+        }
+
+        private void CatchUpAlreadyActiveGames()
+        {
+            if (watchedGames == null) return;
+            for (int i = 0; i < watchedGames.Length; i++)
+            {
+                var g = watchedGames[i];
+                if (g != null && g.State == MiniGames.MiniGameState.Active && _active == null)
+                {
+                    OnGameStarted(g);
+                    if (g is PolishMiniGame pg) OnPolishClarityChanged(pg.CurrentClarity01);
+                    return;
+                }
+            }
+        }
+
+        // Phase 32.17 — belt-and-braces polling. Even if subscriptions go
+        // sideways for any reason (Mission director adding the component
+        // mid-frame, scene reloads, etc.) make sure the panel state matches
+        // whatever the watched game actually says. ~5 Hz is plenty.
+        private float _pollAccum;
+        private void Update()
+        {
+            _pollAccum += Time.unscaledDeltaTime;
+            if (_pollAccum < 0.2f) return;
+            _pollAccum = 0f;
+
+            MiniGameBase active = null;
+            if (watchedGames != null)
+            {
+                for (int i = 0; i < watchedGames.Length; i++)
+                {
+                    if (watchedGames[i] != null &&
+                        watchedGames[i].State == MiniGames.MiniGameState.Active)
+                    {
+                        active = watchedGames[i];
+                        break;
+                    }
+                }
+            }
+
+            bool shouldShow = active != null;
+            bool isShowing  = panelRoot != null && panelRoot.activeSelf;
+            if (shouldShow && !isShowing)
+            {
+                // Resync — tutorial missed OnGameStarted (or this component
+                // was just added). Catch up.
+                OnGameStarted(active);
+                if (active is PolishMiniGame pg) OnPolishClarityChanged(pg.CurrentClarity01);
+            }
+            else if (!shouldShow && isShowing && _active != null
+                     && (_active.State == MiniGames.MiniGameState.Complete ||
+                         _active.State == MiniGames.MiniGameState.Aborted))
+            {
+                HideImmediate();
+                _active = null;
+            }
         }
 
         // ───── Auto-discovery ────────────────────────────────────
@@ -192,34 +260,53 @@ namespace HearthboundHollow.Mission
             }
         }
 
+        // ───── Localization helpers (Phase 56 / D-073) ───────────
+
+        // English uses the inspector-overridable field; Arabic uses the table
+        // value. Returns RAW (un-shaped) text — caller shapes via Shape()/SetHint.
+        private static string LocOrField(string key, string englishField)
+            => LocalizationService.IsRightToLeft ? LocalizationService.Get(key) : englishField;
+
+        // Assign a hint, Arabic-shaped (joined + RTL). Safe when hintLabel is null.
+        private void SetHint(string raw)
+        {
+            if (hintLabel != null) hintLabel.text = LocalizationService.Shape(raw);
+        }
+
         // ───── Event handlers ────────────────────────────────────
 
         private void OnGameStarted(MiniGameBase game)
         {
             _active = game;
 
-            // Configure the labels per game type.
-            string headline = genericHeadline;
-            string instructions = genericInstructions;
-            _baseHintText = "Take your time — the orb cannot break from gentleness.";
+            // Configure the labels per game type. Phase 56 (D-073): headline +
+            // instructions are inspector-overridable, so English uses the field and
+            // Arabic pulls the shaped table value; the hint copy is code-owned, so it
+            // resolves straight from the table. _baseHintText is kept RAW (un-shaped)
+            // so a suffix can be composed before a single Shape() at display.
+            string headline     = LocOrField("minigame.generic.headline",     genericHeadline);
+            string instructions = LocOrField("minigame.generic.instructions", genericInstructions);
+            _baseHintText       = LocalizationService.Get("minigame.generic.hint");
 
             if (game is PolishMiniGame)
             {
-                headline = polishHeadline;
-                instructions = polishInstructions;
-                _baseHintText = "Slower is better. Cover all four corners.";
+                headline      = LocOrField("minigame.polish.headline",     polishHeadline);
+                instructions  = LocOrField("minigame.polish.instructions", polishInstructions);
+                _baseHintText = LocalizationService.Get("minigame.polish.hint");
             }
             else if (game is CleanseMiniGame)
             {
-                headline = cleanseHeadline;
-                instructions = cleanseInstructions;
-                _baseHintText = "Trace each crack from end to end. Avoid the warm centre.";
+                headline      = LocOrField("minigame.cleanse.headline",     cleanseHeadline);
+                instructions  = LocOrField("minigame.cleanse.instructions", cleanseInstructions);
+                _baseHintText = LocalizationService.Get("minigame.cleanse.hint");
             }
 
-            if (headlineLabel != null)     headlineLabel.text     = headline;
-            if (instructionsLabel != null) instructionsLabel.text = instructions;
-            if (hintLabel != null)         hintLabel.text         = _baseHintText;
+            if (headlineLabel != null)     headlineLabel.text     = LocalizationService.Shape(headline);
+            if (instructionsLabel != null) instructionsLabel.text = LocalizationService.Shape(instructions);
+            SetHint(_baseHintText);
             if (percentLabel != null)      percentLabel.text      = "0%";
+            if (autoCompleteButtonLabel != null)
+                autoCompleteButtonLabel.text = LocalizationService.GetShaped("minigame.skip_autocomplete");
             if (progressBar != null)
             {
                 progressBar.minValue = 0;
@@ -260,12 +347,12 @@ namespace HearthboundHollow.Mission
 
         private void OnPolishMilestone()
         {
-            if (hintLabel != null) hintLabel.text = "<b>Halfway</b> — the orb is warming.";
+            SetHint(LocalizationService.Get("minigame.polish.milestone"));
         }
 
         private void OnPolishReveal()
         {
-            if (hintLabel != null) hintLabel.text = "<b>Nearly there</b> — keep the circles gentle.";
+            SetHint(LocalizationService.Get("minigame.polish.reveal"));
         }
 
         private void OnPolishFrictionWarning()
@@ -277,7 +364,7 @@ namespace HearthboundHollow.Mission
 
         private void OnCleanseCrackSealed(int sealedCount)
         {
-            if (hintLabel != null) hintLabel.text = $"<b>{sealedCount} of 4</b> cracks sealed.";
+            SetHint(string.Format(LocalizationService.Get("minigame.cleanse.sealed"), sealedCount));
             if (progressBar != null) progressBar.value = Mathf.Clamp01(sealedCount / 4f);
             if (percentLabel != null) percentLabel.text = $"{Mathf.Clamp(sealedCount, 0, 4)} / 4";
         }
@@ -318,8 +405,8 @@ namespace HearthboundHollow.Mission
         {
             yield return new WaitForSecondsRealtime(autoCompleteUnlockDelay);
             if (autoCompleteButton != null) autoCompleteButton.gameObject.SetActive(true);
-            if (hintLabel != null && !string.IsNullOrEmpty(_baseHintText))
-                hintLabel.text = _baseHintText + "  (Auto-Complete is available below.)";
+            if (!string.IsNullOrEmpty(_baseHintText))
+                SetHint(_baseHintText + LocalizationService.Get("minigame.autocomplete_suffix"));
         }
 
         private IEnumerator FlashFrictionWarning()
@@ -327,10 +414,10 @@ namespace HearthboundHollow.Mission
             if (hintLabel == null) yield break;
             var orig = hintLabel.color;
             hintLabel.color = frictionColor;
-            hintLabel.text = "<b>Slower</b> — let the orb hear you.";
+            SetHint(LocalizationService.Get("minigame.polish.friction"));
             yield return new WaitForSecondsRealtime(frictionWarningDuration);
             hintLabel.color = orig;
-            if (!string.IsNullOrEmpty(_baseHintText)) hintLabel.text = _baseHintText;
+            if (!string.IsNullOrEmpty(_baseHintText)) SetHint(_baseHintText);
         }
 
         private IEnumerator FlashCoreWarning()
@@ -338,10 +425,10 @@ namespace HearthboundHollow.Mission
             if (hintLabel == null) yield break;
             var orig = hintLabel.color;
             hintLabel.color = frictionColor;
-            hintLabel.text = "<b>Pull back</b> — that is the warm centre.";
+            SetHint(LocalizationService.Get("minigame.cleanse.friction"));
             yield return new WaitForSecondsRealtime(frictionWarningDuration);
             hintLabel.color = orig;
-            if (!string.IsNullOrEmpty(_baseHintText)) hintLabel.text = _baseHintText;
+            if (!string.IsNullOrEmpty(_baseHintText)) SetHint(_baseHintText);
         }
 
         private static bool IsAutoCompletePreferenceOn()
@@ -358,15 +445,17 @@ namespace HearthboundHollow.Mission
             if (panelRoot != null && headlineLabel != null && instructionsLabel != null
                 && progressBar != null && autoCompleteButton != null) return;
 
-            // Find or create a Canvas to host the overlay.
+            // Phase 32.17 — build our OWN dedicated overlay canvas. The
+            // previous "find any canvas in the scene" path was hostile:
+            // it could land on a transient short-lived canvas (e.g. the
+            // PolishOrbHighlighter's Canvas, the Memory Web overlay, the
+            // Cold Open cinematic) whose lifecycle destroys it on the
+            // next BeginGame / scene reload — taking the tutorial HUD's
+            // visuals down with it. A dedicated canvas owned by THIS
+            // component cannot be silently disposed by anyone else.
             if (hostCanvas == null)
             {
-                #if UNITY_2022_3_OR_NEWER
-                var anyCanvas = Object.FindFirstObjectByType<Canvas>();
-                #else
-                var anyCanvas = Object.FindObjectOfType<Canvas>();
-                #endif
-                hostCanvas = anyCanvas != null ? anyCanvas : CreateOverlayCanvas();
+                hostCanvas = CreateOverlayCanvas();
             }
 
             // Two-layer pattern (D-033) — host always active, panelRoot toggled.
@@ -376,57 +465,59 @@ namespace HearthboundHollow.Mission
             hostRT.anchorMin = Vector2.zero; hostRT.anchorMax = Vector2.one;
             hostRT.offsetMin = Vector2.zero; hostRT.offsetMax = Vector2.zero;
 
-            // Visual panel — anchored top-centre.
+            // Visual panel — anchored top-centre. Phase 32.14: wider + taller
+            // so the bigger headline / instruction text never clips.
             var panel = new GameObject("Visual", typeof(RectTransform), typeof(Image));
             panel.transform.SetParent(host.transform, false);
             var panelImg = panel.GetComponent<Image>();
             panelImg.color = panelBg;
             var pRT = panel.GetComponent<RectTransform>();
-            pRT.anchorMin = new Vector2(0.18f, 0.78f);
-            pRT.anchorMax = new Vector2(0.82f, 0.96f);
+            pRT.anchorMin = new Vector2(0.10f, 0.70f);
+            pRT.anchorMax = new Vector2(0.90f, 0.97f);
             pRT.offsetMin = Vector2.zero; pRT.offsetMax = Vector2.zero;
             panelRoot = panel;
 
-            // Headline (top)
+            // Headline (top) — Phase 32.14: 28 → 52, drop-shadow via outline.
             headlineLabel = MakeLabel(panel.transform, "Headline",
-                new Vector2(0.02f, 0.70f), new Vector2(0.98f, 0.98f),
-                fontSize: 28, color: goldHeadline, bold: true,
+                new Vector2(0.02f, 0.74f), new Vector2(0.98f, 0.98f),
+                fontSize: 52, color: goldHeadline, bold: true,
                 align: TextAlignmentOptions.Center);
 
-            // Instructions (middle)
+            // Instructions (middle) — 18 → 32.
             instructionsLabel = MakeLabel(panel.transform, "Instructions",
-                new Vector2(0.04f, 0.36f), new Vector2(0.96f, 0.70f),
-                fontSize: 18, color: creamBody, bold: false,
+                new Vector2(0.04f, 0.42f), new Vector2(0.96f, 0.72f),
+                fontSize: 32, color: creamBody, bold: false,
                 align: TextAlignmentOptions.Center);
             instructionsLabel.enableWordWrapping = true;
 
-            // Hint (between instructions and bar) — also used for friction warnings
+            // Hint (between instructions and bar) — also used for friction warnings — 14 → 22.
             hintLabel = MakeLabel(panel.transform, "Hint",
-                new Vector2(0.04f, 0.20f), new Vector2(0.96f, 0.36f),
-                fontSize: 14, color: creamBody, bold: false,
+                new Vector2(0.04f, 0.28f), new Vector2(0.96f, 0.42f),
+                fontSize: 22, color: creamBody, bold: false,
                 align: TextAlignmentOptions.Center);
             hintLabel.fontStyle = FontStyles.Italic;
 
-            // Progress bar
+            // Progress bar — Phase 32.14: thicker (0.18→0.26 height range)
+            // and shorter width to make room for a BIG percent readout.
             var barGO = new GameObject("ProgressBar", typeof(RectTransform), typeof(Slider));
             barGO.transform.SetParent(panel.transform, false);
             var barRT = barGO.GetComponent<RectTransform>();
-            barRT.anchorMin = new Vector2(0.08f, 0.08f);
-            barRT.anchorMax = new Vector2(0.74f, 0.18f);
+            barRT.anchorMin = new Vector2(0.06f, 0.06f);
+            barRT.anchorMax = new Vector2(0.72f, 0.26f);
             barRT.offsetMin = Vector2.zero; barRT.offsetMax = Vector2.zero;
             progressBar = barGO.GetComponent<Slider>();
             progressBar.minValue = 0; progressBar.maxValue = 1; progressBar.value = 0;
             BuildSliderVisuals(progressBar);
 
-            // % label (next to bar)
+            // % label (next to bar) — 16 → 48, big bold gold readout.
             percentLabel = MakeLabel(panel.transform, "Percent",
-                new Vector2(0.76f, 0.06f), new Vector2(0.94f, 0.20f),
-                fontSize: 16, color: goldHeadline, bold: true,
+                new Vector2(0.74f, 0.02f), new Vector2(0.97f, 0.28f),
+                fontSize: 48, color: goldHeadline, bold: true,
                 align: TextAlignmentOptions.MidlineRight);
 
-            // Auto-complete button
+            // Auto-complete button — pushed down so it sits below the wider panel.
             autoCompleteButton = MakeButton(panel.transform, "Btn_AutoComplete", "Skip · Auto-Complete",
-                new Vector2(0.30f, -0.16f), new Vector2(0.70f, -0.04f));
+                new Vector2(0.30f, -0.14f), new Vector2(0.70f, -0.02f));
             autoCompleteButtonLabel = autoCompleteButton.GetComponentInChildren<TextMeshProUGUI>(true);
             autoCompleteButton.onClick.AddListener(OnAutoCompleteClicked);
 

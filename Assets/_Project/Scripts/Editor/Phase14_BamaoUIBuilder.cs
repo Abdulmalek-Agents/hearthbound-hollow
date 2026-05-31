@@ -6,7 +6,11 @@
 // Replaces the Phase 12 flat-color UI backgrounds (dialogue box, choice
 // tile, evening ledger, tooltip frame) with real Bamao Fantasy GUI sprites.
 //
-// USE: Menu → Hearthbound → Phase 14 — Build Bamao UI Prefabs
+// USE: Menu → Hearthbound → ⚙️ Advanced → Phase 14 — Build Bamao UI Prefabs
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is now `Hearthbound → 🚀 Build Everything`, which chains
+// Phase 14 internally via Phase 22.
 //
 // Output prefabs (saved under Assets/_Project/Prefabs/UI/):
 //   • UI_DialogueBox_Bamao.prefab    (parchment background, portrait slot, TMP, choices container)
@@ -61,7 +65,7 @@ namespace HearthboundHollow.EditorTools
 
         // ─── Menu ──────────────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Phase 14 — Build Bamao UI Prefabs", priority = 201)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 14 — Build Bamao UI Prefabs", priority = 201)]
         public static void Build()
         {
             if (!AssetDatabase.IsValidFolder(BamaoRoot))
@@ -106,7 +110,7 @@ namespace HearthboundHollow.EditorTools
                 "  • " + ChoiceTilePath + "\n" +
                 "  • " + EveningLedgerPath + "\n" +
                 "  • " + TooltipFramePath + "\n\n" +
-                "Re-run 'Hearthbound → Build Playable Mission 1 (One Click)' — the scene builder will now use these " +
+                "Re-run 'Hearthbound → 🚀 Build Everything' — the scene builder will now use these " +
                 "prefabs instead of flat-color UI.\n\n" +
                 (parchment == null ? "⚠️ Parchment sprite not auto-detected — prefab uses warm-tint fallback. Drop a Bamao parchment sprite onto the DialogueBox's Image component to upgrade.\n" : "") +
                 (scrollBtn == null ? "⚠️ Scroll button sprite not auto-detected.\n" : "") +

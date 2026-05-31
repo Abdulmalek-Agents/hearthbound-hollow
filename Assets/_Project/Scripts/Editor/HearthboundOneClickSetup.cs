@@ -4,7 +4,11 @@
 // The scene-builder capstone. Builds a buildable, playable Mission 1 vertical
 // slice with zero manual scene authoring required by the user.
 //
-// USE: Menu → Hearthbound → Build Playable Mission 1 (One Click)
+// USE: Menu → Hearthbound → ⚙️ Advanced → Build Playable Mission 1 (One Click)
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is now `Hearthbound → 🚀 Build Everything`, which chains
+// HearthboundOneClickSetup internally via Phase 22 → Phase 23 → Phase 27.
 //
 // PROGRESSIVE POLISH: The builder detects which phase outputs are present
 // and uses them automatically. The same menu produces:
@@ -53,7 +57,7 @@ namespace HearthboundHollow.EditorTools
 
         // ─── Master menu ───────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Build Playable Mission 1 (One Click)", priority = 1)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Build Playable Mission 1 (One Click)", priority = 1)]
         public static void BuildPlayableMission1()
         {
             EditorUtility.DisplayProgressBar("Hearthbound", "Verifying prerequisites…", 0.05f);

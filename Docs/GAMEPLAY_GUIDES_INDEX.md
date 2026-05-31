@@ -2,6 +2,8 @@
 
 > Player-facing walkthroughs for the polished playable in `feat/mission-1-2-architecture`.
 
+> 🚀 **Before reading any guide:** make sure the project is built. Open the Unity project, then click **`Hearthbound → 🚀 Build Everything`** and press **`Build`** in the safety-confirmation dialog. The chain runs Phase 13 → 32 in ~60 s (idempotent — safe to re-run after every `git pull`). Press **Play** in `00_Bootstrap.unity` when it finishes. See [`SCENE_ASSEMBLY_GUIDE.md`](./SCENE_ASSEMBLY_GUIDE.md) for the Fast path + manual assembly fallback, and [`PROGRESS.md → Phase 32 — Menu collapse`](./PROGRESS.md) for the full migration table from the old per-phase menu items (now under `⚙️ Advanced ►`) to the three top-level entries.
+
 ---
 
 ## 📘 Available guides
@@ -87,6 +89,7 @@ For impatient first-time players, the **fastest cozy-honoring path**:
 
 | Step | Action |
 |---|---|
+| 0 | Unity → `Hearthbound → 🚀 Build Everything` → `Build` → wait ~60 s → press Play. |
 | 1 | Main Menu → "Open The Hollow" |
 | 2 | Read Tone Compass → "Continue" |
 | 3 | Walk forward in Lane → press **E** on Doris |
@@ -110,7 +113,7 @@ For impatient first-time players, the **fastest cozy-honoring path**:
 | 21 | Walk back to Gerrold's door → return the handkerchief |
 | 22 | Evening Ledger → Memory Dream 2 → save/quit |
 
-**Estimated time: 60–90 minutes** for the full Mission 1 + Mission 2 path.
+**Estimated time: 60–90 minutes** for the full Mission 1 + Mission 2 path (plus the ~60 s build step before pressing Play).
 
 ---
 
@@ -128,8 +131,9 @@ For impatient first-time players, the **fastest cozy-honoring path**:
 | Document | What's in it |
 |---|---|
 | `../GAME_DESIGN.md` | Top-level vision, market analysis, monetization (~$44.7M projection) |
-| `./ARCHITECTURE.md` | Technical architecture, asmdef graph, save schema |
-| `./PROGRESS.md` | Live ledger of every phase shipped to the branch |
+| `./ARCHITECTURE.md` | Technical architecture, asmdef graph, save schema, **user-facing entry point note (Phase 32)** |
+| `./PROGRESS.md` | Live ledger of every phase shipped to the branch (top section = Phase 32 menu collapse + idempotency audit) |
+| `./SCENE_ASSEMBLY_GUIDE.md` | Per-scene build steps + the ⚡ Fast path (`🚀 Build Everything`) |
 | `./Phase27_Environment_Polish_Plan.md` | The asset-pack-to-prefab map for the polished Mission 1 environment |
 | `./Depth_Bible/Mission_1_2_Focus/01_DORIS_THE_BAKER.md` | The canonical Doris character bible — voice, blocking, ~180 lines of Yarn |
 | `./Depth_Bible/Mission_1_2_Focus/02_THE_WIDOWER_GERROLD.md` | The canonical Gerrold character bible — Margery's life, ~270 lines of Yarn, 4 outcome branches |
@@ -147,4 +151,4 @@ The codebase itself is the source of truth for *what actually happens* — see `
 
 ---
 
-*Index v1.0 — 2026-05-25 · Pair with the Phase 27 polished environment and the Phase 26 player controller for the canonical Mission 1+2 experience.*
+*Index v1.1 — 2026-05-26 · Pair with the polished environment and the Phase 26 player controller for the canonical Mission 1+2 experience. Phase 32 update — first read references `🚀 Build Everything` as the single entry point after every pull.*

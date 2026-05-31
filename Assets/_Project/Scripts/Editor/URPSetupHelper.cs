@@ -27,7 +27,7 @@ namespace HearthboundHollow.EditorTools
         private const string UrpRendererPath = SettingsDir + "/URP-MobileRenderer.asset";
         private const string SuppressPromptKey = "Hearthbound.URPSetupHelper.SuppressStartupPrompt";
 
-        // ─── Startup detection ──────────────────────────────────────
+        // ─── Startup detection ───────────────────────────────────
 
         static URPSetupHelper()
         {
@@ -70,9 +70,9 @@ namespace HearthboundHollow.EditorTools
             return current is UniversalRenderPipelineAsset;
         }
 
-        // ─── Manual menu ────────────────────────────────────────────
+        // ─── Manual menu ─────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Setup URP Pipeline (one-time)", priority = 50)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Setup URP Pipeline (one-time)", priority = 50)]
         public static void SetupURPPipeline()
         {
             EnsureFolder(SettingsDir);
@@ -127,7 +127,7 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        [MenuItem("Hearthbound/Check Render Pipeline Status", priority = 51)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Check Render Pipeline Status", priority = 51)]
         public static void CheckRenderPipelineStatus()
         {
             var current = GraphicsSettings.defaultRenderPipeline;
@@ -151,7 +151,7 @@ namespace HearthboundHollow.EditorTools
             EditorUtility.DisplayDialog("Render Pipeline Status", msg.ToString(), "OK");
         }
 
-        // ─── URP asset creation ─────────────────────────────────────
+        // ─── URP asset creation ───────────────────────────────────
 
         private static UniversalRenderPipelineAsset FindOrCreateURPAsset()
         {
@@ -236,7 +236,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── Folder helpers ─────────────────────────────────────────
+        // ─── Folder helpers ────────────────────────────────────────
 
         private static void EnsureFolder(string path)
         {

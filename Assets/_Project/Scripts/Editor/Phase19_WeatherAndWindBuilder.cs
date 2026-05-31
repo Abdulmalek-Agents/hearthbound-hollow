@@ -35,7 +35,7 @@ namespace HearthboundHollow.EditorTools
         private const string BindingsDir = "Assets/_Project/ScriptableObjects/Setup";
         private const string BindingsPath = BindingsDir + "/WeatherBindings.asset";
 
-        [MenuItem("Hearthbound/Phase 19 — Build Weather + Wind Bindings", priority = 206)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 19 — Build Weather + Wind Bindings", priority = 206)]
         public static void Build()
         {
             EnsureFolder(BindingsDir);

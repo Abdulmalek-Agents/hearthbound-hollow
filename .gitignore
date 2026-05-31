@@ -8,3 +8,32 @@ UserSettings/
 MemoryCaptures/
 Recordings/
 .DS_Store
+
+# Phase 37 — procedural audio: regenerated on Editor at every Build Everything
+# run (deterministic seed). Per D-053 in Docs/Phase35_Continuation_Audit.md,
+# the .wav files live under Assets/_Project/Audio/Generated/ and are not
+# committed; the C# generator (Phase37_ProceduralAudioStudio.cs) + the Python
+# preview script (Tools/audio_generation/generate_audio.py) are the source of
+# truth. A future human-authored composer drop into Assets/_Project/Audio/Music/
+# (or /Voice/) is committed normally and overrides the procedural baseline.
+Assets/_Project/Audio/Generated/
+Assets/_Project/Audio/Generated.meta
+
+# Phase 32 — Voice Acting MVP (D-058 + D-059)
+# The Piper TTS pipeline (Tools/generate_voices.sh) produces .wav voice
+# clips locally on every developer machine. The .wav files are user-
+# generated artifacts — not committed. Source of truth is the C# code +
+# the line table in Tools/generate_voices.sh + the casting table in
+# Docs/VOICE_CASTING.md. A future human-authored or paid-TTS drop into
+# Assets/_Project/Audio/Voice/<Character>/ is committed normally and
+# overrides the procedural baseline (the runtime can't tell the difference).
+Assets/_Project/Audio/Voice/*/*.wav
+Assets/_Project/Audio/Voice/*/*.wav.meta
+
+# Piper voice models live under Tools/voice_models/. The .onnx weights +
+# .onnx.json configs are 50–70 MB each and trivially re-downloadable from
+# https://huggingface.co/rhasspy/piper-voices. The download script
+# (Tools/download_voice_models.sh) is the source of truth; the models are
+# user-generated artifacts. .gitkeep is committed so the folder exists.
+Tools/voice_models/*.onnx
+Tools/voice_models/*.onnx.json

@@ -41,9 +41,13 @@
 // without code changes.
 //
 // USAGE
-//   • Menu: `Hearthbound → Phase 29 — Build NPC Animator Controllers`
+//   • Menu: `Hearthbound → ⚙️ Advanced → Phase 29 — Build NPC Animator Controllers`
 //   • Programmatic: NpcAnimatorControllerBuilder.BuildAllOrUpdate()
 //                   NpcAnimatorControllerBuilder.BuildOrUpdate() (legacy)
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is now `Hearthbound → 🚀 Build Everything`, which chains
+// these controllers via Phase 26 (NPC Animators) capstone.
 //
 // IDEMPOTENT — re-running overwrites the assets at the same paths so prefab
 // references stay valid.
@@ -126,7 +130,7 @@ namespace HearthboundHollow.EditorTools
         // Menu entries
         // ──────────────────────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Phase 29 — Build NPC Animator Controllers", priority = 211)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 29 — Build NPC Animator Controllers", priority = 211)]
         public static void BuildAllOrUpdate()
         {
             EnsureFolder(AnimationsDir);
@@ -145,7 +149,7 @@ namespace HearthboundHollow.EditorTools
             Debug.Log("[Hearthbound/Phase 29 NPC] Built 4 NPC controllers (generic + Doris + Gerrold + SilentLane).");
         }
 
-        [MenuItem("Hearthbound/Phase 26 — Build NPC Animator Controller", priority = 210)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 26 — Build NPC Animator Controller", priority = 210)]
         public static void BuildOrUpdate()
         {
             // Generic fallback — keeps any old prefab references valid.

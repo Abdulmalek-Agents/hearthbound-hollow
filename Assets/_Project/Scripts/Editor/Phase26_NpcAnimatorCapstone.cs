@@ -37,7 +37,7 @@ namespace HearthboundHollow.EditorTools
         private const string GerroldVillagerPath   = "Assets/_Project/ScriptableObjects/Villagers/Gerrold.asset";
         private const string SilentLaneVillagerPath = "Assets/_Project/ScriptableObjects/Villagers/SilentLane.asset";
 
-        [MenuItem("Hearthbound/\ud83c\udfad Phase 26 — Wire NPC Animators", priority = 2)]
+        [MenuItem("Hearthbound/⚙️ Advanced/\ud83c\udfad Phase 26 — Wire NPC Animators", priority = 2)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 26 NPC", "Building Hearthbound_NPC.controller …", 0.15f);

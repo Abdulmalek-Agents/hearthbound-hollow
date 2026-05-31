@@ -40,7 +40,8 @@ Material:
   m_Shader: {fileID: -6465566751694194690, guid: 266733e31d1df2348a4e020d296c86f6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _ALPHATEST_ON
   m_InvalidKeywords:
   - _DISABLE_SSR_TRANSPARENT
   m_LightmapFlags: 4
@@ -49,6 +50,7 @@ Material:
   m_CustomRenderQueue: 2225
   stringTagMap:
     MotionVector: User
+    RenderType: TransparentCutout
   disabledShaderPasses:
   - TransparentDepthPrepass
   - TransparentDepthPostpass
@@ -185,7 +187,7 @@ Material:
     - _MaskUv: 1
     - _OpaqueCullMode: 2
     - _PUDDLE: 0
-    - _QueueControl: -1
+    - _QueueControl: 1
     - _QueueOffset: 0
     - _RayTracing: 0
     - _ReceiveShadows: 1

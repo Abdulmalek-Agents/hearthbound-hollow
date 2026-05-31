@@ -79,10 +79,12 @@ namespace HearthboundHollow.UI
             if (gentleModeToggle != null)
                 gentleModeToggle.onValueChanged.AddListener(OnGentleToggleChanged);
 
-            // Phase 29 — defensive autofit so the 6-paragraph tone primer
-            // never overflows on smaller canvases. Critical for accessibility.
-            UIAutoFitText.ApplyToLabel(bodyText, minSize: 14, maxSize: 24);
-            UIAutoFitText.ApplyToLabel(gentleModeLabel, minSize: 12, maxSize: 20);
+            // Phase 32.19 — readability pass for the 6-paragraph tone primer:
+            // ink-dark on cream with a soft dark wash so the prose never
+            // washes out against the parchment background.
+            UIReadabilityHelper.ApplyBody       (bodyText,        min: 22, max: 34);
+            UIReadabilityHelper.ApplyButtonLabel(gentleModeLabel, min: 18, max: 26);
+            if (bodyText != null) UIReadabilityHelper.AddDarkWash(bodyText.rectTransform, padding: 16f);
         }
 
         public void Show()
@@ -96,7 +98,13 @@ namespace HearthboundHollow.UI
             // Then activate the visual panel (might be the same GameObject).
             if (root != null && !root.activeSelf) root.SetActive(true);
 
-            if (bodyText != null) bodyText.text = defaultBody;
+            // Phase 56 (D-073) — Arabic pulls the shaped primer from the
+            // localization table; English keeps the inspector-overridable
+            // canonical Pell Doyne copy in `defaultBody`.
+            if (bodyText != null)
+                bodyText.text = LocalizationService.IsRightToLeft
+                    ? LocalizationService.GetShaped("tone.body")
+                    : defaultBody;
 
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null && gentleModeToggle != null)
@@ -131,7 +139,8 @@ namespace HearthboundHollow.UI
         {
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null) vs.gentleModeEnabled = isOn;
-            if (gentleModeLabel != null) gentleModeLabel.text = isOn ? "Gentle Mode: ON" : "Gentle Mode: off";
+            if (gentleModeLabel != null)
+                gentleModeLabel.text = LocalizationService.GetShaped(isOn ? "comfort.gentle_on" : "comfort.gentle_off");
         }
 
         private void Acknowledge()

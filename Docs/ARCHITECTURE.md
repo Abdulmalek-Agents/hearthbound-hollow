@@ -21,10 +21,14 @@ This is the **single source of truth** for the technical implementation of Missi
 | **Player Animator** | Procedurally-built `Hearthbound_Player.controller` (Phase 26) — Humanoid avatar, 1D blend tree on `Speed`, Jump/Fall/Land states | Mixamo-retargetable; BoZo's existing M_Idle/M_Walk are the fallback (D-037) |
 | **Save** | JSON local + 3-rolling-slot + autosave | Mobile-safe; no cloud in M1-2 |
 | **OpenAI dialogue addon** | DO NOT USE | Tagged `Reference – Do Not Use In Build` |
+| **Editor entry point** (Phase 32) | **`Hearthbound → 🚀 Build Everything`** — single top-level click, chains every Phase 13 → 32 sub-builder, idempotent | **D-051** — top-level Hearthbound menu reserved for `🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu (every legacy per-phase entry). |
+| **Voice acting** (Phase 32 MVP) | **Open-source [Piper TTS](https://github.com/rhasspy/piper) driving `Tools/generate_voices.sh` → 77 `<char>_<id>.wav` clips (Doris 55 / Gerrold 8 / Marin 4 / Narrator 4 / Pickle 6) at 22 kHz mono PCM16. Lighter-weight `espeak-ng` fallback also chained into `🚀 Build Everything` via `Phase46_VoiceGenerator.cs`.** | **D-058** — pipeline decoupled from runtime; any 22 kHz mono PCM16 .wav drops in (ElevenLabs / XTTS / human VO) by overwriting files + rerunning `Phase32_VoiceLibraryBuilder`. **D-059** — Piper is the canonical neural-quality pipeline; espeak-ng the cross-platform in-Editor fallback. Both write to the same paths so the runtime is identical. |
 
 ---
 
 ## 1. Phased Delivery Plan
+
+> 🚀 **User-facing entry point (Phase 32).** The user-facing entry point is **`Hearthbound → 🚀 Build Everything`**. All per-phase menu items have been moved to **`Hearthbound → ⚙️ Advanced/…`** for power users. After every `git pull`, press **🚀 Build Everything** — it is idempotent (every step uses load-or-create + heal-then-save; Phase 12 / 22 / 24 scene capstones rebuild scenes 00-05 by design — Inspector tweaks belong on prefabs, not scenes). A one-line `EditorUtility.DisplayDialog` confirms before the chain runs. The second top-level entry, **`Hearthbound → 🔍 Diagnose Build`**, runs the Phase 33 aggregate diagnostic (read-only) and is safe to invoke at any time. See `Docs/PROGRESS.md → Phase 32 — Menu collapse + idempotency audit` for the full migration table and audit results.
 
 The build is sliced into micro-phases, each producing a buildable, mergeable, minimal-reimport delta.
 
@@ -48,7 +52,19 @@ The build is sliced into micro-phases, each producing a buildable, mergeable, mi
 | **25** | UI activation hotfix — two-layer wiring + self-heal Show() in every overlay | ✅ |
 | **26 (Narrative Hooks)** | Marin's Note interactable + Phase26_NarrativeHooks editor menu | ✅ |
 | **26.1** | Asmdef-locality hotfix — MarinNoteInteractable moved to Mission asmdef | ✅ |
-| **26 (Player Controller + Animation)** | **PlayerController WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator** | ✅ |
+| **26 (Player Controller + Animation)** | PlayerController WASD/Sprint/Jump + SmoothFollowCamera + Mixamo-ready Animator | ✅ |
+| **27** | Master `Build EVERYTHING` capstone + Phase 26 polish layer (NPC animators, narrative hooks, diagnostic, footstep hooks) | ✅ |
+| **27.1 / 27.2 / 28 / 29b** | "Half body in floor" fix progression — culminating in PlayerGroundClamp (live world bounds + continuous correction window) + Player Rig Doctor foot-bone anchor | ✅ |
+| **29a** | UIAutoFitText on every TMP label + DialogueBox ChoicesContainer relocation | ✅ |
+| **30** | OnboardingOverlay (6-step) + ControlHintsHUD (context-aware chips) | ✅ |
+| **30.1** | Mission asmdef `Unity.TextMeshPro` reference hotfix | ✅ |
+| **31** | Dialogue Choice Card Repair — full-width tiles + 1/2/3/4 keyboard shortcuts | ✅ |
+| **31.1** | "Press [Space] ▸" advance prompt + DreamCanvas auto-hide | ✅ |
+| **32 (Mission 1 polish v2)** | 8-cottage village + Hollow facade + hearth dressing + cozy URP volumes | ✅ |
+| **32 (Menu collapse UX track)** | **`🚀 Build Everything` is the only top-level entry; safety dialog + idempotency audit + D-051** | ✅ |
+| **32 (Voice Acting MVP)** | **VoiceLibrarySO + VoicePlayer + DialogueUI lineId hook + Mission01Director threads 49 ids + Tools/generate_voices.sh macOS pipeline + Phase32_VoiceLibraryBuilder editor utility + D-058** | ✅ |
+| **32.6 → 32.10 (Open-source pipeline + interactive polish)** | **Piper TTS cross-platform pipeline (Tools/generate_voices.sh rewrite) + espeak-ng in-Editor fallback (Phase46_VoiceGenerator extended to 5 characters / 77 lines) + Mission 1 coverage 49 → 55 lineIds + VoiceClip events + Music/Ambient ducking + Mumble suppression + per-character casting defaults + Docs/VOICE_CASTING.md + D-059** | ✅ **This PR** |
+| **33** | Aggregate `Diagnose Build` — chains Phase 23/26/32 sub-diagnostics under one top-level read-only audit | ✅ |
 | **QA** | secret-scan, unit tests, README, CHANGELOG, PR to main | 🟡 In progress |
 
 ---
@@ -59,9 +75,10 @@ The build is sliced into micro-phases, each producing a buildable, mergeable, mi
 /Assets/
 ├── _Project/                            <-- All studio-authored content
 │   ├── Art/{Characters, Environment, Memories, UI}
-│   ├── Audio/{Music, SFX, Ambience}
+│   ├── Audio/{Music, SFX, Ambience, Voice/{Doris,Gerrold,Marin,Narrator,Pickle}}   (5 char folders — Phase 32.7)
 │   ├── Animations/                       (Hearthbound_Player.controller + Mixamo/* subfolder)
 │   ├── Prefabs/{Player, NPCs, Memories, Props, UI, VFX}
+│   ├── Resources/                        (NEW Phase 32 — HearthboundVoiceLibrary.asset lives here for Resources.Load)
 │   ├── Scenes/                           (6 scenes — Bootstrap → Cottage)
 │   ├── Scripts/                          (10 asmdef-isolated subsystems)
 │   ├── ScriptableObjects/{Memories, Villagers, Herbs, Missions, Tariffs, State}
@@ -84,7 +101,7 @@ HearthboundHollow.Save         ← Core, Memory, Newtonsoft-Json
 HearthboundHollow.Audio        ← Core
 HearthboundHollow.Player       ← Core, Memory, InputSystem
 HearthboundHollow.MiniGames    ← Core, Memory, Audio, InputSystem, TMP
-HearthboundHollow.UI           ← Core, Memory, TMP, InputSystem
+HearthboundHollow.UI           ← Core, Memory, Audio, TMP, InputSystem   (Audio added Phase 32 — VoicePlayer)
 HearthboundHollow.Dialogue     ← Core, Memory, UI, TMP, [YarnSpinner if present]
 HearthboundHollow.Cutscene     ← Core, Memory, UI, Timeline
 HearthboundHollow.Mission      ← Core, Memory, UI, Dialogue, MiniGames, Cutscene, Save, Audio, Addressables
@@ -110,6 +127,8 @@ Replaces traditional singletons. `ServiceLocator.Get<T>()` for service access. `
 - `HerbHarvestedEvent` / `TeaBrewedEvent`
 - `DayEndedEvent(int dayIndex)`
 - `EchoConnectionRevealedEvent(MemoryNodeSO, MemoryNodeSO)`
+- **`DialogueLineStartedEvent(speaker, line, dur, HasVoiceClip)`** *(Phase 32.10 — HasVoiceClip suppresses mumble bank when true)*
+- **`VoiceClipStartedEvent(lineId, clipLengthSec)` / `VoiceClipEndedEvent(lineId)`** *(Phase 32.10 — MusicPlayer + AmbientAudio duck while a voice clip plays)*
 
 ### 4.2 VillageState (the global game state)
 A single ScriptableObject with the **full 14-dimension struct** from Codex 08, even though only 4 dimensions are written in M1-2.
@@ -119,6 +138,7 @@ A single ScriptableObject with the **full 14-dimension struct** from Codex 08, e
 - Registers services to ServiceLocator
 - Loads scenes additively (Addressables or fallback SceneManager)
 - Owns the `DontDestroyOnLoad` root
+- **Phase 32 — Voice Acting MVP:** `Awake()` uses reflection to auto-spawn `_VoicePlayer` if `HearthboundHollow.Audio.VoicePlayer.Instance` is still null after the Bootstrap scene rig + Phase 45 `RuntimeAudioBootstrap` have run. Reflection (`Type.GetType("HearthboundHollow.Audio.VoicePlayer, HearthboundHollow.Audio")`) avoids a Core → Audio asmdef cycle.
 
 ### 4.4 PlayerController (Phase 26 surface)
 
@@ -146,6 +166,20 @@ Animator parameter contract:
 - Mouse-look gated by RMB (or `AllowLook` action). Scroll zoom.
 - Sphere-cast wall-clip with adjustable radius + mask.
 - Cinemachine-agnostic — no package dep.
+
+### 4.6 Audio subsystem (`HearthboundHollow.Audio`)
+
+The Audio asmdef hosts every runtime audio component. None of them reference UI; communication is via `EventBus` (dialogue events) or direct `ServiceLocator.Get<>()`.
+
+| Component | File | Role |
+|---|---|---|
+| `MusicLibrarySO` / `MusicPlayer` | Audio/MusicPlayer.cs | Procedural music cues (Phase 37). Save-restored in Phase 43. **Phase 32.10 — ducks to 55% on `VoiceClipStartedEvent`, restores on `VoiceClipEndedEvent`.** |
+| `AmbientAudio` / `SfxLibrarySO` / `SfxPlayer` | Audio/AmbientAudio.cs etc. | Per-scene ambience + one-shot SFX. **Phase 32.10 — ducks to 75% on voice events (gentler than music).** |
+| `MumbleVoiceLibrarySO` / `MumbleVoicePlayer` | Audio/MumbleVoice*.cs | Phase 38 syllable-pad VO synced to the typewriter via `DialogueLineStartedEvent` / `DialogueLineEndedEvent`. **Phase 32.10 — suppresses the syllable bank for any line where `DialogueLineStartedEvent.HasVoiceClip == true` (avoids stacking on top of a real voice).** |
+| `RuntimeAudioBootstrap` | Audio/RuntimeAudioBootstrap.cs | Phase 45 auto-installer — spawns the audio rig if Phase 38's Editor builder hasn't been run yet. **Phase 32.10 — now also installs `VoicePlayer` (previously Music + Mumble + Ambient only).** |
+| **`VoiceLibrarySO` / `VoicePlayer`** | **Audio/Voice*.cs** | **Phase 32 — Voice Acting MVP. Real per-line voice clips looked up by stable `lineId` (e.g. `doris_m1_greet_01`). 2D non-spatial AudioSource. `Resources.Load`s the canonical `HearthboundVoiceLibrary` asset on Awake if no inspector reference is wired. `Play(lineId)` returns the clip length so `DialogueUI` can lock the per-line `charsPerSecond` to it (lip-sync feel). `Hide()` / `SkipTypewriter()` / `PresentChoices()` call `Stop()`. Phase 32.10 — Play / Stop / natural-end now publish `VoiceClipStartedEvent` / `VoiceClipEndedEvent`. See D-058 + D-059 — clips live under `Audio/Voice/{character}/{lineId}.wav`; any 22 kHz mono PCM16 .wav drops in (Piper / espeak-ng / ElevenLabs / XTTS / human VO) with no code change.** |
+
+**Asmdef graph (Phase 32 Voice update):** the UI asmdef now references the Audio asmdef so `DialogueUI` can call `VoicePlayer.Instance.Play(lineId)`. Audio still does not reference UI — that direction would create a cycle. Mission references both UI and Audio (unchanged).
 
 ---
 
@@ -179,6 +213,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 - `YarnVillageStateBridge` exposes `$trust_doris`, `$trust_gerrold`, `$memory_integrity_gerrold`, `$tea_brewed`, `$cleanse_quality`, `$choice_made` as Yarn variables wired to VillageState
 - `YarnCustomCommands` — 14 commands (Focus 07 § 2.3): `<<polish_orb>>`, `<<cleanse_orb>>`, `<<offer_choice>>`, `<<eyes_look_at>>`, `<<pickle_say>>`, `<<lights_warm>>`, `<<save_autopoint>>`, `<<echo_reveal>>`, `<<play_cutscene>>`, etc.
 - Yarn line view renders into `Bamao_ParchmentBox.prefab`
+- **Phase 32 Voice Acting MVP:** `DialogueUI.PresentLine(speaker, text, portrait, lineId)` accepts an optional stable `lineId`. When `VoicePlayer.Instance.Play(lineId)` resolves a clip, the typewriter's per-line `charsPerSecond` is locked to `text.Length / clipLen` (clamped 18–90) so the last visible character lands as the voice ends. `Mission01Director.Line(...)` forwards the lineId; **the 55 Doris calls in M1 are tagged with canonical ids matching the Tools/generate_voices.sh + Phase46_VoiceGenerator tables (Phase 32.9 grew this from 49 → 55 by tagging the 3 refused-path lines + 3 clarity-branching afterPolishLine variants).**
 
 ---
 
@@ -213,6 +248,7 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 - Texture compression: ASTC 6×6 mobile, ETC2 fallback
 - Profile gate: every Phase 4+ PR must pass ≤ 16 ms on mid-range Android proxy
 - **Animator**: Player Animator runs in `Normal` mode (1× LateUpdate); Apply Root Motion = false; NPCs use `CullCompletely` mode in the village lane to save ~0.4 ms when 6+ chibis are visible.
+- **Voice clips** (Phase 32 MVP): 22 kHz mono PCM16 .wav, **~30–40 MB total for the 77-line cast (Doris 55, Gerrold 8, Marin 4, Narrator 4, Pickle 6)**. Imported with default `Decompress on Load` (cheap on memory for ~5-second clips) — switch to `Streaming` if total voice library exceeds 50 MB on Mission 4+ rollout.
 
 ---
 
@@ -235,6 +271,9 @@ Both inherit from `MiniGameBase` so future Weave/Sever just subclass.
 | Scaling rework | All 14 VillageState dimensions + Echo Web + Vignette schema present at default values |
 | **Controller perception** | **Sprint + Jump available but off in Gentle Mode (D-036)** — playtester who reaches for Shift/Space doesn't bounce off a "broken" controller |
 | **Mixamo unavailable** | **Phase 26 falls back to BoZo's existing 2 anims (Idle/Walk) and the AnimatorController degrades gracefully** — game ships polished without any Mixamo downloads |
+| **Editor menu archaeology** (Phase 32) | **`🚀 Build Everything` is the only entry the user needs after every pull (D-051). Power users have full per-phase access under `⚙️ Advanced ►`. Safety confirmation dialog prevents accidental ~60 s rebuild.** |
+| **Voice provider lock-in** (Phase 32 MVP) | **D-058 — generation pipeline decoupled from runtime. Piper TTS today (D-059); ElevenLabs / XTTS / espeak-ng / human VO is a pure file-swap into `Audio/Voice/<Character>/` + one menu click. No code change required when scaling to Mission 4+ with higher-fidelity voices.** |
+| **Cross-platform TTS** (Phase 32.6) | **D-059 — Piper TTS bash pipeline (`Tools/generate_voices.sh`) runs on Linux/macOS/WSL/Git-Bash. Lighter-weight `espeak-ng` in-Editor generator (`Phase46_VoiceGenerator.cs`) chained into `🚀 Build Everything` for Windows + Linux users who don't want to install Piper. Both pipelines write to the same canonical paths.** |
 
 ---
 
@@ -268,7 +307,7 @@ Every PR to this branch updates `Docs/PROGRESS.md` with:
 
 ## 15. Decisions Index (cross-ref → PROGRESS.md)
 
-D-001 → D-040 are catalogued in `Docs/PROGRESS.md`. Newest:
+D-001 → D-059 are catalogued in `Docs/PROGRESS.md`. Newest:
 
 - **D-033** *(Phase 25 hotfix)* Procedural UI builders MUST use the two-layer pattern.
 - **D-034** *(Phase 25 hotfix)* UI overlay scripts MUST self-heal in `Show()`.
@@ -278,7 +317,28 @@ D-001 → D-040 are catalogued in `Docs/PROGRESS.md`. Newest:
 - **D-038** *(Phase 26 Player Controller + Animation)* Animator parameter names are configurable strings on PlayerController.
 - **D-039** *(Phase 26 Player Controller + Animation)* SmoothFollowCamera is the M1+M2 default; Cinemachine prefab from Phase 17 coexists.
 - **D-040** *(Phase 26 Player Controller + Animation)* Animations live in Assets/_Project/Animations/ (Mixamo subfolder optional).
+- **D-041** *(Phase 27.1 / Phase 28)* Mesh-bottom from world-space `Renderer.bounds`, never padded `SkinnedMeshRenderer.localBounds`. Runtime `PlayerGroundClamp` is the truth.
+- **D-042** *(Phase 29a)* Every TMP label created by a builder MUST go through `UIAutoFitText`.
+- **D-043** *(Phase 30)* Onboarding is per-save, not per-play.
+- **D-044** *(Phase 30)* Context-aware HUD chips live in the Mission asmdef.
+- **D-045 → D-048** *(Phase 31)* Dialogue VLG + LayoutElement + lineText-hide + number-key shortcut contracts.
+- **D-049** *(Phase 31.1)* Blocking dialogue UI must expose a visible advance affordance.
+- **D-050** *(Phase 31.1)* Cutscene overlays hidden-by-default; full-screen non-active raycasters zero `raycastTarget`.
+- **D-051** *(Phase 32 UX track — Menu collapse)* **Every editor action MUST register under `Hearthbound/⚙️ Advanced/…` unless explicitly promoted to top level. The top-level menu is reserved for the three blessed user entry points: `🚀 Build Everything`, `🔍 Diagnose Build`, and the implicit `⚙️ Advanced ►` submenu. Promotion to top level requires Critic & Review Board sign-off.**
+- **D-052 / D-053 / D-054** *(Phase 39 — Audio + Cutscene policy)* See `Docs/Phase39_Greenlight_Signoff.md` for the canonical text.
+- **D-055 / D-056** *(Phase 44 — Save-resume + install-pattern policy)* See `Docs/Phase44_Polish_Layer_Signoff.md`.
+- **D-057** *(Phase 45 — Audio self-heal)* Every audio component that depends on a ScriptableObject library MUST have a `Resources.Load` self-heal fallback in `Awake()` AND log a clear error if the fallback also fails (with remediation step).
+- **D-058** *(Phase 32 — Voice Acting MVP)* **Voice clips live under `Assets/_Project/Audio/Voice/{character}/{lineId}.wav`; the generation pipeline (e.g. macOS `say`) is decoupled from the runtime — any TTS that produces 22 kHz mono PCM16 .wav can drop in (ElevenLabs / XTTS / Piper / human VO). The `VoiceLibrarySO` re-binds them on the next `OnValidate` / `Phase32_VoiceLibraryBuilder` rescan. The runtime `VoicePlayer` resolves clips by `lineId` via `Resources.Load<VoiceLibrarySO>("HearthboundVoiceLibrary")`. Missing clips degrade silently to the typewriter-only path — zero regression on installs without voice data.**
+- **D-059** *(Phase 32.6 → 32.10 — Open-source Piper TTS pipeline + interactive polish)* **The canonical TTS pipeline for Hearthbound Hollow is open-source [Piper TTS](https://github.com/rhasspy/piper) (`Tools/generate_voices.sh`), with the lighter-weight [espeak-ng](https://github.com/espeak-ng/espeak-ng) in-Editor generator (`Phase46_VoiceGenerator.cs`) as the cross-platform fallback chained into `🚀 Build Everything`. Per-character casting (Doris / Gerrold / Marin / Narrator / Pickle) is documented in `Docs/VOICE_CASTING.md` (the canonical table). Both pipelines write to the same `Audio/Voice/<Character>/<lineId>.wav` paths so the runtime is identical and D-058's file-swap policy is unchanged. Phase 32.10 also adds runtime ducking — `MusicPlayer` and `AmbientAudio` subscribe to `VoiceClipStartedEvent` / `VoiceClipEndedEvent` and dip 55% / 75% respectively while a real voice clip plays, then restore. `MumbleVoicePlayer` suppresses its syllable bank for the line when `DialogueLineStartedEvent.HasVoiceClip` is true so the procedural mumble never stacks on top of the real voice.**
+
+- **D-060 → D-063** *(Phase 48 → 51 — Depth Layer)* See `Docs/Phase48_DepthLayer_Signoff.md` + `Docs/PROGRESS_Phase48_51_Supplement.md` for the canonical text (Cold Open skippability, Echo translucency, Tone default-to-STANDARD, Bootstrap-bound cross-scene overlays).
+- **D-064** *(Phase 47 — One More Day)* The night transition (Evening Ledger → Dream → Goodnight Card → scene load) is owned by a single `EndOfDaySequencer` when present, replacing the previous multi-subscriber `OnEndOfDayConfirmed` race (director + `DreamHook` firing on the same ledger event). It is **opt-in**: directors delegate only when the sequencer is wired, else the legacy inline path runs unchanged (zero regression). Goodnight prose is mirrored from Yarn (`EveningLedger.yarn` / `Pickle.yarn`) into `TomorrowTeaseSO` (Yarn stays the canonical source) until the runtime Yarn-dispatcher pass lands. Tease resolution matches the **fiction day** `currentDayIndex + 1` (currentDayIndex is 0-based and only bumped by `EndDay()` after the card resolves) and a single-tease sequencer always resolves — the beat can never silently vanish. Mission 2 wires `playDream:false` because Dream 2 already plays during the cleanse outro (before the ledger). `OneMoreDayCard` is presentational-only (UI asmdef, no Mission/Cutscene dep); the sequencer passes a Gentle-Mode `instant` flag so the card stays free of game-state coupling. *(The Phase 47 implementation guide proposed this as "D-060", which collided with the Depth Layer's D-060 — renumbered to D-064.)*
+- **D-064b** *(Phase 46.2 — TTS human-speech sanitiser)* Every dialogue line MUST pass through a punctuation sanitiser before TTS synthesis (`CleanForTts` in both `Tools/generate_voices.sh` and `Phase46_VoiceGenerator.cs`): ellipses + em/en-dashes become natural comma pauses, parenthetical stage directions + Markdown emphasis are stripped, and pure-punctuation lines (e.g. `"..."`) synthesize to silence (the typewriter carries the beat). This fixes engines (notably espeak-ng) verbalising punctuation literally ("dot dot dot" / "dash"). The displayed text is unchanged — only the synthesis input is normalized. Native-quality voices use the open-source Piper pipeline (D-059); espeak-ng is the cross-platform fallback.
+- **D-065** *(Phase 53 — Localization)* Runtime UI localization is a key→{en, ar} table in `LocalizationService` (Core) with a live `OnLanguageChanged` event + `IsRightToLeft` flag; the language selector persists via `SettingsService.Language` (PlayerPrefs). UI chrome labels carry a `LocalizedText` binder (refresh + RTL alignment). **Hand-written dialogue/ledger prose stays canonical English** — full translation is a dedicated writer pass (GAME_DESIGN §9 Pillar 1), not a machine pass. Missing keys fall back to English, then to the key, so the UI is never blank.
+- **D-066** *(Phase 53 — Character creation)* The player avatar's appearance (skin tone, outfit colour, accessory, name) is chosen in `CharacterCreationUI` and applied by `CharacterAppearanceApplier` as **all-procedural** material-colour tints + a code-built accessory primitive — **no new art assets** (matches the Depth Layer "procedural primitives only" discipline). Choices persist in `SettingsService` (PlayerPrefs) as a global player profile (not the per-save snapshot, so the save schema is untouched). "Reset Game" (`PolishMenuCoordinator`) wipes save slots + `VillageState.ResetToDefault()` + clears the character flag, but **keeps** language / audio / comfort settings, then returns to the title; the next New Game re-opens the creator.
+- **D-067** *(Phase 47.1 — Playtest polish)* macOS trackpad zoom reads `Mouse.current.scroll` first (the legacy `Input.mouseScrollDelta.y` reports 0 for the two-finger gesture under the new Input System), normalises per-backend magnitudes into "notch" units and eases via SmoothDamp; the polish minigame's `motionThresholdNormalized` drops to ~3 px/frame so deliberately slow circles register; and `UIReadabilityHelper.ApplyBody` paints **cream-on-dark** (not the old dark-on-dark over the wash) with a deepened `WashDark`. *(Logged "D-065" in an early draft of PROGRESS — corrected here to avoid colliding with Localization.)*
+- **D-068** *(Phase 53.1 — Click hardening)* Any overlay whose `CanvasGroup` lives on an **always-active** script-host (kept active so `Update()` can poll a toggle key) MUST manage `blocksRaycasts` + `interactable` in code — false at `Awake`, true while presenting, false when hidden — and additionally enforce the invariant *"a fully transparent overlay never blocks raycasts"* in `LateUpdate` (`alpha ≤ 0.001 ⇒ blocksRaycasts = false`). Rationale: a Unity coroutine stopped mid-flight (host disabled, re-entered, scene torn down) cannot run a `finally`, so the alpha-only hide pattern can strand an invisible, full-screen, raycast-blocking CanvasGroup that silently eats **every** UI click while keyboard polling still works — the Day 1 "stuck at the Evening Ledger" blocker. Applies to `MissionTitleCard`, `OneMoreDayCard`, `PrefaceBeatUI`. Companion fix: `Phase48_BootstrapHookCinematic` now creates its EventSystem with `InputSystemUIInputModule` under `#if ENABLE_INPUT_SYSTEM` like every other scene builder.
 
 ---
 
-*Document version 1.3 — final Phase 26 renumber (D-036..D-040 after Phase 26.1 claimed D-035).*
+*Document version 1.9 — Phase 47 One More Day (D-064) + Phase 46.2 voice sanitiser (D-064b) + Phase 53 Polish Menu Layer: localization (D-065) + character creation (D-066) + Phase 47.1 playtest polish (D-067) + Phase 53.1 click hardening (D-068).*

@@ -43,7 +43,7 @@ namespace HearthboundHollow.EditorTools
         private const string SceneMission01Hollow = "Assets/_Project/Scenes/03_Mission01_Hollow.unity";
         private const string SceneBootstrap = "Assets/_Project/Scenes/00_Bootstrap.unity";
 
-        [MenuItem("Hearthbound/\ud83c\udfae Build POLISHED Playable Mission 1 (Phase 22)", priority = 0)]
+        [MenuItem("Hearthbound/⚙️ Advanced/\ud83c\udfae Build POLISHED Playable Mission 1 (Phase 22)", priority = 0)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 22", "Running all phase builders…", 0.05f);

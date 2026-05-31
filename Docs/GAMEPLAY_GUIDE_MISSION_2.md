@@ -114,8 +114,10 @@ The **Heavy Theme Warning Card** appears before the Mission 2 cottage scene if y
 | Mission 1 was completed and saved | Save file shows `current_mission = "Mission01_Complete_Transitioning"` (loaded automatically by the morning-wake transition) |
 | You polished DOR-001 in Mission 1 | Optional — Mission 2 plays without it but you miss the Echo Web connection |
 | Day 2 morning wake transition has played | You should be standing in the Hollow's shop room with morning light streaming in |
-| Pickle is on the windowsill | She should be. If she isn't, the NPC Animator capstone may not have wired correctly — try `Hearthbound → 🎭 Phase 26 — Wire NPC Animators` |
+| Pickle is on the windowsill | She should be. If she isn't, the NPC Animator capstone may not have wired correctly — try `Hearthbound → ⚙️ Advanced → 🎭 Phase 26 — Wire NPC Animators` |
 | Gentle Mode preference is loaded | Settings persisted from Mission 1 |
+
+> 💡 **Phase 32 update:** the troubleshooting row for Pickle's NPC animator now lives under `⚙️ Advanced ►` (per D-051 — only `🚀 Build Everything` and `🔍 Diagnose Build` are at top level). The simplest fix is still `Hearthbound → 🚀 Build Everything`, which chains the NPC animator capstone automatically.
 
 ---
 
@@ -1661,6 +1663,6 @@ You enter Mission 3 having had **the cozy game's defining moment.** Everything t
 
 ---
 
-*Document version 1.0 — authored for the `feat/mission-1-2-architecture` branch, Phase 27.1 build.*
+*Document version 1.0 — authored for the `feat/mission-1-2-architecture` branch, Phase 27.1 build. Phase 32 (menu collapse) update — § 4 troubleshooting row now references `Hearthbound → ⚙️ Advanced → 🎭 Phase 26 — Wire NPC Animators` per D-051.*
 *Companion files: [`GAMEPLAY_GUIDE_OVERVIEW.md`](./GAMEPLAY_GUIDE_OVERVIEW.md), [`GAMEPLAY_GUIDE_MISSION_1.md`](./GAMEPLAY_GUIDE_MISSION_1.md).*
 *Part of the Abdulmalek Agents game-concept portfolio · 2026.*

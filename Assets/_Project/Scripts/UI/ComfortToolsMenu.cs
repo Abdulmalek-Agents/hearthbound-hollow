@@ -64,6 +64,11 @@ namespace HearthboundHollow.UI
             if (root != null) root.SetActive(true);
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null && gentleMode != null) gentleMode.isOn = vs.gentleModeEnabled;
+
+            // Phase 56 (D-073) — sync the subtitle-size readout to the current
+            // language each time the panel opens (language is chosen in the main
+            // menu, so it's always current by the time this shows).
+            UpdateSubtitleSizeLabel();
         }
 
         public void Hide()
@@ -81,11 +86,18 @@ namespace HearthboundHollow.UI
         private void OnSubtitleSize(float v)
         {
             SubtitleSizeTier = Mathf.Clamp((int)v, 0, 3);
-            if (subtitleSizeLabel != null)
-                subtitleSizeLabel.text = SubtitleSizeTier switch
-                {
-                    0 => "Small", 1 => "Medium", 2 => "Large", _ => "Huge",
-                };
+            UpdateSubtitleSizeLabel();
+        }
+
+        // Phase 56 (D-073) — localized + Arabic-shaped subtitle-size readout.
+        private void UpdateSubtitleSizeLabel()
+        {
+            if (subtitleSizeLabel == null) return;
+            string key = SubtitleSizeTier switch
+            {
+                0 => "size.small", 1 => "size.medium", 2 => "size.large", _ => "size.huge",
+            };
+            subtitleSizeLabel.text = LocalizationService.GetShaped(key);
         }
     }
 }

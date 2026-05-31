@@ -104,7 +104,7 @@ namespace HearthboundHollow.EditorTools
             // run clip is present.
         };
 
-        [MenuItem("Hearthbound/Phase 26 — Build Player Animator Controller", priority = 209)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 26 — Build Player Animator Controller", priority = 209)]
         public static void BuildOrUpdate()
         {
             EnsureFolder(AnimationsDir);

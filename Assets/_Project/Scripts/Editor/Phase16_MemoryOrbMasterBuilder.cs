@@ -45,7 +45,7 @@ namespace HearthboundHollow.EditorTools
             "AllIn1/AllIn1Effect",
         };
 
-        [MenuItem("Hearthbound/Phase 16 — Build MemoryOrb_Master Material", priority = 203)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 16 — Build MemoryOrb_Master Material", priority = 203)]
         public static void Build()
         {
             EnsureFolder(MaterialsDir);

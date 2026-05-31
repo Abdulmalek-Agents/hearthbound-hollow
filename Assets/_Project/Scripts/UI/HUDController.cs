@@ -54,8 +54,8 @@ namespace HearthboundHollow.UI
             var vs = ServiceLocator.Get<VillageState>();
             if (vs != null)
             {
-                if (dayLabel != null) dayLabel.text = $"Day {vs.currentDayIndex}";
-                if (coinLabel != null) coinLabel.text = $"{vs.coin} c";
+                if (dayLabel != null) dayLabel.text = LocalizationService.GetShaped("hud.day", vs.currentDayIndex);
+                if (coinLabel != null) coinLabel.text = LocalizationService.GetShaped("hud.coins", vs.coin);
             }
             if (heldMemoryGroup != null) heldMemoryGroup.SetActive(_held != null);
             if (heldMemoryIcon != null && _held != null)

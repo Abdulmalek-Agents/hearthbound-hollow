@@ -1,0 +1,172 @@
+title: Narrator_ColdOpen_MarinLetter
+tags: narrator coldopen marin phase48
+---
+// ─────────────────────────────────────────────────────────────────────────
+// Marin's letter — read by the Narrator in the Cold Open Cinematic.
+// Author: Inara Vellis (Lead Memory Writer)
+// Spec:   Docs/Phase48_DepthLayer_Signoff.md § 2 (Phase 48 — Cold Open)
+//         Docs/Depth_Bible/03_WORLDBUILDING_AND_LORE.md § Predecessor
+//         Codex 11 § Memory Dream Director (the letter doubles as a Dream
+//           hook for post-M2 expansion — "the wedding ring on the windowsill")
+//
+// Voice signature (Vellis Rules § 4 — the Predecessor):
+//   • Speaks AS IF to the player directly — "Whoever you are".
+//   • Short sentences (~12 words avg) interrupted by em-dashes.
+//   • References the candle by name; references the locked drawer by name.
+//   • Mentions Pickle without naming her gender (she is "the cat").
+//   • Never tells the player WHY she left — only that she did.
+//   • Three-beat structure: (1) apology / disclaimer, (2) practical
+//     bequest of objects, (3) one piece of inviolable instruction.
+//
+// Voice lineIds (D-058 / D-059 — canonical .wav file-swap paths):
+//   narrator_marin_letter_01 — letter body line 1 (apology)
+//   narrator_marin_letter_02 — letter body line 2 (instructions + bequest)
+//
+// Total word count: 72 words. Reads ~36 s at the human auditory comfort
+// rate of 120 WPM. Lines up with the ColdOpenCinematicUI typewriter
+// stage (~7 s default duration with adaptive cps locking).
+// ─────────────────────────────────────────────────────────────────────────
+
+<<scene "BlackVignette">>
+<<eyes_look_at "candle">>
+
+Narrator: Whoever you are —
+<<wait 0.6>>
+Narrator: if you are reading this, the candle in the Hollow lit again.
+Narrator: I did not blow it out.
+
+<<adjust_predecessor_warmth 4>>
+
+Narrator: I went after the Forgotten Year, and I will not be back
+Narrator: before you have settled. Polish the orbs slowly.
+Narrator: Trust the bread before you trust the men.
+<<wait 0.8>>
+Narrator: And do not — do not — open the locked drawer until the cat tells you to.
+
+<<eyes_look_at "signature">>
+Narrator: — Marin, Keeper of the Hollow before you.
+
+<<set $seen_cold_open = true>>
+<<set $marin_letter_read = true>>
+<<adjust_predecessor_warmth 8>>
+
+===
+
+title: Echo_Marin_Welcome
+tags: echo marin hologram phase49
+---
+// ─────────────────────────────────────────────────────────────────────────
+// Marin's Echo Hologram welcome — the first predecessor encounter in the
+// Hollow. Plays on the player's first Activate() of the Echo interactable
+// on the workbench, next to the parchment Note.
+//
+// Author: Inara Vellis (Lead Memory Writer) + Sven Aleko (Cutscenes)
+// Spec:   Docs/Phase48_DepthLayer_Signoff.md § 2 (Phase 49 — Echo Hologram)
+//         Docs/Depth_Bible/12_COMPANIONS_AND_FAMILIARS.md § Echo Hologram
+//         Codex 03 § Predecessor
+//
+// Voice signature (continuation of the Narrator_ColdOpen voice):
+//   • Slightly warmer than the letter — she's speaking to you face-to-face
+//     now, not in writing. The pace is more conversational.
+//   • Still no proper names exchanged. She does not know YOUR name; you
+//     do not yet know HER full story.
+//   • Three-beat structure matched to the cinematic visual: apology +
+//     practical bequest (the workbench, the cat, the baker next door) +
+//     one piece of inviolable instruction (trust the bread).
+//   • Total ~17 s at 120 WPM. Lines up with the 3-line monologue spec
+//     in EchoHologramInteractable.cs.
+//
+// Voice lineIds (D-058 / D-059 — canonical .wav file-swap paths):
+//   echo_marin_welcome_01 — opening apology
+//   echo_marin_welcome_02 — the bequest (candle, cat, baker)
+//   echo_marin_welcome_03 — the inviolable instruction (trust the bread + Pickle's veto)
+//
+// Repeat-hearing fallback (when echoHologramHeard == true):
+//   echo_marin_hum_01 — silent hum text
+// ─────────────────────────────────────────────────────────────────────────
+
+<<eyes_look_at "hologram_marin">>
+<<play_animation "Marin" "fade_in_pale_blue">>
+<<play_sfx "echo_marin_chord">>
+
+<<if $echo_hologram_heard == false>>
+
+    Marin: If the Hollow lit again, I am very sorry.
+    Marin: You inherit it the way I did — without ceremony, without a manual.
+
+    <<wait 0.6>>
+
+    Marin: There is a candle on the workbench.
+    Marin: There is a cat at your knee.
+    Marin: There is a baker next door who has been waiting.
+
+    <<wait 0.6>>
+
+    Marin: Trust the bread.
+    Marin: Polish slowly.
+    Marin: And if Pickle sniffs a memory and walks away — you should walk away too.
+
+    <<adjust_predecessor_warmth 12>>
+    <<set $echo_hologram_heard = true>>
+    <<set $echo_holograms_found = $echo_holograms_found + 1>>
+
+<<else>>
+
+    // Hum-only repeat — Marin's voice "doesn't return easily" per D-061.
+    Marin: (The hologram hums but does not speak.)
+    Marin: (Marin's voice doesn't return easily. You heard her once. Be patient.)
+
+<<endif>>
+
+<<play_animation "Marin" "fade_out">>
+
+===
+
+title: Narrator_Preface_Gentle
+tags: narrator preface gentle phase50
+---
+// The Gentle-Mode preface beat. 3 lines, ~5 s total at 120 WPM.
+// PrefaceBeatUI.cs gentleLines field default.
+
+Narrator: There is a candle in the window.
+<<wait 1.4>>
+Narrator: There is no hurry.
+<<wait 1.4>>
+Narrator: Walk slowly. Doris is waiting.
+
+<<set $preface_beat_played = true>>
+<<set $preface_tone_bucket = "Gentle">>
+
+===
+
+title: Narrator_Preface_Standard
+tags: narrator preface standard phase50
+---
+// The Standard preface beat (default). 3 lines, ~5 s total.
+
+Narrator: The lane is quiet.
+<<wait 1.4>>
+Narrator: A candle waits in the window of the Hollow.
+<<wait 1.4>>
+Narrator: Doris is on her step. Walk.
+
+<<set $preface_beat_played = true>>
+<<set $preface_tone_bucket = "Standard">>
+
+===
+
+title: Narrator_Preface_Deep
+tags: narrator preface deep phase50
+---
+// The Deep-tone preface beat. 3 lines, ~5 s total.
+
+Narrator: You inherit what you do not choose.
+<<wait 1.4>>
+Narrator: The candle is waiting in the Hollow.
+<<wait 1.4>>
+Narrator: She is on her step. The lane is shorter than you think.
+
+<<set $preface_beat_played = true>>
+<<set $preface_tone_bucket = "Deep">>
+
+===

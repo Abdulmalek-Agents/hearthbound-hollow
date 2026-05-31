@@ -18,7 +18,12 @@
 // All spawns are parented under `_Phase27Env_Lane` so re-running the
 // builder cleanly removes the previous pass and rebuilds — idempotent.
 //
-// USE: Menu → Hearthbound → 🌳 Phase 27.2 — Polish Lane Environment
+// USE: Menu → Hearthbound → ⚙️ Advanced → 🌳 Phase 27.2 — Polish Lane Environment
+//
+// Demoted to ⚙️ Advanced/… in Phase 32 (menu collapse). The user-facing
+// entry point is `Hearthbound → 🚀 Build Everything`, which Phase 32
+// supersedes via Phase 32.2 (Lane Environment v2) — the v2 builder
+// stacks on top of the v1 _Phase27Env_Lane parent (idempotent siblings).
 //
 // Architecture notes:
 //   - Per D-007 we never check the .unity file into git. The builder
@@ -52,7 +57,7 @@ namespace HearthboundHollow.EditorTools
         // Single parent GameObject so re-running cleans up its own work.
         private const string EnvParentName = "_Phase27Env_Lane";
 
-        [MenuItem("Hearthbound/🌳 Phase 27.2 — Polish Lane Environment", priority = 6)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🌳 Phase 27.2 — Polish Lane Environment", priority = 6)]
         public static void Build()
         {
             if (!System.IO.File.Exists(SceneLane))

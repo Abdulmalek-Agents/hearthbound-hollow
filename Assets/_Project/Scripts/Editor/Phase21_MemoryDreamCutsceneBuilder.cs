@@ -40,7 +40,7 @@ namespace HearthboundHollow.EditorTools
         private const string PrefabsDir = "Assets/_Project/Prefabs/Cutscene";
         private const string DreamRigPrefabPath = PrefabsDir + "/MemoryDreamRig.prefab";
 
-        [MenuItem("Hearthbound/Phase 21 — Build Memory Dream Cutscene", priority = 208)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 21 — Build Memory Dream Cutscene", priority = 208)]
         public static void Build()
         {
             EnsureFolder(TimelinesDir);
@@ -88,7 +88,7 @@ namespace HearthboundHollow.EditorTools
             return timeline;
         }
 
-        // ─── Rig prefab (PlayableDirector + UI) ───────────────────
+        // ─── Rig prefab (PlayableDirector + UI) ─────────────────────────
 
         private static void BuildDreamRigPrefab(TimelineAsset timeline)
         {
@@ -162,7 +162,7 @@ namespace HearthboundHollow.EditorTools
             return img;
         }
 
-        // ─── Folder helpers ───────────────────────────────────────
+        // ─── Folder helpers ──────────────────────────────────────
 
         private static void EnsureFolder(string path)
         {

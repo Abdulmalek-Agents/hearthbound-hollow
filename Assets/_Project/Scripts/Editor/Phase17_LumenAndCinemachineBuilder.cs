@@ -46,7 +46,7 @@ namespace HearthboundHollow.EditorTools
         private const string CamerasDir = "Assets/_Project/Prefabs/Cameras";
         private const string CmFollowPrefabPath = CamerasDir + "/CM_PlayerFollow.prefab";
 
-        [MenuItem("Hearthbound/Phase 17 — Build Lumen + Cinemachine Bindings", priority = 204)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 17 — Build Lumen + Cinemachine Bindings", priority = 204)]
         public static void Build()
         {
             EnsureFolder(BindingsDir);

@@ -52,7 +52,7 @@ namespace HearthboundHollow.EditorTools
             ["choice_select"]             = new[] { "choice", "select", "confirm_soft" },
         };
 
-        [MenuItem("Hearthbound/Phase 18 — Build SFX Library", priority = 205)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 18 — Build SFX Library", priority = 205)]
         public static void Build()
         {
             EnsureFolder(LibraryDir);
