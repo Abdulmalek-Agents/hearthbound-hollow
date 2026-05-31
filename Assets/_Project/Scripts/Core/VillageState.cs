@@ -1,215 +1,212 @@
-// SPDX-License-Identifier: MIT
-// Hearthbound Hollow — Core / VillageState
-//
-// The full 14-dimension state struct from Codex 08 § 2.
-// In Mission 1-2 only 4 dimensions are written to. The other 10 fields sit at
-// default values per the Krieg Discipline (Focus 00 § 5) — the schema is the
-// architectural contract that prevents rework when we scale to Mission 3+.
-//
-// ── Playtest pass fix (commit 1/6) ──────────────────────────────
-// QA simulated-playthrough audit found the following fields referenced by
-// the expanded Yarn files (Doris_M1, Gerrold_M2, Pickle, EveningLedger,
-// Codex, ChoiceCards) had no corresponding VillageState fields, breaking
-// the YarnVillageStateBridge bi-directional sync:
-//   - pickleApproval (gates 5 of Pickle's conditional lines)
-//   - cinder (Confession Booth currency; earnable only via Listen path)
-//   - pickleSassIntensity (1-5 setting; 3 = default)
-//   - firstMoralChoiceMade (Mission 3+ gate flag)
-//   - dorisOwesPlayer (the underpay-path debt thread)
-//   - sat_in_gerrold_chair / sat_in_margery_chair (chair-selection flags)
-//   - gerroldReturnsDay3 (Defer-path Mission 3 hook)
-//   - mission6RecoveryArcSeeded (Crossed-Core consequence)
-//   - offeredGerroldTea, deferredGerrold (M2 dialogue gates)
-//   - polishQuality, cleanseQuality, gerroldChoice (mini-game outcomes)
-//   - teaBrewed (Lavender/Valerian/None modifier)
-//
-// Added all 14 fields below + cleared in ResetToDefault().
-
+// =============================================================================
+// VillageState.cs — Hearthbound Hollow
+// The single source of truth for all persistent game state across 30 missions.
+// Serialized to JSON by SaveService. Schema v4 (Phase 76 — 30-level expansion).
+// =============================================================================
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace HearthboundHollow.Core
 {
-    [CreateAssetMenu(menuName = "Hearthbound/State/Village State", fileName = "VillageState")]
-    public class VillageState : ScriptableObject
+    /// <summary>
+    /// All mutable game state. One instance lives on the GameManager (DontDestroyOnLoad).
+    /// Everything here must be JSON-serializable (no UnityEngine.Object references).
+    /// </summary>
+    [Serializable]
+    public class VillageState
     {
-        // ───── M1-2 ACTIVE dimensions ───────────────────────────────────
+        // ─── Save metadata ───────────────────────────────────────────────────
+        public int    saveSchemaVersion  = 4;
+        public string saveSlotId         = "";
+        public long   lastSavedTimestamp = 0;
 
-        [Header("M1-2 ACTIVE — Trust (0–100)")]
-        [Range(0, 100)] public int trustDoris = 50;
-        [Range(0, 100)] public int trustGerrold = 50;
+        // ─── Progression ─────────────────────────────────────────────────────
+        public int    currentMissionIndex = 0;   // 0-based; 0 = M01
+        public int    currentDayIndex     = 0;   // 0-based within this mission
+        public int    currentAct          = 1;   // 1, 2, or 3
+        public Season currentSeason       = Season.Autumn;
 
-        [Header("M1-2 ACTIVE — Memory Integrity (0–100)")]
-        [Range(0, 100)] public int memoryIntegrityGerrold = 100;
-        [Range(0, 100)] public int memoryIntegrityDoris = 100;
+        // ─── Economy ─────────────────────────────────────────────────────────
+        public int coin = 0;
 
-        [Header("M1-2 ACTIVE — Vow Integrity (0–100)")]
-        [Range(0, 100)] public int vow1Integrity = 50;   // Honor the named
-        [Range(0, 100)] public int vow3Integrity = 50;   // Refuse no one's grief
-        [Range(0, 100)] public int vow7Integrity = 50;   // Keep the Hollow lit
+        // ─── Memory shelf ────────────────────────────────────────────────────
+        public List<string> heldMemoryIds         = new(); // orb ids currently on shelves
+        public List<string> releasedMemoryIds      = new(); // sold / erased / drifted
 
-        [Header("M1-2 ACTIVE — Pickle (added in playtest pass commit 1/6)")]
-        [Range(0, 100)]
-        [Tooltip("Gates Pickle's 5 conditional pre-choice + chair lines at >=50. " +
-                 "Below 50, the moral choice is made in silence (Mission 2 Guide § 14.2).")]
-        public int pickleApproval = 50;
-        [Range(1, 5)]
-        [Tooltip("Pickle sass intensity. 1 = warm and gentle, 5 = full sarcasm. " +
-                 "M1-2 only differentiates 1, 3, 5 (settings 2 and 4 collapse to nearest). " +
-                 "Gentle Mode auto-routes to 1.")]
-        public int pickleSassIntensity = 3;
+        // ─── Hollow upgrades ─────────────────────────────────────────────────
+        public List<string> purchasedUpgradeIds    = new();
 
-        [Header("M1-2 ACTIVE — Confession Booth currency")]
-        [Tooltip("Earned ONLY via the Mission 2 Listen path (+2 or +3 per Listen sub-option). " +
-                 "Spent in M5+ at the Confession Booth.")]
-        public int cinder = 0;
+        // ─── Garden ──────────────────────────────────────────────────────────
+        public List<GardenBedState> gardenBeds     = new();
+        public List<string>         inventoryTeas  = new(); // brewed teas not yet consumed
 
-        // ───── M3+ DORMANT dimensions (Krieg architectural seam) ────────
+        // ─── Request board ───────────────────────────────────────────────────
+        public List<string> resolvedRequestIds     = new();
+        public long         villageSeed            = 0;    // per-save RNG seed
 
-        [Header("M3+ DORMANT — Trust")]
-        [Range(0, 100)] public int trustMayor = 50;
-        [Range(0, 100)] public int trustInnkeeper = 50;
-        [Range(0, 100)] public int trustChild = 50;
+        // ─── Echo Web / Memory Wall ──────────────────────────────────────────
+        public List<string> completedEchoIds       = new(); // thread ids
+        public int          memoryWebConnectionsFound = 0;
 
-        [Header("M3+ DORMANT — Aggregate village dimensions")]
-        [Range(0, 100)] public int villageGriefAverage = 50;
-        [Range(0, 100)] public int hollowReputation = 50;
-        [Range(0, 100)] public int predecessorTrailWarmth = 0;
-        [Range(0, 100)] public int memoryStockMarket = 0;
-        [Range(0, 100)] public int vanceArcProgress = 0;
-        [Range(-1f, 1f)] public float seasonalDrift = 0f;
+        // ─── Predecessor / Marin trail ───────────────────────────────────────
+        public int          predecessorTrailWarmth = 0;   // 0-100
+        public bool         readingNookVisited      = false;
+        public List<string> letterFragmentsRead     = new();
+        public bool         echoHologramHeard       = false;
+        public int          echoHologramsFound      = 0;
 
-        [Header("M3+ DORMANT — Vow Integrity (vows 2,4,5,6)")]
-        [Range(0, 100)] public int vow2Integrity = 50;
-        [Range(0, 100)] public int vow4Integrity = 50;
-        [Range(0, 100)] public int vow5Integrity = 50;
-        [Range(0, 100)] public int vow6Integrity = 50;
+        // ─── Sealed memory (9 fragments across Act 2-3) ──────────────────────
+        public List<string>  sealedFragmentsFound   = new(); // fragment ids collected
+        public bool          sealedMemoryAssembled  = false;
+        public string        sealedMemoryChoiceId   = "";    // chosen in M29
 
-        // ───── Player progression ───────────────────────────────────────
+        // ─── Per-mission flags (hand-authored, not generated) ─────────────────
+        public bool  refusedDorisOrb          = false; // M01
+        public bool  eraseGerroldPath         = false; // M02 — Erase chosen
+        public bool  cleanseGerroldPerfect    = false; // M02 — Cleanse perfect
+        public string gerroldMoralChoiceId    = "";    // M02 outcome
+        public bool  millerGuiltErased        = false; // M03
+        public bool  veraSecretKept           = false; // M04
+        public bool  aldineRegretCleansed     = false; // M05
+        public bool  cranesPrideListened      = false; // M06
+        public bool  firstRevelationSeen      = false; // M07
+        public bool  marketDayAttended        = false; // M08
+        public bool  claraFriendshipRestored  = false; // M09
+        public bool  firstFrostSurvived       = false; // M10
 
-        [Header("Player progression")]
-        public int currentDayIndex = 0;
-        public int coin = 50;
-        public bool tutorialCompleted = false;
-        public bool toneCompassAcknowledged = false;
-        public bool gentleModeEnabled = false;
-        [Tooltip("Phase 30 — set true after the player completes (or skips) the " +
-                 "multi-step OnboardingOverlay so it never re-appears on this save.")]
-        public bool onboardingCompleted = false;
-        public string lastSceneName;
+        // Act 2 fragment-holder flags.
+        public bool  edmundBargainResolved    = false; // M11 — fragment 1
+        public bool  ruthThreadResolved       = false; // M12 — fragment 2
+        public bool  finnFlockResolved        = false; // M13 — fragment 3
+        public bool  nellGameResolved         = false; // M14 — fragment 4
+        public bool  lockedRoomResolved       = false; // M15 — fragment 5
+        public bool  augustClocksResolved     = false; // M16
+        public bool  festivalOfMemoryPlayed   = false; // M17
+        public bool  irisGriefResolved        = false; // M18
+        public bool  oldRivalryResolved       = false; // M19
+        public bool  echoWebMajorReveal       = false; // M20
 
-        [Header("Mission flags")]
-        public List<string> completedMissionIds = new();
-        public List<string> revealedEchoConnectionIds = new();
-        public List<string> heldMemoryIds = new();
-        public List<string> harvestedHerbIds = new();
-        public List<string> readMarinNoteIds = new();
+        // Act 3 flags.
+        public bool  mayorConfessionHeard     = false; // M21 — fragment 6
+        public bool  veraReturnedM22          = false; // M22
+        public bool  marinFinalLetterRead     = false; // M23
+        public bool  missingFragmentFound     = false; // M24 — fragment 7
+        public bool  hearingHeld              = false; // M25
+        public bool  dreamOfAllDreamsDreamed  = false; // M26
+        public bool  augustFinalGiftGiven     = false; // M27 — fragment 8
+        public bool  allFragmentsAssembled    = false; // M28
+        public bool  sealedChoiceMade         = false; // M29
+        public bool  epilogueCompleted        = false; // M30
 
-        // ───── M1-2 dialogue flags (added playtest pass commit 1/6) ─────
+        // ─── Depth Layer ─────────────────────────────────────────────────────
+        public bool  seenColdOpen          = false;
+        public bool  prefaceBeatPlayed     = false;
+        public string prefaceToneBucket    = "";
+        public bool  coldOpenLastVariant   = false;
+        public int   memoryWebConFound     = 0;
 
-        [Header("M1 dialogue flags")]
-        [Tooltip("True after player asked Doris 'Who was the old one?' in M1. " +
-                 "Unlocks Marin's name reveal in Doris's M2 morning greeting.")]
-        public bool askedAboutPredecessor = false;
-        [Tooltip("True if player declined Doris's First Loaves orb in M1. " +
-                 "Mission 1 takes the quiet alternate route per Guide § 9.4.")]
-        public bool refusedDorisOrb = false;
-        [Tooltip("Negative = player owes Doris this many coppers (Underpay path).")]
-        public int dorisOwesPlayer = 0;
-        [Tooltip("Mission 1 Polish result: 'Perfect' | 'Acceptable' | 'Mild'. " +
-                 "Branches Doris's after-polish line.")]
-        public string polishQuality = "";
+        // ─── Accessibility / settings ─────────────────────────────────────────
+        public bool   gentleModeEnabled    = false;
+        public string toneCompassChoice    = "Standard"; // "Gentle" | "Standard" | "Deep"
+        public string languageCode         = "en";      // "en" | "ar"
 
-        [Header("M2 dialogue flags")]
-        public bool metDoris = false;
-        public bool metGerrold = false;
-        public bool offeredGerroldTea = false;
-        [Tooltip("'Lavender' | 'Valerian' | '' (no tea). Modifies Gerrold's cottage dialogue + " +
-                 "Cleanse mini-game difficulty per Focus 06 § 4.")]
-        public string teaBrewed = "";
-        public bool walkedToGerroldHouse = false;
-        public bool workedAtHollow = false;
-        public bool workedAlone = false;
-        public bool satInGerroldChair = false;
-        [Tooltip("Sitting in Margery's chair enables Pickle's M2_MargerysChair line " +
-                 "if pickleApproval >= 50. One of M1-2's most affecting moments.")]
-        public bool satInMargeryChair = false;
-        public bool deferredGerrold = false;
+        // ─── Character appearance ────────────────────────────────────────────
+        public string playerSkinTone       = "mid";
+        public string playerOutfitColor    = "cream";
+        public string playerAccessory      = "none";
+        public string playerName           = "";
+        public bool   characterCreated     = false;
 
-        [Header("M2 moral-choice outcome")]
-        [Tooltip("'erase' | 'cleanse' | 'listen' | 'defer'. Set after the moral-choice " +
-                 "screen. Drives Memory Dream 2 variant + Day 2 Ledger prose.")]
-        public string gerroldChoice = "";
-        [Tooltip("'Perfect' | 'Acceptable' | 'Sloppy' | 'CrossedCore'. Cleanse mini-game outcome.")]
-        public string cleanseQuality = "";
-        [Tooltip("Locked true after Mission 2 choice is confirmed. Mission 3+ checks this.")]
-        public bool firstMoralChoiceMade = false;
-        [Tooltip("True if Defer path taken. Mission 3 will re-engage Gerrold.")]
-        public bool gerroldReturnsDay3 = false;
-        [Tooltip("Seeded by Erase Crossed-Core or Cleanse Crossed-Core. M6+ recovery arc unlock.")]
-        public bool mission6RecoveryArcSeeded = false;
+        // ─── Audio state (save-resume, Phase 43 pattern) ─────────────────────
+        public string lastMusicId          = "";
+        public string lastAmbienceId       = "";
+        public List<string> playedDreamVariants = new();
 
-        // ───── Operations ────────────────────────────────────────────────
+        // ─── Villager trust (per id, 0-100) ──────────────────────────────────
+        public Dictionary<string, int> villagerTrust = new();
 
-        /// <summary>Reset every field to a fresh-play default.</summary>
+        // ─── Methods ─────────────────────────────────────────────────────────
+
         public void ResetToDefault()
         {
-            trustDoris = 50; trustGerrold = 50;
-            memoryIntegrityGerrold = 100; memoryIntegrityDoris = 100;
-            vow1Integrity = vow3Integrity = vow7Integrity = 50;
-            vow2Integrity = vow4Integrity = vow5Integrity = vow6Integrity = 50;
-            trustMayor = trustInnkeeper = trustChild = 50;
-            villageGriefAverage = hollowReputation = 50;
-            predecessorTrailWarmth = memoryStockMarket = vanceArcProgress = 0;
-            seasonalDrift = 0f;
-            currentDayIndex = 0;
-            coin = 50;
-            tutorialCompleted = false;
-            toneCompassAcknowledged = false;
-            gentleModeEnabled = false;
-            onboardingCompleted = false;
-            lastSceneName = string.Empty;
-            completedMissionIds.Clear();
-            revealedEchoConnectionIds.Clear();
-            heldMemoryIds.Clear();
-            harvestedHerbIds.Clear();
-            readMarinNoteIds.Clear();
-
-            // Playtest pass commit 1/6 — clear newly added fields.
-            pickleApproval = 50;
-            pickleSassIntensity = 3;
-            cinder = 0;
-            askedAboutPredecessor = false;
+            saveSchemaVersion  = 4;
+            saveSlotId         = System.Guid.NewGuid().ToString("N");
+            lastSavedTimestamp = 0;
+            currentMissionIndex = 0;
+            currentDayIndex     = 0;
+            currentAct          = 1;
+            currentSeason       = Season.Autumn;
+            coin               = 0;
+            heldMemoryIds      = new();
+            releasedMemoryIds  = new();
+            purchasedUpgradeIds = new();
+            gardenBeds         = new();
+            inventoryTeas      = new();
+            resolvedRequestIds = new();
+            villageSeed        = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+            completedEchoIds   = new();
+            memoryWebConnectionsFound = 0;
+            predecessorTrailWarmth = 0;
+            readingNookVisited  = false;
+            letterFragmentsRead = new();
+            echoHologramHeard   = false;
+            echoHologramsFound  = 0;
+            sealedFragmentsFound = new();
+            sealedMemoryAssembled = false;
+            sealedMemoryChoiceId = "";
+            // Reset all per-mission flags.
             refusedDorisOrb = false;
-            dorisOwesPlayer = 0;
-            polishQuality = string.Empty;
-            metDoris = false;
-            metGerrold = false;
-            offeredGerroldTea = false;
-            teaBrewed = string.Empty;
-            walkedToGerroldHouse = false;
-            workedAtHollow = false;
-            workedAlone = false;
-            satInGerroldChair = false;
-            satInMargeryChair = false;
-            deferredGerrold = false;
-            gerroldChoice = string.Empty;
-            cleanseQuality = string.Empty;
-            firstMoralChoiceMade = false;
-            gerroldReturnsDay3 = false;
-            mission6RecoveryArcSeeded = false;
+            eraseGerroldPath = cleanseGerroldPerfect = false;
+            gerroldMoralChoiceId = "";
+            millerGuiltErased = veraSecretKept = aldineRegretCleansed = false;
+            cranesPrideListened = firstRevelationSeen = marketDayAttended = false;
+            claraFriendshipRestored = firstFrostSurvived = false;
+            edmundBargainResolved = ruthThreadResolved = finnFlockResolved = false;
+            nellGameResolved = lockedRoomResolved = augustClocksResolved = false;
+            festivalOfMemoryPlayed = irisGriefResolved = oldRivalryResolved = false;
+            echoWebMajorReveal = false;
+            mayorConfessionHeard = veraReturnedM22 = marinFinalLetterRead = false;
+            missingFragmentFound = hearingHeld = dreamOfAllDreamsDreamed = false;
+            augustFinalGiftGiven = allFragmentsAssembled = sealedChoiceMade = false;
+            epilogueCompleted = false;
+            seenColdOpen = prefaceBeatPlayed = false;
+            prefaceToneBucket = ""; coldOpenLastVariant = false;
+            memoryWebConFound = 0;
+            gentleModeEnabled  = false;
+            toneCompassChoice  = "Standard";
+            languageCode       = "en";
+            playerSkinTone     = "mid";
+            playerOutfitColor  = "cream";
+            playerAccessory    = "none";
+            playerName         = "";
+            characterCreated   = false;
+            lastMusicId = lastAmbienceId = "";
+            playedDreamVariants = new();
+            villagerTrust      = new();
         }
 
-        /// <summary>Clamp a trust/integrity delta safely.</summary>
-        public static int Adjust(int current, int delta) => Mathf.Clamp(current + delta, 0, 100);
-
-        public void OnEnable()
+        public int GetTrust(string villagerId)
         {
-            completedMissionIds ??= new List<string>();
-            revealedEchoConnectionIds ??= new List<string>();
-            heldMemoryIds ??= new List<string>();
-            harvestedHerbIds ??= new List<string>();
-            readMarinNoteIds ??= new List<string>();
+            villagerTrust.TryGetValue(villagerId, out int t);
+            return t;
         }
+
+        public void AddTrust(string villagerId, int delta)
+        {
+            villagerTrust.TryGetValue(villagerId, out int t);
+            villagerTrust[villagerId] = Mathf.Clamp(t + delta, 0, 100);
+        }
+    }
+
+    [Serializable]
+    public class GardenBedState
+    {
+        public int    bedIndex;
+        public string herbId       = "";
+        public int    daysPlanted  = 0;
+        public int    daysToRipen  = 3;
+        public bool   isRipe       = false;
+        public bool   isEmpty      => string.IsNullOrEmpty(herbId);
     }
 }

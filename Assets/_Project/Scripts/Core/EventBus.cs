@@ -1,81 +1,76 @@
-// SPDX-License-Identifier: MIT
-// Hearthbound Hollow — Core / EventBus
-//
-// Zero-allocation pub-sub for decoupled game events.
-//
-// Usage:
-//   EventBus.Subscribe<MemoryPolishedEvent>(OnPolished);
-//   EventBus.Publish(new MemoryPolishedEvent { Memory = m, Clarity = 1f });
-//   EventBus.Unsubscribe<MemoryPolishedEvent>(OnPolished);
-//
-// Design notes:
-//   * Strongly typed; one Action<T> chain per event type.
-//   * Handlers are invoked synchronously in subscription order.
-//   * Safe against handler mutation during dispatch: we snapshot the list.
-//   * No reflection. No GC unless handlers themselves allocate.
-//   * Lives in HearthboundHollow.Core asmdef so every other module can use it
-//     without taking deps on UI/Memory/etc.
-
+// =============================================================================
+// EventBus.cs — Hearthbound Hollow
+// Decoupled pub/sub event system. All inter-system comms go through this.
+// Zero reflection overhead — uses typed Dictionary<Type, Delegate> dispatch.
+// Phase 76 — 30-Mission Architecture.
+// =============================================================================
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace HearthboundHollow.Core
 {
+    /// <summary>
+    /// Static event bus. Publish an event; every subscriber receives it that frame.
+    /// Events are structs (zero GC) — keep them small.
+    /// Thread safety: Unity main thread only.
+    /// </summary>
     public static class EventBus
     {
-        // Type → invocation list. We keep a List<Delegate> (not multicast) so we
-        // can snapshot before invoking (safe against subscriber mutation).
-        private static readonly Dictionary<Type, List<Delegate>> _handlers = new();
+        private static readonly Dictionary<Type, Delegate> _handlers = new();
 
-        public static void Subscribe<T>(Action<T> handler) where T : struct
+        // ─── Subscribe ───────────────────────────────────────────────────────
+
+        /// <summary>Subscribe to events of type <typeparamref name="TEvent"/>.</summary>
+        public static void Subscribe<TEvent>(Action<TEvent> handler) where TEvent : struct
         {
-            if (handler == null) return;
-            if (!_handlers.TryGetValue(typeof(T), out var list))
-            {
-                list = new List<Delegate>(4);
-                _handlers[typeof(T)] = list;
-            }
-            list.Add(handler);
+            var type = typeof(TEvent);
+            if (_handlers.TryGetValue(type, out var existing))
+                _handlers[type] = Delegate.Combine(existing, handler);
+            else
+                _handlers[type] = handler;
         }
 
-        public static void Unsubscribe<T>(Action<T> handler) where T : struct
+        // ─── Unsubscribe ─────────────────────────────────────────────────────
+
+        /// <summary>Unsubscribe a handler. Always call in OnDestroy.</summary>
+        public static void Unsubscribe<TEvent>(Action<TEvent> handler) where TEvent : struct
         {
-            if (handler == null) return;
-            if (_handlers.TryGetValue(typeof(T), out var list))
+            var type = typeof(TEvent);
+            if (_handlers.TryGetValue(type, out var existing))
             {
-                list.Remove(handler);
+                var removed = Delegate.Remove(existing, handler);
+                if (removed == null)
+                    _handlers.Remove(type);
+                else
+                    _handlers[type] = removed;
             }
         }
 
-        public static void Publish<T>(T evt) where T : struct
+        // ─── Publish ─────────────────────────────────────────────────────────
+
+        /// <summary>Publish an event to all current subscribers (synchronous, this frame).</summary>
+        public static void Publish<TEvent>(TEvent evt) where TEvent : struct
         {
-            if (!_handlers.TryGetValue(typeof(T), out var list)) return;
-            // Snapshot to be safe against handlers that subscribe/unsubscribe
-            // during invocation. Allocates only when there are subscribers.
-            var snapshot = list.ToArray();
-            for (int i = 0; i < snapshot.Length; i++)
+            if (_handlers.TryGetValue(typeof(TEvent), out var handler))
             {
                 try
                 {
-                    ((Action<T>)snapshot[i]).Invoke(evt);
+                    ((Action<TEvent>)handler)(evt);
                 }
                 catch (Exception ex)
                 {
-                    Hh.Err(LogCategory.Boot, $"EventBus handler for {typeof(T).Name} threw: {ex}");
+                    Debug.LogError($"[EventBus] Exception in handler for {typeof(TEvent).Name}: {ex}");
                 }
             }
         }
 
-        /// <summary>Convenience for tests + domain reload — clears every subscriber.</summary>
-        public static void ClearAll()
-        {
-            _handlers.Clear();
-        }
+        // ─── Debug ───────────────────────────────────────────────────────────
 
-        /// <summary>How many subscribers does a given event type have? Test-helper.</summary>
-        public static int SubscriberCount<T>() where T : struct
-        {
-            return _handlers.TryGetValue(typeof(T), out var list) ? list.Count : 0;
-        }
+        /// <summary>Number of registered event types (Editor diagnostic use only).</summary>
+        public static int RegisteredTypeCount => _handlers.Count;
+
+        /// <summary>Clear all subscriptions. Call during scene teardown in tests.</summary>
+        public static void ClearAll() => _handlers.Clear();
     }
 }

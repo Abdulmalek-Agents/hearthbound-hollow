@@ -1,56 +1,69 @@
-// SPDX-License-Identifier: MIT
-// Hearthbound Hollow — Core / ServiceLocator
-//
-// Lightweight runtime DI for game services (GameManager, SaveService,
-// DayCycleManager, SfxLibrary, etc.). Avoids the proliferation of singleton
-// MonoBehaviours and lets tests inject fakes easily.
-//
-// Usage:
-//   ServiceLocator.Register<ISaveService>(new SaveService());
-//   var save = ServiceLocator.Get<ISaveService>();
-//   ServiceLocator.Unregister<ISaveService>();
-
+// =============================================================================
+// ServiceLocator.cs — Hearthbound Hollow
+// Lightweight service locator. Replaces heavy singleton inheritance.
+// Phase 76 — 30-Mission Architecture.
+// =============================================================================
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace HearthboundHollow.Core
 {
+    /// <summary>
+    /// Static service registry. Register a service once (usually GameManager.Awake);
+    /// retrieve it anywhere via <c>ServiceLocator.Get&lt;T&gt;()</c>.
+    /// Returns null gracefully if a service is missing — never throws.
+    /// </summary>
     public static class ServiceLocator
     {
         private static readonly Dictionary<Type, object> _services = new();
 
-        public static void Register<T>(T service) where T : class
+        // ─── Register ────────────────────────────────────────────────────────
+
+        /// <summary>Register <paramref name="instance"/> as the singleton for type <typeparamref name="T"/>.</summary>
+        public static void Register<T>(T instance) where T : class
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
-            if (_services.ContainsKey(typeof(T)))
-                Hh.Warn(LogCategory.Boot, $"ServiceLocator: replacing existing registration for {typeof(T).Name}");
-            _services[typeof(T)] = service;
+            if (instance == null)
+            {
+                Debug.LogWarning($"[ServiceLocator] Attempted to register null for {typeof(T).Name}.");
+                return;
+            }
+            _services[typeof(T)] = instance;
         }
 
+        /// <summary>Register using a concrete type key (for interface-typed lookups).</summary>
+        public static void RegisterAs<TInterface, TConcrete>(TConcrete instance)
+            where TConcrete : class, TInterface
+        {
+            _services[typeof(TInterface)] = instance;
+        }
+
+        // ─── Get ─────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Retrieve the registered service for <typeparamref name="T"/>.
+        /// Returns null if not registered — callers must null-check.
+        /// </summary>
         public static T Get<T>() where T : class
         {
-            if (_services.TryGetValue(typeof(T), out var s)) return (T)s;
-            Hh.Warn(LogCategory.Boot, $"ServiceLocator: no service registered for {typeof(T).Name}");
-            return null;
+            _services.TryGetValue(typeof(T), out var obj);
+            return obj as T;
         }
 
-        public static bool TryGet<T>(out T service) where T : class
-        {
-            if (_services.TryGetValue(typeof(T), out var s)) { service = (T)s; return true; }
-            service = null;
-            return false;
-        }
+        // ─── Unregister ──────────────────────────────────────────────────────
 
-        public static void Unregister<T>() where T : class
-        {
-            _services.Remove(typeof(T));
-        }
+        public static void Unregister<T>() => _services.Remove(typeof(T));
 
-        public static void Clear()
-        {
-            _services.Clear();
-        }
+        /// <summary>Clears all registrations. Use in tests / scene teardown.</summary>
+        public static void ClearAll() => _services.Clear();
+    }
 
-        public static int Count => _services.Count;
+    /// <summary>
+    /// Implement this on PlayerController so Mission asmdef can lock movement
+    /// without a direct compile dependency on HearthboundHollow.Player (D-035).
+    /// </summary>
+    public interface IMovementLockable
+    {
+        bool MovementLocked { get; set; }
     }
 }
