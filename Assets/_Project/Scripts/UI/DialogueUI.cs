@@ -327,7 +327,17 @@ namespace HearthboundHollow.UI
                 estimatedDur,
                 hasVoiceClip: clipLen > 0f));
 
-            if (gameObject.activeInHierarchy && isActiveAndEnabled)
+            if (LocalizationService.IsRightToLeft)
+            {
+                // Phase 58.1 — Arabic is shaped to VISUAL order, so a left-to-right
+                // per-character typewriter builds the sentence from its visual-left
+                // (its logical END) and reads as broken/jittery. Show the full
+                // shaped line at once — clean and legible. The voice clip still
+                // plays for pacing.
+                if (lineText != null) lineText.text = text;
+                IsBusy = false;
+            }
+            else if (gameObject.activeInHierarchy && isActiveAndEnabled)
             {
                 _typeCoroutine = StartCoroutine(TypeCoroutine(text, targetCps));
             }

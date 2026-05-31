@@ -199,11 +199,15 @@ namespace HearthboundHollow.UI
 
             string Row(string emoji, string verbEn, string verbAr, string bindEn, string bindAr)
             {
-                string glyph = HollowGlyphs.Format(emoji);
-                string verb  = L(verbEn, verbAr);
-                string bind  = L(bindEn, bindAr);
-                string g = string.IsNullOrEmpty(glyph) ? "" : $"{gold}{glyph}{end}  ";
-                return $"{g}{brown}<b>{verb}</b>{end}   {ink}{bind}{end}";
+                // Phase 58.1 — NO inline emoji/sprite in this list. Mixing many TMP
+                // <sprite> glyphs + raw (unmapped) emoji + shaped Arabic + rich-text
+                // in one mesh triggered Unity 6 TMP's GenerateTextMesh
+                // InvalidCastException, which froze the game on this overlay. The
+                // bold gold verb carries the hierarchy; the title keeps its single
+                // lantern glyph (which renders fine on its own). `emoji` is ignored.
+                string verb = L(verbEn, verbAr);
+                string bind = L(bindEn, bindAr);
+                return $"{brown}<b>{verb}</b>{end}   {ink}{bind}{end}";
             }
 
             var sb = new System.Text.StringBuilder();

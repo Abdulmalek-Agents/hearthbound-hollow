@@ -10,6 +10,33 @@
 
 ---
 
+## 🆕 Phase 58.1 — Arabic-mode freeze (TMP crash) + dialogue camera + subtitle reveal  🟢 (2026-05-31)
+
+**User report (QA video + screenshot):** in Arabic mode the game **froze** on the Help overlay
+(`InvalidCastException: TMPro.TextMeshProUGUI.GenerateTextMesh`, spamming every frame); the
+dialogue camera clipped into the player; Arabic subtitles read poorly.
+
+- **FREEZE (blocker) — fixed.** The Arabic fallback font is `AtlasPopulationMode = Dynamic`, and
+  the **Help controls body** was the one text mixing shaped Arabic **+ many emoji/sprites + raw
+  unmapped emoji (🏃 ⤴ ▶ 👁 🔍 ⏸) + rich-text** in a single mesh — which trips Unity 6 TMP's
+  dynamic-font `GenerateTextMesh` `InvalidCastException`. The title/subtitle (plain shaped Arabic)
+  render fine. Fix: the controls list is now **emoji-free** (bold-gold verb carries the
+  hierarchy), so it renders like the working title. [HelpOverlayUI.cs](Assets/_Project/Scripts/UI/HelpOverlayUI.cs).
+  *If the crash ever recurs on other emoji+Arabic text, the root escalation is baking the Arabic
+  fallback font as a STATIC atlas (Phase 56) — offered.*
+- **Dialogue camera — fixed** (Phase 32.22 below): wide-shot pitch corrected (no more knee-height
+  looking-up) + robust speaker lookup (matches names *containing* "Doris", incl. inactive objects)
+  so dialogue uses the over-the-shoulder 2-shot.
+- **Arabic subtitle reveal — fixed.** Arabic is shaped to visual order, so the L→R per-char
+  typewriter built the sentence from its end (jittery). `DialogueUI` now shows the **full shaped
+  line at once** for RTL (voice still plays). [DialogueUI.cs](Assets/_Project/Scripts/UI/DialogueUI.cs).
+
+All runtime scripts → apply on **recompile** (no rebake).
+**Still open:** "some menus still English in Arabic mode" — need a screenshot of *which* one
+(main menu, Help, dialogue are confirmed Arabic; Comfort Tools localizes after a Build Everything).
+
+---
+
 ## 🆕 Phase 32.22 — Dialogue camera (Doris) clipping/low-angle fix  🟢 (2026-05-31)
 
 **User report (QA screenshot):** during Doris's dialogue the camera jams low behind the player,
