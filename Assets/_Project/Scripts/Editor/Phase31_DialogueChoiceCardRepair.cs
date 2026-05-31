@@ -56,9 +56,9 @@ namespace HearthboundHollow.EditorTools
             "Assets/_Project/Scenes/05_Mission02_Cottage.unity",
         };
 
-        // ─── Menu ─────────────────────────────────────────────────
+        // ─── Menu ────────────────────────────────────────────────
 
-        [MenuItem("Hearthbound/🧰 Phase 31 — Repair Dialogue Choice Cards", priority = 3)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🧰 Phase 31 — Repair Dialogue Choice Cards", priority = 3)]
         public static void Build()
         {
             int prefabsTouched = 0;
@@ -109,7 +109,7 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ─── DialogueBox prefab ───────────────────────────────────
+        // ─── DialogueBox prefab ────────────────────────────────────
 
         private static bool RepairDialogueBoxPrefab(List<string> notes)
         {
@@ -167,7 +167,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── ChoiceTile prefab ────────────────────────────────────
+        // ─── ChoiceTile prefab ─────────────────────────────────────
 
         private static bool RepairChoiceTilePrefab(List<string> notes)
         {
@@ -199,7 +199,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── Scene repair ─────────────────────────────────────────
+        // ─── Scene repair ──────────────────────────────────────────
 
         private static bool RepairScene(string scenePath, List<string> notes)
         {
@@ -218,15 +218,22 @@ namespace HearthboundHollow.EditorTools
             foreach (var ui in dialogueUis)
             {
                 if (ui == null) continue;
-                if (ui.choiceContainer != null && RepairChoicesContainer(ui.choiceContainer))
+                try
                 {
-                    EditorUtility.SetDirty(ui.choiceContainer.gameObject);
-                    changed = true;
+                    if (ui.choiceContainer != null && RepairChoicesContainer(ui.choiceContainer))
+                    {
+                        EditorUtility.SetDirty(ui.choiceContainer.gameObject);
+                        changed = true;
+                    }
+                    if (ui.choiceButtonPrefab != null && RepairChoiceTile(ui.choiceButtonPrefab))
+                    {
+                        EditorUtility.SetDirty(ui.choiceButtonPrefab);
+                        changed = true;
+                    }
                 }
-                if (ui.choiceButtonPrefab != null && RepairChoiceTile(ui.choiceButtonPrefab))
+                catch (System.Exception e)
                 {
-                    EditorUtility.SetDirty(ui.choiceButtonPrefab);
-                    changed = true;
+                    notes.Add($"{Path.GetFileName(scenePath)} — DialogueUI '{ui.name}' skipped ({e.GetType().Name}).");
                 }
             }
 
@@ -235,15 +242,22 @@ namespace HearthboundHollow.EditorTools
             foreach (var card in choiceCards)
             {
                 if (card == null) continue;
-                if (card.choiceContainer != null && RepairChoicesContainer(card.choiceContainer))
+                try
                 {
-                    EditorUtility.SetDirty(card.choiceContainer.gameObject);
-                    changed = true;
+                    if (card.choiceContainer != null && RepairChoicesContainer(card.choiceContainer))
+                    {
+                        EditorUtility.SetDirty(card.choiceContainer.gameObject);
+                        changed = true;
+                    }
+                    if (card.choiceTilePrefab != null && RepairChoiceTile(card.choiceTilePrefab))
+                    {
+                        EditorUtility.SetDirty(card.choiceTilePrefab);
+                        changed = true;
+                    }
                 }
-                if (card.choiceTilePrefab != null && RepairChoiceTile(card.choiceTilePrefab))
+                catch (System.Exception e)
                 {
-                    EditorUtility.SetDirty(card.choiceTilePrefab);
-                    changed = true;
+                    notes.Add($"{Path.GetFileName(scenePath)} — ChoiceCardUI '{card.name}' skipped ({e.GetType().Name}).");
                 }
             }
 
@@ -260,17 +274,27 @@ namespace HearthboundHollow.EditorTools
             return changed;
         }
 
-        // ─── Shared repair primitives ─────────────────────────────
+        // ─── Shared repair primitives ──────────────────────────────
 
         private static bool RepairChoicesContainer(Transform container)
         {
             if (container == null) return false;
+
+            // A layout group requires a RectTransform host. choiceContainer is typed
+            // `Transform`, so a scene/prefab can legitimately point it at a non-UI
+            // object — and AddComponent<VerticalLayoutGroup>() then returns null
+            // (RequireComponent(RectTransform) can't be satisfied), which previously
+            // NRE'd at the first `vlg.` access and aborted Build Everything's Phase 31.
+            // Bail gracefully instead; this container simply isn't layout-repairable.
+            if (container is not RectTransform) return false;
+
             bool changed = false;
 
             var vlg = container.GetComponent<VerticalLayoutGroup>();
             if (vlg == null)
             {
                 vlg = container.gameObject.AddComponent<VerticalLayoutGroup>();
+                if (vlg == null) return false;   // defensive: AddComponent refused — never NRE
                 changed = true;
             }
             if (!vlg.childControlWidth) { vlg.childControlWidth = true; changed = true; }
@@ -366,7 +390,7 @@ namespace HearthboundHollow.EditorTools
             return changed;
         }
 
-        // ─── AdvancePrompt repair (Phase 31.1) ────────────────────
+        // ─── AdvancePrompt repair (Phase 31.1) ───────────────────────
 
         private static bool EnsureAdvancePromptOnPrefab(GameObject root)
         {
@@ -385,7 +409,7 @@ namespace HearthboundHollow.EditorTools
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var tmp = go.AddComponent<TextMeshProUGUI>();
-            tmp.text = "Click or [Space] ▸";
+            tmp.text = "Click or [Space] >"; // Phase 32.11 — ASCII for LiberationSans SDF
             tmp.fontSize = 18;
             tmp.fontStyle = FontStyles.Italic;
             tmp.alignment = TextAlignmentOptions.MidlineRight;
@@ -402,7 +426,7 @@ namespace HearthboundHollow.EditorTools
             return true;
         }
 
-        // ─── Transform helper ─────────────────────────────────────
+        // ─── Transform helper ───────────────────────────────────────
 
         private static Transform FindChildRecursive(Transform parent, string childName)
         {

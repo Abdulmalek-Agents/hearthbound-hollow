@@ -169,6 +169,14 @@ namespace HearthboundHollow.Player
         [Range(0.01f, 0.5f)]
         [SerializeField] private float animatorDamp = 0.1f;
 
+        [Tooltip("Phase 57 (D-074): ground speed (m/s) the WALK clip was authored " +
+                 "for. The controller scales Animator playback so the legs keep " +
+                 "pace with actual movement — this kills the 'creep'/foot-slide " +
+                 "look that happens when walkSpeed differs from the clip's stride. " +
+                 "Lower = faster leg cycle. Tune until the feet stop sliding.")]
+        [Range(0.5f, 3f)]
+        [SerializeField] private float animationStrideSpeed = 1.35f;
+
         // ───── Input ───────────────────────────────────────────────
 
         [Header("Input (Unity Input System asset references)")]
@@ -227,11 +235,26 @@ namespace HearthboundHollow.Player
             _cc = GetComponent<CharacterController>();
             if (interactOrigin == null) interactOrigin = transform;
 
+            // Phase 32.15 — every PlayerController gets a PlayerSafetyNet
+            // (fall-respawn + stuck-nudge + auto-boundary). Idempotent: the
+            // [RequireComponent(PlayerController)] on PlayerSafetyNet means
+            // Unity will auto-add it on serialise too; this call covers the
+            // runtime path for prefabs that pre-date the safety net.
+            if (GetComponent<PlayerSafetyNet>() == null)
+                gameObject.AddComponent<PlayerSafetyNet>();
+
             // Try to auto-pick up the animator from common rig layouts. BoZo's
             // animator sits on the "Body" child created by Phase 13. Defensive:
             // we don't fail if the rig isn't there yet — the controller still
             // moves, the animator just isn't driven.
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
+
+            // Phase 57 (D-074): the script owns locomotion (CharacterController.Move),
+            // so the Animator must NOT also apply root motion — otherwise the in-place
+            // BoZo clips fight the script translation and the walk reads as a slide /
+            // "creep". With root motion off, the legs cycle in place and the script
+            // moves the body; stride-matching (UpdateAnimator) keeps the feet planted.
+            if (animator != null) animator.applyRootMotion = false;
 
             _animSpeedHash       = Animator.StringToHash(animSpeedParam);
             _animMoveXHash       = Animator.StringToHash(animMoveXParam);
@@ -397,7 +420,12 @@ namespace HearthboundHollow.Player
             if (MovementLocked)
             {
                 ApplyMovementLockedFrame();
-                ScanForInteractable();
+                // Phase 54 (D-072): while locked (dialogue / Evening Ledger / cards)
+                // we must NOT keep a live interaction focus — otherwise the world
+                // interaction prompt ("□ a note in Marin's hand") and the [E] hint
+                // chip bleed through the modal UI, exactly as seen in the QA video.
+                // Clearing focus hides those prompts for the duration of the lock.
+                if (CurrentFocus != null) CurrentFocus = null;
                 return;
             }
 
@@ -463,6 +491,7 @@ namespace HearthboundHollow.Player
                 animator.SetBool(_animIsSprintingHash, false);
                 animator.SetBool(_animIsGroundedHash, IsGrounded);
                 animator.SetFloat(_animVelocityYHash, _verticalVelocity);
+                animator.speed = 1f; // D-074: reset stride-match so idle/dialogue plays at 1x
             }
         }
 
@@ -561,6 +590,16 @@ namespace HearthboundHollow.Player
             animator.SetFloat(_animVelocityYHash, _verticalVelocity);
             animator.SetBool(_animIsGroundedHash, IsGrounded);
             animator.SetBool(_animIsSprintingHash, IsSprinting);
+
+            // Phase 57 (D-074): stride-match. Scale Animator playback so the leg
+            // cycle keeps pace with actual ground speed — this is what stops the
+            // feet sliding and turns the "creep" into a real walk. Idle / standing
+            // stays at 1x; locked states reset to 1x in ApplyMovementLockedFrame.
+            float groundSpeed = new Vector2(CurrentVelocity.x, CurrentVelocity.z).magnitude;
+            float targetAnimSpeed = (groundSpeed > 0.12f && IsGrounded)
+                ? Mathf.Clamp(groundSpeed / Mathf.Max(0.25f, animationStrideSpeed), 0.7f, 2.4f)
+                : 1f;
+            animator.speed = Mathf.MoveTowards(animator.speed, targetAnimSpeed, 6f * Time.deltaTime);
         }
 
         // ───── Action callbacks ────────────────────────────────────

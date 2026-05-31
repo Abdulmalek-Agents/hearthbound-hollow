@@ -39,7 +39,7 @@ namespace HearthboundHollow.EditorTools
 {
     public static class Phase30_OnboardingAndHintsCapstone
     {
-        // ─── Scene targets ────────────────────────────────────────
+        // ─── Scene targets ──────────────────────────────────────
 
         private static readonly string[] GameplayScenes = new[]
         {
@@ -62,9 +62,9 @@ namespace HearthboundHollow.EditorTools
         private static readonly Color ChipBorder     = new Color(0.62f, 0.46f, 0.22f, 0.85f);
         private static readonly Color ButtonBg       = new Color(0.20f, 0.14f, 0.10f, 0.96f);
 
-        // ─── Menu ─────────────────────────────────────────────────
+        // ─── Menu ────────────────────────────────────────────────
 
-        [MenuItem("Hearthbound/\ud83c\udf93 Phase 30 — Build Onboarding + Hints HUD", priority = 2)]
+        [MenuItem("Hearthbound/⚙️ Advanced/🎓 Phase 30 — Build Onboarding + Hints HUD", priority = 2)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 30", "Wiring Onboarding onto the Lane scene…", 0.20f);
@@ -101,7 +101,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── Onboarding wiring (Lane) ─────────────────────────────
+        // ─── Onboarding wiring (Lane) ──────────────────────────────
 
         private static bool WireOnboarding(string scenePath)
         {

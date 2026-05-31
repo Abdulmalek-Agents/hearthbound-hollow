@@ -31,7 +31,7 @@
 // After this phase, HearthboundOneClickSetup automatically uses these
 // prefabs in place of its primitive fallbacks (see SpawnCharacter helper).
 //
-// ── 2026-05-25 update ──────────────────────────────────────────────
+// ── 2026-05-25 update ────────────────────────────────────────────────────────────
 // The Player wrapper now ALSO carries a PlayerGroundClamp component +
 // CharacterController defaults aligned so the BoZo mesh feet end up at
 // the capsule bottom on Start. This is the build-time defensive layer
@@ -51,14 +51,14 @@ namespace HearthboundHollow.EditorTools
     public static class Phase13_BoZoCharacterBuilder
     {
         private const string BoZoRoot = "Assets/BoZo_StylizedModularCharacters";
-        private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/Player.prefab";
-        private const string DorisPrefabPath = "Assets/_Project/Prefabs/NPCs/Doris.prefab";
-        private const string GerroldPrefabPath = "Assets/_Project/Prefabs/NPCs/Gerrold.prefab";
-        private const string SilentLanePrefabPath = "Assets/_Project/Prefabs/NPCs/SilentLaneVillager.prefab";
+        public const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/Player.prefab";
+        public const string DorisPrefabPath = "Assets/_Project/Prefabs/NPCs/Doris.prefab";
+        public const string GerroldPrefabPath = "Assets/_Project/Prefabs/NPCs/Gerrold.prefab";
+        public const string SilentLaneVillagerPrefabPath = "Assets/_Project/Prefabs/NPCs/SilentLaneVillager.prefab";
 
         // ─── Menu ──────────────────────────────────────────────────
 
-        [MenuItem("Hearthbound/Phase 13 — Build BoZo Character Prefabs", priority = 200)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 13 — Build BoZo Character Prefabs", priority = 200)]
         public static void Build()
         {
             if (!AssetDatabase.IsValidFolder(BoZoRoot))
@@ -118,7 +118,7 @@ namespace HearthboundHollow.EditorTools
                 "OK");
         }
 
-        // ─── BoZo prefab detection ─────────────────────────────────
+        // ─── BoZo prefab detection ───────────────────────────────────
 
         private static GameObject FindBoZoCharacterPrefab()
         {
@@ -184,7 +184,7 @@ namespace HearthboundHollow.EditorTools
             return AssetDatabase.LoadAssetAtPath<GameObject>(relative);
         }
 
-        // ─── Per-variant builders ──────────────────────────────────
+        // ─── Per-variant builders ────────────────────────────────────
 
         private static void BuildPlayer(GameObject source)
         {
@@ -252,14 +252,14 @@ namespace HearthboundHollow.EditorTools
 
         private static void BuildSilentLane(GameObject source)
         {
-            BuildVariant(source, SilentLanePrefabPath, "SilentLaneVillager", root =>
+            BuildVariant(source, SilentLaneVillagerPrefabPath, "SilentLaneVillager", root =>
             {
                 // Neutral umber.
                 TintCharacterMaterials(root, new Color(0.72f, 0.62f, 0.52f), instanceMaterial: true);
             });
         }
 
-        // ─── Variant builder helper ────────────────────────────────
+        // ─── Variant builder helper ───────────────────────────────────
 
         private static void BuildVariant(GameObject source, string outputPath, string variantName,
                                          System.Action<GameObject> customize)
@@ -314,7 +314,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        // ─── Folder helpers ────────────────────────────────────────
+        // ─── Folder helpers ─────────────────────────────────────────────
 
         private static void EnsureFolder(string path)
         {
@@ -337,6 +337,6 @@ namespace HearthboundHollow.EditorTools
             AssetDatabase.LoadAssetAtPath<GameObject>(GerroldPrefabPath);
 
         public static GameObject TryGetSilentLanePrefab() =>
-            AssetDatabase.LoadAssetAtPath<GameObject>(SilentLanePrefabPath);
+            AssetDatabase.LoadAssetAtPath<GameObject>(SilentLaneVillagerPrefabPath);
     }
 }

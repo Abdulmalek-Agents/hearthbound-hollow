@@ -25,7 +25,7 @@ namespace HearthboundHollow.EditorTools
     {
         private const string SceneHollow = "Assets/_Project/Scenes/03_Mission01_Hollow.unity";
 
-        [MenuItem("Hearthbound/Phase 26 — Wire Narrative Hooks", priority = 5)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Phase 26 — Wire Narrative Hooks", priority = 5)]
         public static void Wire()
         {
             if (!System.IO.File.Exists(SceneHollow))

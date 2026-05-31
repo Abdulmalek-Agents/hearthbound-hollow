@@ -22,7 +22,7 @@ namespace HearthboundHollow.EditorTools
     {
         private const string SoRoot = "Assets/_Project/ScriptableObjects";
 
-        [MenuItem("Hearthbound/Create Mission 1-2 Seed Assets", priority = 100)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Create Mission 1-2 Seed Assets", priority = 100)]
         public static void CreateAllSeedAssets()
         {
             EnsureFolders();
@@ -268,7 +268,7 @@ namespace HearthboundHollow.EditorTools
             Debug.Log("[Hearthbound] Seed assets generated. Check Project window under Assets/_Project/ScriptableObjects/.");
         }
 
-        [MenuItem("Hearthbound/Validate Mission 1-2 Seed Assets", priority = 101)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Validate Mission 1-2 Seed Assets", priority = 101)]
         public static void ValidateSeedAssets()
         {
             string[] required = new[]
@@ -301,7 +301,7 @@ namespace HearthboundHollow.EditorTools
             Debug.Log($"[Hearthbound] Seed asset validation: {present}/{required.Length} present, {missing} missing.");
         }
 
-        // ─── Helpers ──────────────────────────────────────────────
+        // ─── Helpers ────────────────────────────────────────────
 
         private static T CreateIfMissing<T>(string path, System.Action<T> populate) where T : ScriptableObject
         {

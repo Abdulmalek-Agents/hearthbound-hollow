@@ -72,19 +72,20 @@ namespace HearthboundHollow.Mission
         [Tooltip("Tint applied to non-highlighted chip captions.")]
         public Color idleColor = new Color(0.78f, 0.72f, 0.62f, 1f);
 
-        // ───── Public API ────────────────────────────────────────
+        // ───── Public API ─────────────────────────
 
         public void SetVisible(bool visible)
         {
             if (root != null) root.SetActive(visible);
         }
 
-        // ───── Internals ─────────────────────────────────────────
+        // ───── Internals ──────────────────────────
 
         private PlayerController _player;
         private float _currentAlpha;
+        private string _interactDefault = "Interact";
 
-        // ───── Lifecycle ─────────────────────────────────────────
+        // ───── Lifecycle ──────────────────────────
 
         private void Awake()
         {
@@ -96,12 +97,11 @@ namespace HearthboundHollow.Mission
             UIAutoFitText.ApplyToButtonLabel(chipHelpLabel,        minSize: 14, maxSize: 26);
             UIAutoFitText.ApplyToLabel(chipHelpCaption,             minSize: 10, maxSize: 16);
 
-            if (chipMoveLabel != null)     chipMoveLabel.text = "WASD";
-            if (chipMoveCaption != null)   chipMoveCaption.text = "Move";
-            if (chipInteractLabel != null) chipInteractLabel.text = "E";
-            if (chipInteractCaption != null) chipInteractCaption.text = "Interact";
-            if (chipHelpLabel != null)     chipHelpLabel.text = "H";
-            if (chipHelpCaption != null)   chipHelpCaption.text = "Help";
+            // Phase 32.20 / Phase 54 / Phase 58 — cozy glyph captions under each
+            // key chip. Glyphs route through HollowGlyphs.Format so they render as
+            // on-brand gold icons in TMP (never a tofu box); the words are
+            // localized (EN/العربية) + Arabic-shaped (D-076).
+            ApplyCaptions();
 
             _currentAlpha = idleAlpha;
             if (canvasGroup != null) canvasGroup.alpha = _currentAlpha;
@@ -112,6 +112,32 @@ namespace HearthboundHollow.Mission
             // Re-resolve the player every time we're enabled; the Player
             // GameObject is sometimes destroyed and re-spawned on scene change.
             _player = null;
+            LocalizationService.OnLanguageChanged += ApplyCaptions;
+        }
+
+        private void OnDisable()
+        {
+            LocalizationService.OnLanguageChanged -= ApplyCaptions;
+        }
+
+        // Phase 58 (D-076) — (re)build the localized + glyph-routed chip captions.
+        // Called from Awake and whenever the language flips so العربية ⇄ English
+        // updates the always-on HUD live.
+        private void ApplyCaptions()
+        {
+            _interactDefault = HollowGlyphs.Format("✋") + " " + L("Interact", "التفاعل");
+            if (chipMoveLabel != null)        chipMoveLabel.text = "WASD";
+            if (chipMoveCaption != null)      chipMoveCaption.text = HollowGlyphs.Format("🚶") + " " + L("Move", "التحرّك");
+            if (chipInteractLabel != null)    chipInteractLabel.text = "E";
+            if (chipInteractCaption != null)  chipInteractCaption.text = _interactDefault;
+            if (chipHelpLabel != null)        chipHelpLabel.text = "H";
+            if (chipHelpCaption != null)      chipHelpCaption.text = HollowGlyphs.Format("❓") + " " + L("Help", "المساعدة");
+        }
+
+        private static string L(string en, string ar)
+        {
+            string s = (LocalizationService.IsRightToLeft && !string.IsNullOrEmpty(ar)) ? ar : en;
+            return LocalizationService.Shape(s);
         }
 
         private void Update()
@@ -135,9 +161,9 @@ namespace HearthboundHollow.Mission
                     if (chipInteractCaption != null && _player.CurrentFocus.PromptText != null)
                         chipInteractCaption.text = _player.CurrentFocus.PromptText;
                 }
-                else if (chipInteractCaption != null && chipInteractCaption.text != "Interact")
+                else if (chipInteractCaption != null && chipInteractCaption.text != _interactDefault)
                 {
-                    chipInteractCaption.text = "Interact";
+                    chipInteractCaption.text = _interactDefault;
                 }
             }
 

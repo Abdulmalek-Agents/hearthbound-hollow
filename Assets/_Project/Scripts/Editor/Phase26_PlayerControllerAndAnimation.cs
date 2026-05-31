@@ -56,7 +56,7 @@ namespace HearthboundHollow.EditorTools
 
         // ───── Menu entry ─────────────────────────────────────────
 
-        [MenuItem("Hearthbound/\ud83c\udfc3 Phase 26 — Player Controller + Animation", priority = 1)]
+        [MenuItem("Hearthbound/⚙️ Advanced/\ud83c\udfc3 Phase 26 — Player Controller + Animation", priority = 1)]
         public static void Build()
         {
             EditorUtility.DisplayProgressBar("Hearthbound · Phase 26", "Building AnimatorController …", 0.10f);

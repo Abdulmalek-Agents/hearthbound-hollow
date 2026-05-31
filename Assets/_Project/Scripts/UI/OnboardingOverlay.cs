@@ -54,6 +54,18 @@ namespace HearthboundHollow.UI
             [Tooltip("Large bold heading at the top of the card.")]
             public string headline = "Welcome to the Hollow";
 
+            [Tooltip("Phase 56 (D-073) — optional decorative emoji rendered as an " +
+                     "on-brand gold glyph (via HollowGlyphs) BEFORE the headline. Kept " +
+                     "separate from the text so the headline can be localized/shaped " +
+                     "without corrupting the <sprite> tag.")]
+            public string emoji = "";
+
+            [Tooltip("Phase 56 (D-073) — optional localization base key. When set, the " +
+                     "headline/body/caption are pulled from LocalizationService as " +
+                     "'<locKey>.headline' / '.body' / '.caption' (Arabic shaped). When " +
+                     "empty, the literal fields below are used as-is.")]
+            public string locKey = "";
+
             [Tooltip("Multi-line body. Use \\n for paragraph breaks. Auto-wrap " +
                      "+ auto-size are applied so it never clips.")]
             [TextArea(3, 12)]
@@ -249,17 +261,45 @@ namespace HearthboundHollow.UI
             if (_index < 0 || _index >= steps.Length) return;
             var s = steps[_index];
 
-            if (headlineLabel    != null) headlineLabel.text    = s.headline ?? string.Empty;
-            if (bodyLabel        != null) bodyLabel.text        = s.body ?? string.Empty;
+            // Phase 56 (D-073) — localize + Arabic-shape per step. The decorative
+            // emoji becomes a HollowGlyphs <sprite> tag prepended OUTSIDE the shaped
+            // text (shaping would corrupt the tag). keyChip is a raw key name (WASD/
+            // E/Esc — universal) and the progress counter is numeric, so both stay.
+            if (headlineLabel != null)
+            {
+                string headlineText = ResolveStepText(s.locKey, "headline", s.headline);
+                string glyph = HollowGlyphs.Format(s.emoji ?? string.Empty);
+                headlineLabel.text = string.IsNullOrEmpty(glyph) ? headlineText : glyph + " " + headlineText;
+            }
+            if (bodyLabel        != null) bodyLabel.text        = ResolveStepText(s.locKey, "body", s.body);
             if (keyChipLabel     != null) keyChipLabel.text     = s.keyChip ?? string.Empty;
-            if (keyCaptionLabel  != null) keyCaptionLabel.text  = s.keyCaption ?? string.Empty;
+            if (keyCaptionLabel  != null) keyCaptionLabel.text  = ResolveStepText(s.locKey, "caption", s.keyCaption);
             if (progressLabel    != null) progressLabel.text    = $"{_index + 1} / {steps.Length}";
+
+            // RTL: right-align the paragraph body for Arabic (left untouched for LTR).
+            if (LocalizationService.IsRightToLeft && bodyLabel != null)
+                bodyLabel.horizontalAlignment = HorizontalAlignmentOptions.Right;
 
             // Hide the key-chip group entirely when keyChip is empty.
             if (keyChipLabel != null) keyChipLabel.gameObject.SetActive(!string.IsNullOrEmpty(s.keyChip));
             if (keyCaptionLabel != null) keyCaptionLabel.gameObject.SetActive(!string.IsNullOrEmpty(s.keyCaption));
 
             _expectingInput = !string.IsNullOrEmpty(s.expects);
+        }
+
+        // Phase 56 (D-073) — resolve a step's text: localized + shaped from
+        // '<locKey>.<part>' when present in the table, else the literal field
+        // (also shaped, so an Arabic literal still renders). Get() returns the
+        // key unchanged when missing, which is how we detect "not in table".
+        private static string ResolveStepText(string baseKey, string part, string literal)
+        {
+            if (!string.IsNullOrEmpty(baseKey))
+            {
+                string composed = baseKey + "." + part;
+                string val = LocalizationService.Get(composed);
+                if (val != composed) return LocalizationService.Shape(val);
+            }
+            return LocalizationService.Shape(literal ?? string.Empty);
         }
 
         // ───── Input expectations ────────────────────────────────
@@ -289,58 +329,78 @@ namespace HearthboundHollow.UI
 
         // ───── Default step content ──────────────────────────────
 
+        // Phase 54 (D-070) — cleaner, action-first onboarding copy to current
+        // cozy-PC-hit standards: one concept per card, a verb-led headline, a
+        // single short body, and an unmistakable key chip.
+        // Phase 56 (D-073) — the decorative `emoji` is now a separate field (so it
+        // becomes a HollowGlyphs gold glyph in ApplyStep, OUTSIDE the shaped text),
+        // and each step carries a `locKey` so its headline/body/caption localize +
+        // Arabic-shape at display. The literal strings below are the English copy
+        // (and the fallback if a table key is ever missing).
+        // Phase 71 — added the "Your little world" step so a first-run player learns
+        // the cozy daily-loop hub keys (Engagement Bible P2-P7) instead of meeting
+        // those systems blind.
         private static Step[] DefaultSteps() => new[]
         {
             new Step {
+                emoji = "🪔", locKey = "onboard.welcome",
                 headline = "Welcome to the Hollow",
-                body = "You inherit a memory-brokerage shop in a small autumnal village.\n\n" +
-                       "Some memories want to be sold. Some don't.\n" +
-                       "There is no combat. There are no failure screens. Only choices.",
+                body = "You've inherited a little memory-shop in a quiet autumn village.\n" +
+                       "No combat. No fail screens. Just people — and the memories they trust you to keep.",
                 keyChip = "",
                 keyCaption = "",
                 expects = ""
             },
             new Step {
-                headline = "Move with WASD",
-                body = "Walk through the village. Take your time — the lanterns hush, " +
-                       "the leaves rustle, and someone is waiting for you at the door of the Hollow.",
+                emoji = "🚶", locKey = "onboard.move",
+                headline = "Move",
+                body = "Wander at your own pace. Someone is waiting at the door of the Hollow.",
                 keyChip = "WASD",
-                keyCaption = "or Arrow Keys / Left Stick",
+                keyCaption = "Move  ·  Arrows / Left Stick",
                 expects = "press_wasd"
             },
             new Step {
-                headline = "Interact with E",
-                body = "Look for soft golden prompts above doorways, workbenches, and " +
-                       "the orbs villagers entrust to you. Press E (or the gamepad south button) " +
-                       "to act on what you see.",
+                emoji = "✋", locKey = "onboard.interact",
+                headline = "Interact",
+                body = "A soft golden prompt means you can act — open a door, take a memory, pour the tea.",
                 keyChip = "E",
                 keyCaption = "Interact",
                 expects = ""
             },
             new Step {
-                headline = "Polish memories with slow circles",
-                body = "When a villager hands you a memory orb, hold the left mouse button " +
-                       "and draw slow circles across its surface. Slower is better. " +
-                       "Cover every side — there are four faces, like a kindness with four corners.",
-                keyChip = "LMB",
-                keyCaption = "Hold + draw slow circles",
+                emoji = "✨", locKey = "onboard.polish",
+                headline = "Polish a memory",
+                body = "Hold the left mouse button and trace slow circles over the glowing orb.\n" +
+                       "Slower is kinder. Cover all four sides — like a kindness with four corners.",
+                keyChip = "Hold LMB",
+                keyCaption = "Draw slow circles",
                 expects = ""
             },
             new Step {
-                headline = "Comfort tools",
-                body = "Press <b>Esc</b> to pause any time. From there you can open Settings — " +
-                       "Gentle Mode softens the harder moments, and any mini-game can be " +
-                       "auto-completed if you'd rather skip the tactile beat.\n\n" +
-                       "Press <b>H</b> any time to see the full controls.",
+                emoji = "🔑", locKey = "onboard.rhythm",
+                headline = "Your little world",
+                body = "Each day has a gentle rhythm. Open your <b>journal [J]</b> for today's agenda, " +
+                       "then visit the corners that need you:\n\n" +
+                       "<b>[B]</b> Requests    <b>[M]</b> Memory Wall    <b>[U]</b> Your Hollow\n" +
+                       "<b>[G]</b> Garden    <b>[K]</b> Workbench",
+                keyChip = "J",
+                keyCaption = "Open your journal anytime",
+                expects = ""
+            },
+            new Step {
+                emoji = "🕯", locKey = "onboard.easy",
+                headline = "Take it easy",
+                body = "Press <b>Esc</b> any time for Settings — Gentle Mode, Auto-Complete, and language.\n" +
+                       "Press <b>H</b> for the full controls whenever you need them.",
                 keyChip = "Esc",
-                keyCaption = "Pause · Settings · Comfort",
+                keyCaption = "Pause  ·  Settings  ·  Comfort",
                 expects = ""
             },
             new Step {
+                emoji = "🍂", locKey = "onboard.ready",
                 headline = "You're ready",
                 body = "Walk to the door of the Hollow when you're ready.\n\n" +
-                       "There is no wrong way to keep a memory.\nThere is only the gentle way, " +
-                       "and the others.\n\n— Marin",
+                       "There is no wrong way to keep a memory.\nThere is only the gentle way, and the others.\n\n— Marin",
                 keyChip = "",
                 keyCaption = "",
                 expects = ""

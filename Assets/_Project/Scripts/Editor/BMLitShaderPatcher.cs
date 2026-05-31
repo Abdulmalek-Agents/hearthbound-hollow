@@ -74,7 +74,7 @@ namespace HearthboundHollow.EditorTools
             }
         }
 
-        [MenuItem("Hearthbound/Patch ASE Shaders Now", priority = 60)]
+        [MenuItem("Hearthbound/⚙️ Advanced/Patch ASE Shaders Now", priority = 60)]
         public static void PatchAllNow()
         {
             string[] guids = AssetDatabase.FindAssets("t:Shader", new[] { "Assets" });

@@ -57,11 +57,34 @@ namespace HearthboundHollow.UI
 
         private void Awake()
         {
+            // Phase 53.1 (D-068): the CanvasGroup lives on the always-active
+            // script-host, so a leftover blocksRaycasts=true would eat EVERY
+            // click in the scene while the card is invisible. Start hidden AND
+            // non-blocking.
+            SetBlocking(false);
             if (canvasGroup != null) canvasGroup.alpha = 0f;
             // Only hide a SEPARATE root child — never deactivate the script's
             // own GameObject, otherwise Start() won't fire and the card never
             // appears at all.
             if (root != null && root != gameObject) root.SetActive(false);
+        }
+
+        private void SetBlocking(bool on)
+        {
+            if (canvasGroup == null) return;
+            canvasGroup.blocksRaycasts = on;
+            canvasGroup.interactable = on;
+        }
+
+        // Safety net (D-068): a coroutine stopped mid-flight (host disabled,
+        // Play() re-entered, scene torn down) cannot run a finally block, so it
+        // could strand an alpha-0 CanvasGroup with blocksRaycasts still on —
+        // an invisible, full-screen click eater. Invariant: a fully transparent
+        // card must never block raycasts. Cheap, idempotent, bulletproof.
+        private void LateUpdate()
+        {
+            if (canvasGroup != null && canvasGroup.blocksRaycasts && canvasGroup.alpha <= 0.001f)
+                SetBlocking(false);
         }
 
         private void Start()
@@ -85,6 +108,7 @@ namespace HearthboundHollow.UI
                 ApplyContent();
                 if (root != null) root.SetActive(true);
                 if (canvasGroup != null) canvasGroup.alpha = 1f;
+                SetBlocking(true);
                 Hh.Warn(LogCategory.UI,
                     "MissionTitleCard.Play called while inactive-in-hierarchy. " +
                     "Snapping to shown state without animation.");
@@ -96,6 +120,7 @@ namespace HearthboundHollow.UI
             ApplyContent();
             if (root != null) root.SetActive(true);
             if (canvasGroup == null) yield break;
+            SetBlocking(true);
 
             // Fade in.
             yield return FadeTo(0f, 1f, fadeInDuration);
@@ -111,6 +136,7 @@ namespace HearthboundHollow.UI
 
             // Fade out.
             yield return FadeTo(1f, 0f, fadeOutDuration);
+            SetBlocking(false);
             if (root != null && root != gameObject) root.SetActive(false);
         }
 
@@ -141,7 +167,7 @@ namespace HearthboundHollow.UI
         {
             var vs = ServiceLocator.Get<VillageState>();
             if (dayLabel != null)
-                dayLabel.text = vs != null ? $"Day {vs.currentDayIndex + 1}" : fallbackDayText;
+                dayLabel.text = LocalizationService.GetShaped("hud.day", vs != null ? vs.currentDayIndex + 1 : 1);
             if (titleLabel != null)
                 titleLabel.text = mission != null && !string.IsNullOrEmpty(mission.displayName) ? mission.displayName : fallbackTitleText;
             if (toneLabel != null)
