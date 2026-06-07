@@ -265,6 +265,11 @@ namespace HearthboundHollow.Core
         public bool readingNookVisited = false;
         [Tooltip("Phase 52 — count of Marin's letters read from the Reading Nook.")]
         public int letterFragmentsRead = 0;
+        [Tooltip("Phase 52 — stable ids of the Marin letter fragments the player has " +
+                 "actually read (one entry per fragment, deduped). Drives the Reading " +
+                 "Nook overlay's already-read state. The int above is the count; this " +
+                 "is the identity set. Additive field — legacy saves default to empty.")]
+        public List<string> letterFragmentIdsRead = new();
 
         // ───── Operations ──────────────────────────────────
 
@@ -342,6 +347,8 @@ namespace HearthboundHollow.Core
             memoryWebConnectionsFound = 0;
             readingNookVisited = false;
             letterFragmentsRead = 0;
+            letterFragmentIdsRead ??= new List<string>();
+            letterFragmentIdsRead.Clear();
         }
 
         /// <summary>Clamp a trust/integrity delta safely.</summary>
@@ -362,6 +369,8 @@ namespace HearthboundHollow.Core
             materials ??= new List<string>();
             completedEchoIds ??= new List<string>();
             gardenBeds ??= new List<GardenBedState>();
+            // Phase 52 — guard the Reading Nook id-set for legacy saves.
+            letterFragmentIdsRead ??= new List<string>();
         }
     }
 }
