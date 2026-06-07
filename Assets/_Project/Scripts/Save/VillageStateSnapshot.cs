@@ -23,7 +23,20 @@ namespace HearthboundHollow.Save
         // Keeper's Hand tally, garden beds) so the cozy daily loop actually
         // COMPOUNDS across save/load. Old saves (v1/v2) are forward-compatible:
         // every new field defaults to empty/0 and the loop simply starts fresh.
-        public int schemaVersion = 3;
+        //
+        // D-085 bumps schema to 4 — the three field clusters that had been
+        // added to VillageState across the playtest-pass commit, Phase 30
+        // (onboarding), and the Phase 48→54 Depth Layer were never wired into
+        // the snapshot, so each save/load silently dropped Pickle's approval,
+        // the M2 moral-choice outcome, the Cold Open seen-flag, the Reading
+        // Nook letter history, and ~30 other persistent flags. Adding them
+        // here closes the round-trip so the named relationships, the Marin
+        // arc, and the onboarding state COMPOUND across sessions. Old saves
+        // (v1/v2/v3) stay forward-compatible: the new fields default to the
+        // same fresh-game values VillageState.ResetToDefault() writes, so a
+        // legacy save loads with Pickle at 50, sass at 3, etc. — identical
+        // to a fresh start for those dimensions, never a hostile default.
+        public int schemaVersion = 4;
         public string savedAtIso;
         public string lastSceneName;
 
@@ -75,6 +88,49 @@ namespace HearthboundHollow.Save
         public int keeperHandCraftCount = 0;
         public List<GardenBedState> gardenBeds = new();
         public int villageSeed = 0;   // Phase 74 — per-save variety seed (0 = old save, back-compatible)
+
+        // ───── D-085 schema v4 — playtest-pass + onboarding + depth-layer round-trip ─────
+        // Defaults below mirror VillageState's fresh-game values so legacy
+        // (v1/v2/v3) saves load into a sane state instead of zeros.
+
+        // Playtest-pass cluster (Pickle + cinder + M1/M2 dialogue + moral-choice outcome)
+        public int pickleApproval = 50;
+        public int pickleSassIntensity = 3;
+        public int cinder = 0;
+        public bool askedAboutPredecessor = false;
+        public bool refusedDorisOrb = false;
+        public int dorisOwesPlayer = 0;
+        public string polishQuality = "";
+        public bool metDoris = false;
+        public bool metGerrold = false;
+        public bool offeredGerroldTea = false;
+        public string teaBrewed = "";
+        public bool walkedToGerroldHouse = false;
+        public bool workedAtHollow = false;
+        public bool workedAlone = false;
+        public bool satInGerroldChair = false;
+        public bool satInMargeryChair = false;
+        public bool deferredGerrold = false;
+        public string gerroldChoice = "";
+        public string cleanseQuality = "";
+        public bool firstMoralChoiceMade = false;
+        public bool gerroldReturnsDay3 = false;
+        public bool mission6RecoveryArcSeeded = false;
+
+        // Phase 30 — onboarding overlay one-shot
+        public bool onboardingCompleted = false;
+
+        // Phase 48 → 54 Depth Layer (Cold Open, Echo Hologram, Preface Beat, Memory Web, Reading Nook)
+        public bool seenColdOpen = false;
+        public string coldOpenLastVariant = "";
+        public bool echoHologramHeard = false;
+        public int echoHologramsFound = 0;
+        public bool prefaceBeatPlayed = false;
+        public string prefaceToneBucket = "";
+        public int memoryWebConnectionsFound = 0;
+        public bool readingNookVisited = false;
+        public int letterFragmentsRead = 0;
+        public List<string> letterFragmentIdsRead = new();
 
         public static VillageStateSnapshot FromState(VillageState s)
         {
