@@ -3,7 +3,7 @@
 //
 // The Reading Nook armchair in the Hollow interior. Presents Marin Vellis's
 // hand-authored letter fragments when the player sits down, gated by Pickle's
-// approval (requires the 'pickle_cushion' upgrade).
+// approval (requires the 'DECOR_PICKLE_CUSHION' upgrade).
 //
 // Approval gate rationale (D-082):
 //   Earning coin → buying Pickle's cushion upgrade → Pickle settles in →
@@ -28,6 +28,13 @@
 //   • treated VillageState.letterFragmentsRead (an int count) as an id list;
 //     the id set now lives in VillageState.letterFragmentIdsRead
 //   • called SaveService.Autosave() — the canonical autosave is Save(-1, state)
+//
+// ── INTEGRATION FIX (Phase 52.2, D-084) ────────────────────────────
+// The Pickle gate id was 'pickle_cushion', but the shipping Hollow catalog
+// (HollowProgressionService built-in starter) sells the cushion as
+// 'DECOR_PICKLE_CUSHION'. The mismatch meant buying the cushion never opened
+// the nook. Aligned the default id to the catalog so the coin→cushion→Pickle→
+// Marin's-letters loop actually completes.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -78,9 +85,10 @@ namespace HearthboundHollow.Mission
         [SerializeField] private ReadingNookOverlay overlay;
 
         [Header("Pickle Approval Gate")]
-        [Tooltip("Upgrade id that represents Pickle's approval." +
-                 " Must match the id in HollowCatalog SO for Pickle's cushion.")]
-        [SerializeField] private string pickleApprovalUpgradeId = "pickle_cushion";
+        [Tooltip("Upgrade id that represents Pickle's approval. MUST match the id in the " +
+                 "Hollow catalog for Pickle's cushion — the built-in starter catalog " +
+                 "(HollowProgressionService) ships it as 'DECOR_PICKLE_CUSHION'.")]
+        [SerializeField] private string pickleApprovalUpgradeId = "DECOR_PICKLE_CUSHION";
 
         [Header("Pickle Rejection Lines (hand-written)")]
         [TextArea(2, 4)]
