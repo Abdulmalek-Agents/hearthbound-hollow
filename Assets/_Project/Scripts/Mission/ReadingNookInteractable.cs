@@ -1,24 +1,68 @@
+// SPDX-License-Identifier: MIT
+// Hearthbound Hollow — Mission / ReadingNookInteractable
+//
+// The Reading Nook armchair in the Hollow interior. Presents Marin Vellis's
+// hand-authored letter fragments when the player sits down, gated by Pickle's
+// approval (requires the 'pickle_cushion' upgrade).
+//
+// Approval gate rationale (D-082):
+//   Earning coin → buying Pickle's cushion upgrade → Pickle settles in →
+//   Pickle approves the nook → deeper predecessor mystery unlocks.
+//   This makes the coin loop feel narratively meaningful, not just economic.
+//
+// ── ASMDEF NOTE (mirrors MarinNoteInteractable, D-035) ─────────────
+// Lives in the HearthboundHollow.Mission asmdef — NOT HearthboundHollow.Player
+// — because it bridges Player's Interactable base class with UI's overlay +
+// DialogueUI presenters. Mission references both Player and UI; Player does not
+// reference UI on purpose.
+//
+// ── COMPILE FIX (Phase 52.1, D-078) ────────────────────────────────
+// The original Phase 52 draft referenced an API surface that never shipped:
+//   • base class used without `using HearthboundHollow.Player;` (CS0246)
+//   • overrode OnActivate()/GetPromptText() — the real base virtuals are
+//     Activate(GameObject) / GetDynamicPromptText()
+//   • published ReadingNookVisitedEvent / ReadingNookFragmentReadEvent — never
+//     defined (now declared here as structs, mirroring EchoHologramHeardEvent)
+//   • called DialogueUI.ShowOneLiner — no such method; the real API is
+//     PresentLine(speaker, text, portrait)
+//   • treated VillageState.letterFragmentsRead (an int count) as an id list;
+//     the id set now lives in VillageState.letterFragmentIdsRead
+//   • called SaveService.Autosave() — the canonical autosave is Save(-1, state)
+
 using System.Collections.Generic;
 using UnityEngine;
 using HearthboundHollow.Core;
 using HearthboundHollow.Memory;
-using HearthboundHollow.UI;
+using HearthboundHollow.Player;   // base class Interactable + PlayerController
+using HearthboundHollow.UI;       // ReadingNookOverlay + DialogueUI presenters
+using HearthboundHollow.Save;     // SaveService (autosave on first-read)
 
 namespace HearthboundHollow.Mission
 {
     /// <summary>
-    /// The Reading Nook armchair in the Hollow interior.
-    /// Presents Marin Vellis's hand-authored letter fragments when the player
-    /// sits down, gated by Pickle's approval (requires 'pickle_cushion' upgrade).
-    ///
-    /// Approval gate rationale (D-082):
-    ///   Earning coin → buying Pickle's cushion upgrade → Pickle settles in →
-    ///   Pickle approves the nook → deeper predecessor mystery unlocks.
-    ///   This makes the coin loop feel narratively meaningful, not just economic.
-    ///
-    /// Phase 52 — Reading Nook.
-    /// Lives in HearthboundHollow.Mission asmdef.
+    /// Published on the EventBus the first time the player sits at the Reading
+    /// Nook. Lets MissionAudioHooks / Almanac / future systems react without a
+    /// hard reference back to this interactable.
     /// </summary>
+    public readonly struct ReadingNookVisitedEvent { }
+
+    /// <summary>
+    /// Published on each first-read of a Marin letter fragment. Carries the
+    /// fragment id and the predecessor-trail warmth it granted so the audio
+    /// layer can play a reveal cue and the Evening Ledger can add a prose note.
+    /// </summary>
+    public readonly struct ReadingNookFragmentReadEvent
+    {
+        public readonly string FragmentId;
+        public readonly int WarmthGranted;
+
+        public ReadingNookFragmentReadEvent(string fragmentId, int warmthGranted)
+        {
+            FragmentId    = fragmentId;
+            WarmthGranted = warmthGranted;
+        }
+    }
+
     [RequireComponent(typeof(Collider))]
     public sealed class ReadingNookInteractable : Interactable
     {
@@ -50,12 +94,16 @@ namespace HearthboundHollow.Mission
 
         private bool _rejectionShownOnce;
         private bool _overlayOpen;
+        private PlayerController _player;   // cached from Activate() so we can unlock on close
 
         // ─── Interactable overrides ───────────────────────────────────────────
 
-        /// <summary>Called by PlayerController when the player presses Interact (E).</summary>
-        public override void OnActivate()
+        /// <summary>
+        /// Called by the player's interaction raycast when Interact (E) is pressed.
+        /// </summary>
+        public override void Activate(GameObject player)
         {
+            if (!IsInteractable) return;
             if (_overlayOpen) return; // guard against double-tap
 
             var state = ServiceLocator.Get<VillageState>();
@@ -87,24 +135,27 @@ namespace HearthboundHollow.Mission
             if (overlay == null)
             {
                 Debug.LogWarning("[Phase52] ReadingNookInteractable: overlay not wired. " +
-                                 "Run Hearthbound → ⚙️ Advanced → 📖 Phase 52 — Build Reading Nook.");
+                                 "Run Hearthbound → 🚀 Build Everything to build the Reading Nook.");
                 return;
             }
 
             _overlayOpen = true;
+            _player = player != null ? player.GetComponent<PlayerController>() : null;
             LockPlayerMovement(true);
 
+            state.letterFragmentIdsRead ??= new List<string>();
+
             overlay.Show(
-                fragments    : fragments,
-                currentWarmth: state.predecessorTrailWarmth,
-                alreadyReadIds: state.letterFragmentsRead,
+                fragments     : fragments,
+                currentWarmth : state.predecessorTrailWarmth,
+                alreadyReadIds: state.letterFragmentIdsRead,
                 onFragmentRead: OnFragmentRead,
-                onClose      : OnOverlayClosed
+                onClose       : OnOverlayClosed
             );
         }
 
-        /// <summary>Prompt text shown on the ControlHintsHUD E-chip.</summary>
-        public override string GetPromptText()
+        /// <summary>Dynamic prompt text shown on the ControlHintsHUD E-chip.</summary>
+        public override string GetDynamicPromptText()
         {
             var state    = ServiceLocator.Get<VillageState>();
             bool approved = state != null
@@ -125,20 +176,25 @@ namespace HearthboundHollow.Mission
             var state = ServiceLocator.Get<VillageState>();
             if (state == null) return;
 
-            // Guard: only process the first reading.
-            if (state.letterFragmentsRead.Contains(fragmentId)) return;
+            state.letterFragmentIdsRead ??= new List<string>();
 
-            state.letterFragmentsRead.Add(fragmentId);
-            state.predecessorTrailWarmth = Mathf.Min(100, state.predecessorTrailWarmth + warmthGranted);
+            // Guard: only process the first reading of this fragment.
+            if (state.letterFragmentIdsRead.Contains(fragmentId)) return;
+
+            state.letterFragmentIdsRead.Add(fragmentId);
+            state.letterFragmentsRead = state.letterFragmentIdsRead.Count;
+            state.predecessorTrailWarmth =
+                Mathf.Min(100, state.predecessorTrailWarmth + warmthGranted);
 
             // Broadcast so MissionAudioHooks plays a reveal cue and the
             // Evening Ledger can add a prose note.
             EventBus.Publish(new ReadingNookFragmentReadEvent(
-                fragmentId  : fragmentId,
+                fragmentId   : fragmentId,
                 warmthGranted: warmthGranted));
 
             // Autosave the warmth progress (same trigger-class as moral choices).
-            ServiceLocator.Get<SaveService>()?.Autosave();
+            // Canonical autosave = SaveService.Save with slot < 0.
+            ServiceLocator.Get<SaveService>()?.Save(-1, state);
         }
 
         private void OnOverlayClosed()
@@ -155,20 +211,19 @@ namespace HearthboundHollow.Mission
             // One-liner via the shared DialogueUI path (warm, italic, brief).
             var dialogueUI = ServiceLocator.Get<DialogueUI>();
             if (dialogueUI != null)
-                dialogueUI.ShowOneLiner(speaker: "Pickle", text: $"<i>{line}</i>");
+                dialogueUI.PresentLine("Pickle", $"<i>{line}</i>", portrait: null);
             else
                 Debug.Log($"[Pickle] {line}"); // Editor fallback
         }
 
         /// <summary>
-        /// Locks or unlocks WASD movement via the Core IMovementLockable interface,
-        /// so Mission asmdef does not take a compile dep on HearthboundHollow.Player.
+        /// Locks or unlocks WASD movement on the player cached in <see cref="Activate"/>,
+        /// via PlayerController.MovementLocked — the same hook the Mission directors use.
         /// </summary>
-        private static void LockPlayerMovement(bool locked)
+        private void LockPlayerMovement(bool locked)
         {
-            var lockable = ServiceLocator.Get<IMovementLockable>();
-            if (lockable != null)
-                lockable.MovementLocked = locked;
+            if (_player != null)
+                _player.MovementLocked = locked;
         }
     }
 }
