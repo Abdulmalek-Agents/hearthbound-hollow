@@ -166,7 +166,7 @@ Progress is woven from people, not XP. The game silently tracks a **14‑dimensi
 ---
 
 ## 9. The Stardew‑Parity Improvement Programme (0/7 → 7/7)
-*(Engagement Bible 01 — the honest critique · full plan in `Docs/STARDEW_PARITY_IMPROVEMENTS.md`, EN+AR)*
+*(Engagement Bible 01 — the honest critique · full plan in `Docs/MASTER_BIBLE/STARDEW_PARITY_IMPROVEMENTS.md`, EN+AR)*
 
 The original 75‑minute slice scored **0/7** on Stardew's retention engines and broke the cozy contract *on structure, not tone.* **Five root causes:** (1) the vertical slice became "the whole game"; (2) the old "Cordray Principle" hid all feedback; (3) mechanics were experiences, not skills; (4) content was finite (2 villagers); (5) loop‑building assets (HarvestGarden, DayCycleManager) sat unused. **The fix = the 7 Pillars (§6)** — now built. The board's verdict moved from *"REJECTED as a product / APPROVED as a foundation"* → **"a real cozy game with a genuine hook and a working loop."**
 
@@ -293,12 +293,12 @@ Everything needed to build, write, validate, and market Hearthbound Hollow. This
 **The cozy loop (engagement)**
 - `Docs/Engagement_Bible/00_INDEX.md` → `01_CRITIQUE` → `02_MASTER_PLAN` → `03_THE_COZY_DAILY_LOOP` → `04–09` (per‑system) → `10_IMPLEMENTATION_ROADMAP` → `11_WIDER_CONTENT_EXECUTION_PLAN`
 
-**Improvement & validation (this programme)**
-- `Docs/STARDEW_PARITY_IMPROVEMENTS.md` — EN + العربية improvement plan
-- `Docs/Stardew_Parity_Improvements.doc` — visualized Word (EN + AR)
-- `Docs/PHASE70_GENGAGE_QA_AUDIT.md` — the Senior‑QA readiness pass (this cycle)
-- `Docs/PHASE70_GENGAGE_PLAYTEST.md` · `Docs/MARKETING_TRUTH_Phase72.md`
-- `Docs/Hearthbound_Hollow_Concept_Brief.doc` — the Game Director's visual brief
+**Improvement & validation (this programme — now gathered in `Docs/MASTER_BIBLE/`)**
+- `Docs/MASTER_BIBLE/STARDEW_PARITY_IMPROVEMENTS.md` — EN + العربية improvement plan
+- `Docs/MASTER_BIBLE/Stardew_Parity_Improvements.doc` — visualized Word (EN + AR)
+- `Docs/MASTER_BIBLE/PHASE70_GENGAGE_QA_AUDIT.md` — the Senior‑QA readiness pass (this cycle)
+- `Docs/MASTER_BIBLE/Hearthbound_Hollow_Concept_Brief.doc` — the Game Director's visual brief
+- *(still in `Docs/`):* `Docs/PHASE70_GENGAGE_PLAYTEST.md` · `Docs/MARKETING_TRUTH_Phase72.md`
 
 **Build, gameplay & state**
 - `Docs/ARCHITECTURE.md` — asmdef graph, services, save schema, risk register
