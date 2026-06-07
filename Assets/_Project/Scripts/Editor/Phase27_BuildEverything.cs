@@ -135,6 +135,11 @@ namespace HearthboundHollow.EditorTools
                           "HearthboundHollow.EditorTools.Phase50_PrefaceBeatBuilder", "Build")) ran++; else skipped++;
                 if (TryRun("Phase 51 — Memory Web Overlay (Tab)",
                           "HearthboundHollow.EditorTools.Phase51_MemoryWebBuilder", "Build")) ran++; else skipped++;
+                // NOTE: Phase 52 lives in the HearthboundHollow.Editor namespace (not
+                // …EditorTools like its Depth-Layer siblings) and its entry point is
+                // BuildReadingNook(). TryRun resolves by full type name across assemblies.
+                if (TryRun("Phase 52 — Reading Nook (Marin's letters)",
+                          "HearthboundHollow.Editor.Phase52_ReadingNookBuilder", "BuildReadingNook")) ran++; else skipped++;
 
                 EditorUtility.DisplayProgressBar("Hearthbound · Build Everything", "Running Phase 47 (One More Day Hook) …", 0.988f);
                 if (TryRun("Phase 47 — One More Day Hook",
@@ -265,7 +270,7 @@ namespace HearthboundHollow.EditorTools
             sb.AppendLine("  • 6 scenes in Build Settings (Bootstrap → Cottage)");
             sb.AppendLine("  • Player + NPC rigs, cameras, audio, cutscenes wired");
             sb.AppendLine("  • Phase 47 — boundaries, autumn skybox, interior polish, wayfinding");
-            sb.AppendLine("  • Phase 48-51 — Depth Layer (Cold Open, Echo Hologram, Preface, Memory Web)");
+            sb.AppendLine("  • Phase 48-52 — Depth Layer (Cold Open, Echo Hologram, Preface, Memory Web, Reading Nook)");
             sb.AppendLine("  • Phase 47 — One More Day goodnight card");
             sb.AppendLine("  • Phase 53 — Polish Menu (language, reset, character creator)");
             sb.AppendLine("  • Phase 54/56 — emoji glyphs + Arabic font");
