@@ -447,7 +447,7 @@ namespace HearthboundHollow.Editor
                 new Color(0.36f, 0.22f, 0.12f));
             StretchFull(lbl.rectTransform);
             lbl.margin = new Vector4(12, 4, 12, 4);
-            lbl.alignment = TextAlignmentOptions.MidpointLeft;
+            lbl.alignment = TextAlignmentOptions.MidlineLeft;
 
             return go;
         }
