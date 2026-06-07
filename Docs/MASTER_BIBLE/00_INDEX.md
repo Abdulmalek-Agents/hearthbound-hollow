@@ -14,6 +14,16 @@
 |---|---|
 | **`HEARTHBOUND_HOLLOW_MASTER_BIBLE.md`** | **THE single source of truth.** Concept → world/lore → mechanics → the 7‑pillar cozy loop → progression → improvement programme → architecture → status → Depth‑Bible summary → market → how‑to‑play → roadmap → decisions → full index → team sign‑off. |
 
+## 📦 Documents physically in this folder
+- `HEARTHBOUND_HOLLOW_MASTER_BIBLE.md` — the master single source of truth
+- `00_INDEX.md` — this hub
+- `STARDEW_PARITY_IMPROVEMENTS.md` — bilingual (EN+AR) Stardew‑parity improvement plan
+- `Stardew_Parity_Improvements.doc` — visualized Word version (EN + AR RTL)
+- `PHASE70_GENGAGE_QA_AUDIT.md` — the Senior‑QA loop readiness audit
+- `Hearthbound_Hollow_Concept_Brief.doc` — the Game Director's visual concept brief
+
+> The **foundational canon** (GAME_DESIGN, ARCHITECTURE, the Depth Bible, the Engagement Bible, the gameplay guides, localization) intentionally **stays in place** — it's referenced across `CLAUDE.md`, the README, code comments, and cross‑doc links, so moving it would break the project. The Master Bible **integrates its content**; the manifest below **links the originals**. Open this folder; you won't need to hunt elsewhere.
+
 ---
 
 ## 🧭 By role (where to go for depth)
@@ -23,8 +33,8 @@
 | **Game / systems designer** | Master Bible §5–8 → `../Engagement_Bible/02–09` → `../Depth_Bible/04,05,08,10,13` |
 | **Writer / narrative** | Master Bible §3–4 → `../Depth_Bible/02,03` → `../Depth_Bible/Mission_1_2_Focus/01,02` |
 | **Engineer** | Master Bible §12–13 → `../ARCHITECTURE.md` → `../../CLAUDE.md` |
-| **Market / community** | Master Bible §2, §9, §15 → `../STARDEW_PARITY_IMPROVEMENTS.md` → `../MARKETING_TRUTH_Phase72.md` |
-| **QA** | Master Bible §13 → `../PHASE70_GENGAGE_QA_AUDIT.md` → `../GAMEPLAY_GUIDE_*` |
+| **Market / community** | Master Bible §2, §9, §15 → `./STARDEW_PARITY_IMPROVEMENTS.md` → `../MARKETING_TRUTH_Phase72.md` |
+| **QA** | Master Bible §13 → `./PHASE70_GENGAGE_QA_AUDIT.md` → `../GAMEPLAY_GUIDE_*` |
 
 ---
 
@@ -34,7 +44,7 @@
 
 **The cozy loop** — `../Engagement_Bible/00_INDEX.md` → `01_CRITIQUE` → `02_MASTER_PLAN` → `03_THE_COZY_DAILY_LOOP` → `04–09` → `10_IMPLEMENTATION_ROADMAP` → `11_WIDER_CONTENT_EXECUTION_PLAN`
 
-**Improvement & validation (this programme)** — `../STARDEW_PARITY_IMPROVEMENTS.md` (EN+AR) · `../Stardew_Parity_Improvements.doc` · `../PHASE70_GENGAGE_QA_AUDIT.md` · `../PHASE70_GENGAGE_PLAYTEST.md` · `../MARKETING_TRUTH_Phase72.md` · `../Hearthbound_Hollow_Concept_Brief.doc`
+**Improvement & validation (this programme — now in this folder)** — `./STARDEW_PARITY_IMPROVEMENTS.md` (EN+AR) · `./Stardew_Parity_Improvements.doc` · `./PHASE70_GENGAGE_QA_AUDIT.md` · `./Hearthbound_Hollow_Concept_Brief.doc` · *(still in `../`):* `../PHASE70_GENGAGE_PLAYTEST.md` · `../MARKETING_TRUTH_Phase72.md`
 
 **Build / gameplay / state** — `../ARCHITECTURE.md` · `../GAMEPLAY_GUIDE_OVERVIEW.md` (+ `MISSION_1/2`) · `../SCENE_ASSEMBLY_GUIDE.md` · `../ANIMATION_REQUIREMENTS.md` · `../Unity_Assets_Master_Reference.md` · `../Asset_Analysis_Mission1-2.md` · `../EXISTING_ASSETS_INDEX.md` · `../PROGRESS.md` · `../../CHANGELOG.md` · `../../STUDIO_LOG.md` · `../PLAYTEST_AUDIT.md` · `../../CLAUDE.md`
 
