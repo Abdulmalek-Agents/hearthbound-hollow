@@ -45,6 +45,12 @@ namespace HearthboundHollow.Core
         [Tooltip("If true, auto-load MainMenu after one frame of bootstrap.")]
         public bool autoLoadMainMenu = true;
 
+        [Header("Editor / QA")]
+        [Tooltip("Reset VillageState to fresh-game defaults every time you press Play in the Editor. " +
+                 "Ensures the cold open, preface beat, and all mission flags start clean on each test run. " +
+                 "Safe to leave ON during development; disable only when you want to test a mid-session state.")]
+        public bool resetStateOnPlay = true;
+
         [Header("Audio (Phase 32 — Voice Acting MVP)")]
         [Tooltip("If true, auto-spawn HearthboundHollow.Audio.VoicePlayer as a " +
                  "child of GameManager when no VoicePlayer.Instance is present " +
