@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hearthbound Hollow · Art Production Dashboard (Mission 1–2)</title>
+<style>
+:root{--parchment:#F4E7CE;--ink:#3a2a1a;--ink2:#6b5742;--ember:#E8843C;--amber:#F2B45A;--ochre:#C9912E;
+--wood:#6B4A2B;--stone:#9A9187;--card:#fbf3e2;--line:#d9c6a4;}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;color:var(--ink);
+background:linear-gradient(160deg,#f6ecd6,#efe0c3 60%,#ead7b4);min-height:100vh}
+header{padding:26px 22px 14px;background:radial-gradient(1200px 220px at 20% -40%,rgba(232,132,60,.35),transparent),
+linear-gradient(180deg,#3a2a1a,#5b3f25);color:var(--parchment);border-bottom:4px solid var(--ember);box-shadow:0 6px 22px rgba(0,0,0,.25)}
+header h1{margin:0 0 4px;font-size:29px}
+header .sub{opacity:.92;font-size:15px;max-width:980px}
+header .tag{display:inline-block;margin-top:10px;padding:3px 10px;border:1px solid var(--amber);border-radius:20px;font-size:12px;color:var(--amber);background:rgba(0,0,0,.18)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px 60px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:5;padding:12px 2px;background:linear-gradient(180deg,rgba(246,236,214,.98),rgba(246,236,214,.86));backdrop-filter:blur(4px)}
+.tab{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink2);padding:8px 16px;border-radius:22px;font-size:14px;font-weight:600;transition:.15s}
+.tab:hover{border-color:var(--ember);color:var(--ink)}
+.tab.active{background:var(--ember);color:#fff;border-color:var(--ember);box-shadow:0 3px 10px rgba(232,132,60,.4)}
+.panel{display:none}.panel.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+h2.section{font-size:20px;border-left:5px solid var(--ember);padding-left:10px;margin:26px 0 14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 14px;text-align:center;box-shadow:0 2px 8px rgba(74,50,32,.08)}
+.stat .n{font-size:34px;font-weight:700;color:var(--ember);line-height:1}
+.stat .l{font-size:13px;color:var(--ink2);margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+.bar{display:flex;align-items:center;gap:10px;margin:6px 0}
+.bar .name{width:230px;font-size:13px;color:var(--ink2);text-align:right;flex:none}
+.bar .track{flex:1;background:#e7d6b6;border-radius:8px;overflow:hidden;height:20px;border:1px solid var(--line)}
+.bar .fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--ember))}
+.bar .v{width:38px;font-size:13px;font-weight:700;color:var(--wood)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;align-items:center}
+.controls input,.controls select{font-family:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.controls input{min-width:230px}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff7e8;color:var(--ink2)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:9px 10px;text-align:left;font-size:13px;border-bottom:1px solid #eaddc2;vertical-align:top}
+th{background:var(--wood);color:var(--parchment);position:sticky;top:54px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer}
+tr:hover td{background:#fff8ea}
+td.id{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--ink2);white-space:nowrap}
+td.path{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--ink2);word-break:break-all}
+.sw{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.25);margin-right:3px;vertical-align:-2px}
+.muted{color:var(--ink2);font-size:12px}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(74,50,32,.07)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.rcard .nm{font-size:16px;font-weight:700;color:var(--wood)}
+.rcard .ro{font-size:13.5px;color:var(--ember);font-weight:600;margin:2px 0 6px}
+.rcard .rs{font-size:12.5px;color:var(--ink2)}
+.deptbadge{font-size:11px;color:#fff;background:var(--stone);border-radius:10px;padding:1px 8px;display:inline-block;margin-bottom:8px}
+.palgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.swcard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.swcard .top{height:62px}.swcard .bot{padding:8px 10px}
+.swcard .bot .nm{font-size:13px;font-weight:700}.swcard .bot .hx{font-family:ui-monospace,monospace;font-size:12px;color:var(--ink2)}
+.swcard .bot .us{font-size:11px;color:var(--ink2);margin-top:3px}
+.scene{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(74,50,32,.08)}
+.scene h3{margin:0 0 4px;font-size:18px;color:var(--wood)}.scene .meta{font-size:12.5px;color:var(--ink2);margin-bottom:8px}
+.scene .kv{font-size:13px;margin-top:6px}.scene .kv b{color:var(--ember)}
+.note{background:#fff3df;border:1px solid var(--line);border-left:5px solid var(--ember);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:13px}
+footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2);text-align:center}
+code{font-family:ui-monospace,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🫖 Hearthbound Hollow — Art Production Dashboard</h1>
+  <div class="sub">The complete art program for the <b>Mission&nbsp;1–2 vertical slice</b> — a cozy memory‑broker narrative simulation. Built from the studio MASTER_BIBLE (Engagement&nbsp;+&nbsp;Depth bibles &amp; the Mission&nbsp;1‑2 Focus specs).</div>
+  <span class="tag">branch · feat/mission-1-2-architecture · Unity 6000.4.4f1 · URP‑Mobile</span>
+</header>
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-p="overview">Overview</div>
+    <div class="tab" data-p="assets">Assets</div>
+    <div class="tab" data-p="roster">Studio Roster</div>
+    <div class="tab" data-p="palette">Palette &amp; Light</div>
+    <div class="tab" data-p="scenes">Scenes</div>
+  </div>
+
+  <div id="overview" class="panel active">
+    <h2 class="section">Slice at a glance</h2>
+    <div class="cards" id="statcards"></div>
+    <h2 class="section">Assets by category</h2><div id="catbars"></div>
+    <h2 class="section">Assets by location / scene</h2><div id="scenebars"></div>
+    <h2 class="section">Studio by department</h2><div id="deptbars"></div>
+  </div>
+
+  <div id="assets" class="panel">
+    <h2 class="section">Asset manifest <span class="muted" id="acount"></span></h2>
+    <div class="controls">
+      <input id="search" placeholder="Search name, id, description, path…"/>
+      <select id="fcat"><option value="">All categories</option></select>
+      <select id="fmis"><option value="">All missions</option></select>
+      <select id="floc"><option value="">All locations</option></select>
+      <span class="muted">click a header to sort</span>
+    </div>
+    <div style="overflow-x:auto"><table id="atable"><thead><tr>
+      <th data-k="asset_id">ID</th><th data-k="asset_name">Asset</th><th data-k="type">Type</th>
+      <th data-k="mission">M</th><th data-k="scene_location">Location</th><th data-k="color_palette_hex">Palette</th>
+      <th data-k="lighting_mood">Lighting mood</th><th data-k="lod_notes">LOD</th><th data-k="file_path">File path · source</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div id="roster" class="panel">
+    <h2 class="section">Studio roster <span class="muted" id="rcount"></span></h2>
+    <div class="controls"><select id="fdept"><option value="">All departments</option></select>
+      <input id="rsearch" placeholder="Search name / role…"/></div>
+    <div class="rgrid" id="rgrid"></div>
+  </div>
+
+  <div id="palette" class="panel">
+    <h2 class="section">Master autumn palette</h2><div class="palgrid" id="palmaster"></div>
+    <h2 class="section">Emotional palette — orb hum &amp; dream lens</h2><div class="palgrid" id="palemo"></div>
+    <h2 class="section">Lighting moods &amp; key light</h2><div class="palgrid" id="pallit"></div>
+  </div>
+
+  <div id="scenes" class="panel"><h2 class="section">The four shippable scenes</h2><div id="scenebox"></div></div>
+
+  <footer>Hearthbound Hollow · Art Production package v1.0 · Abdulmalek Agents game‑concept portfolio.<br/>
+    Data loads live from the committed CSVs in <code>./manifests/</code> (single source of truth). Open via a local server or GitHub Pages for live data.</footer>
+</div>
+<script>
+// --- tiny CSV parser (handles quoted fields, commas, escaped quotes) ---
+function parseCSV(text){
+  const NL=String.fromCharCode(10), CR=String.fromCharCode(13);
+  const rows=[];let i=0,f='',row=[],q=false;
+  while(i<text.length){const c=text[i];
+    if(q){ if(c=='"'){ if(text[i+1]=='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else{ if(c=='"')q=true; else if(c==','){row.push(f);f='';} 
+      else if(c==NL){row.push(f);rows.push(row);row=[];f='';}
+      else if(c==CR){} else f+=c; }
+    i++;}
+  if(f.length||row.length){row.push(f);rows.push(row);} return rows;
+}
+function toObjs(text){const r=parseCSV(text).filter(x=>x.length>1||x[0]!=='');const h=r[0];
+  return r.slice(1).map(x=>{const o={};h.forEach((k,j)=>o[k]=x[j]!==undefined?x[j]:'');return o;});}
+const hexes=s=>(s.match(/#[0-9a-fA-F]{6}/g)||[]);
+const el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
+const counter=(arr,k)=>{const m={};arr.forEach(a=>m[a[k]]=(m[a[k]]||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+
+let A=[],R=[],P=[];
+const BASE='./manifests/';
+const RAW='https://raw.githubusercontent.com/Abdulmalek-Agents/hearthbound-hollow/feat/mission-1-2-architecture/Docs/ART_PRODUCTION/manifests/';
+async function load(name){
+  for(const base of [BASE,RAW]){ try{const r=await fetch(base+name);if(r.ok)return await r.text();}catch(e){} }
+  throw new Error('could not load '+name);
+}
+(async function(){
+  try{
+    const [a,r,p]=await Promise.all([load('asset_manifest.csv'),load('team_roster.csv'),load('lighting_palette.csv')]);
+    A=toObjs(a);R=toObjs(r);P=toObjs(p);
+    boot();
+  }catch(e){
+    document.getElementById('statcards').innerHTML=
+      '<div class="note">Could not load the CSVs from <code>./manifests/</code> or the raw branch URL.<br/>'
+      +'Open this file via a local web server (e.g. <code>python3 -m http.server</code>) or GitHub Pages so the manifest can be fetched. Error: '+e.message+'</div>';
+  }
+})();
+
+function boot(){
+  // tabs
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById(t.dataset.p).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});});
+  // stats
+  const sc=document.getElementById('statcards');
+  const stat=[[A.length,'Art assets'],[R.length,'Studio members'],[counter(A,'category').length,'Asset categories'],
+    [4,'Shippable scenes'],[2,'Missions'],[6,'Realtime lights']];
+  sc.innerHTML=stat.map(s=>'<div class="stat"><div class="n">'+s[0]+'</div><div class="l">'+s[1]+'</div></div>').join('');
+  bars('catbars',counter(A,'category')); bars('scenebars',counter(A,'scene_location')); bars('deptbars',counter(R,'department'));
+  buildAssets(); buildRoster(); buildPalette(); buildScenes();
+}
+function bars(id,pairs){const box=document.getElementById(id);const max=Math.max(...pairs.map(p=>p[1]));
+  box.innerHTML=pairs.map(([n,v])=>'<div class="bar"><div class="name">'+n+'</div><div class="track"><div class="fill" style="width:'+(v/max*100)+'%"></div></div><div class="v">'+v+'</div></div>').join('');}
+
+function buildAssets(){
+  const tb=document.querySelector('#atable tbody');
+  const fcat=document.getElementById('fcat'),fmis=document.getElementById('fmis'),floc=document.getElementById('floc');
+  [...new Set(A.map(a=>a.category))].sort().forEach(v=>fcat.add(new Option(v,v)));
+  [...new Set(A.map(a=>a.mission))].sort().forEach(v=>fmis.add(new Option(v,v)));
+  [...new Set(A.map(a=>a.scene_location))].sort().forEach(v=>floc.add(new Option(v,v)));
+  let sortK='asset_id',dir=1;
+  const sw=s=>hexes(s).map(h=>'<span class="sw" style="background:'+h+'" title="'+h+'"></span>').join('')+' <span class="muted">'+s+'</span>';
+  function render(){
+    const q=document.getElementById('search').value.toLowerCase(),c=fcat.value,m=fmis.value,l=floc.value;
+    let rows=A.filter(a=>(!c||a.category===c)&&(!m||a.mission===m)&&(!l||a.scene_location===l)&&
+      (!q||(a.asset_name+a.asset_id+a.description+a.file_path+a.type).toLowerCase().includes(q)));
+    rows.sort((x,y)=>{const xv=x[sortK]||'',yv=y[sortK]||'';return xv>yv?dir:xv<yv?-dir:0;});
+    tb.innerHTML=rows.map(a=>'<tr><td class="id">'+a.asset_id+'</td>'+
+      '<td><b>'+a.asset_name+'</b><div class="muted">'+a.description+'</div></td>'+
+      '<td><span class="chip">'+a.type+'</span></td><td>'+a.mission+'</td><td>'+a.scene_location+'</td>'+
+      '<td>'+sw(a.color_palette_hex)+'</td><td>'+a.lighting_mood+'</td><td class="muted">'+a.lod_notes+'</td>'+
+      '<td class="path">'+a.file_path+'<div class="muted">'+a.source_pack+' · '+a.owner_dept+' · '+a.status+'</div></td></tr>').join('');
+    document.getElementById('acount').textContent='('+rows.length+' of '+A.length+')';
+  }
+  document.getElementById('search').oninput=render;[fcat,fmis,floc].forEach(s=>s.onchange=render);
+  document.querySelectorAll('#atable th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)dir*=-1;else{sortK=k;dir=1;}render();});
+  render();
+}
+function buildRoster(){
+  const fdept=document.getElementById('fdept'),rg=document.getElementById('rgrid');
+  [...new Set(R.map(r=>r.department))].sort().forEach(v=>fdept.add(new Option(v,v)));
+  function render(){const d=fdept.value,q=document.getElementById('rsearch').value.toLowerCase();
+    const rows=R.filter(r=>(!d||r.department===d)&&(!q||(r.name+r.role+r.responsibilities).toLowerCase().includes(q)));
+    rg.innerHTML=rows.map(r=>'<div class="rcard"><span class="deptbadge">'+r.department+' · '+r.tier+'</span>'+
+      '<div class="nm">'+r.name+'</div><div class="ro">'+r.role+'</div><div class="rs">'+r.responsibilities+'</div>'+
+      '<div class="rs" style="margin-top:6px"><b>M1‑2:</b> '+r.mission_1_2_focus+'</div></div>').join('');
+    document.getElementById('rcount').textContent='('+rows.length+' of '+R.length+')';}
+  fdept.onchange=render;document.getElementById('rsearch').oninput=render;render();
+}
+function buildPalette(){
+  const card=p=>'<div class="swcard"><div class="top" style="background:'+p.hex+'"></div><div class="bot">'+
+    '<div class="nm">'+p.name+'</div><div class="hx">'+p.hex+'</div><div class="us">'+p.usage+'</div></div></div>';
+  const emo=P.filter(p=>p.category==='Emotional Palette');
+  const lit=P.filter(p=>['Lighting Mood','Key Light','Practical Light'].includes(p.category));
+  const master=P.filter(p=>!emo.includes(p)&&!lit.includes(p));
+  document.getElementById('palmaster').innerHTML=master.map(card).join('');
+  document.getElementById('palemo').innerHTML=emo.map(card).join('');
+  document.getElementById('pallit').innerHTML=lit.map(card).join('');
+}
+function buildScenes(){
+  const scenes=[
+   {n:'1 · The Village Lane at Dusk',m:'Mission 1 · ~6 min · ~80 m one‑way walk',
+    light:'Dusk Warm Wayfinding — single sun #FFC68A @1.4; 4 god rays; bakery window glow as the destination; lit lantern at the bend',
+    loc:'Embershade village lane; stone‑walled bottleneck; hidden side path to the dormant beehive',
+    art:'~108 props from Medieval Village Megapack; 2 NPCs (Doris kneading, a silent villager reading)',
+    pal:['#FFC68A','#E8843C','#B5482E','#C9912E']},
+   {n:'2 · The Hollow Interior',m:'Mission 1 (~14 min) + Mission 2 reuse (~10 min)',
+    light:'Dim Cozy Interior 3200K (LM_Evening); warm pools — desk lamp #FFE0A0, stove glow, Pickle’s lit windowsill · 4 realtime',
+    loc:'Shop room 12×6 m + workbench room 6×5 m; upstairs locked; garden door opens in M2',
+    art:'7 predecessor‑seed signature props + 3 welcome gift orbs (bee/kettle/empty‑chair) + Pickle',
+    pal:['#FFE0A0','#FF9650','#6B4A2B','#F2B45A']},
+   {n:'3 · The Herb Garden',m:'Mission 2 · ~6 min',
+    light:'Bright Morning Garden — single sun #FFF1D6; the brightest scene (cozy contrast principle)',
+    loc:'Behind the workbench; 4 raised beds (lavender + valerian; 2 empty); meadow walled off',
+    art:'~33 Harvest Garden props; one‑button harvest (lavender D‑minor, valerian G‑sus)',
+    pal:['#FFF1D6','#9B86C4','#8FA66E','#7E8C5A']},
+   {n:'4 · The Widower’s Cottage',m:'Mission 2 · ~12 min · the emotional peak',
+    light:'Hearth‑Warm Afternoon — cool window ambient cut by a hearth #FF9650 + mantel candle; light fog on the walk · 2 realtime',
+    loc:'~35 m off the side lane; 80% mood / 20% prop; the bedroom stays a closed door',
+    art:'Mood‑tellers: empty feeder, dead lavender, cold tea, two settings, the sepia wedding photo, matching chairs',
+    pal:['#9DB4C0','#FF9650','#7A5C3E','#8C7AA6']}];
+  document.getElementById('scenebox').innerHTML=scenes.map(s=>'<div class="scene"><h3>'+s.n+'</h3><div class="meta">'+s.m+'</div>'+
+    '<div>'+s.pal.map(h=>'<span class="sw" style="background:'+h+'"></span>').join('')+' <span class="muted">'+s.pal.join('  ')+'</span></div>'+
+    '<div class="kv"><b>Lighting:</b> '+s.light+'</div><div class="kv"><b>Location:</b> '+s.loc+'</div><div class="kv"><b>Key art:</b> '+s.art+'</div></div>').join('');
+}
+</script>
+</body>
+</html>
