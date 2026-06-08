@@ -39,6 +39,9 @@ namespace HearthboundHollow.EditorTools
     public static class Phase62_GardenEnrichment
     {
         private const string MVRoot       = "Assets/MeshingunStudio";
+        // Stylized Nature CC0 — all URP/Lit shaders, safe for URP-Mobile.
+        // HarvestGarden (Assets/Waldemarst) is banned — Nature/SpeedTree8 renders magenta in URP.
+        private const string SNRoot       = "Assets/Unluck Software/Stylized Weather/Demo/Stylized Nature CC0/Prefabs";
         private const string GardenScene  = "Assets/_Project/Scenes/04_Mission02_Garden.unity";
         private const string EnrichRoot   = "_Phase62_GardenEnrich";
 
@@ -64,6 +67,7 @@ namespace HearthboundHollow.EditorTools
             try { n += ScatterTrees(scene, root.transform, log); } catch (System.Exception e) { log.AppendLine("  trees:  " + e.Message); }
             try { n += PlaceClusters(scene, root.transform, log); } catch (System.Exception e) { log.AppendLine("  props:  " + e.Message); }
             try { n += LayWayfinding(scene, root.transform, log); } catch (System.Exception e) { log.AppendLine("  way:    " + e.Message); }
+            try { FixHerbPlants(scene, log); }           catch (System.Exception e) { log.AppendLine("  herbs:  " + e.Message); }
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -128,7 +132,26 @@ namespace HearthboundHollow.EditorTools
             RenderSettings.ambientSkyColor    = new Color(0.62f, 0.66f, 0.74f);
             RenderSettings.ambientEquatorColor= new Color(0.50f, 0.46f, 0.40f);
             RenderSettings.ambientGroundColor = new Color(0.28f, 0.26f, 0.22f);
-            log.AppendLine("  light: warm autumn sun + trilight ambient set.");
+
+            // Camera clearFlags: ensure skybox is drawn (not solid-colour void) and
+            // UniversalAdditionalCameraData is present (required by URP for correct rendering).
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var cam = root.GetComponentInChildren<Camera>(true);
+                if (cam == null) continue;
+                if (cam.clearFlags != CameraClearFlags.Skybox)
+                {
+                    cam.clearFlags = CameraClearFlags.Skybox;
+                    EditorUtility.SetDirty(cam.gameObject);
+                }
+                var urp = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+                if (urp == null)
+                {
+                    cam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+                    EditorUtility.SetDirty(cam.gameObject);
+                }
+            }
+            log.AppendLine("  light: warm autumn sun + trilight ambient + camera skybox set.");
         }
 
         // ── 3) Trees + prop clusters ────────────────────────────
@@ -242,6 +265,73 @@ namespace HearthboundHollow.EditorTools
             l.type = LightType.Point;
             l.color = color; l.range = range; l.intensity = intensity; l.shadows = LightShadows.None;
             return 1;
+        }
+
+        // ── 5) Herb plant visual fix ──────────────────────────────────
+        // The LavenderPlant and ValerianPlant are plain capsule primitives in the scene.
+        // Hide the capsule body and attach a Stylized Nature CC0 plant as a _Visual child
+        // so they look like real plants without breaking HerbHarvestInteractable / collider.
+        private static void FixHerbPlants(Scene scene, StringBuilder log)
+        {
+            (string objName, string[] prefabKw, float scale, Vector3 offset)[] herbs =
+            {
+                ("LavenderPlant", new[] { "Bush_Common_Flowers", "Bush_Common", "Bush" }, 1.4f, new Vector3(0f, -0.3f, 0f)),
+                ("ValerianPlant", new[] { "Plant_7_Big", "Plant_7", "Plant" },           1.6f, new Vector3(0f, -0.3f, 0f)),
+            };
+
+            foreach (var h in herbs)
+            {
+                var go = FindDeepInScene(scene, h.objName)?.gameObject;
+                if (go == null) { log.AppendLine($"  herbs: {h.objName} not found — skip."); continue; }
+
+                // 1. Hide the capsule body
+                var mr = go.GetComponent<MeshRenderer>();
+                if (mr != null && mr.enabled)
+                {
+                    mr.enabled = false;
+                    EditorUtility.SetDirty(go);
+                }
+
+                // 2. Remove any stale _Visual child from a previous run (idempotent)
+                var old = go.transform.Find("_Visual");
+                if (old != null) Object.DestroyImmediate(old.gameObject);
+
+                // 3. Find URP-compatible plant prefab
+                var prefab = FindSNPrefab(h.prefabKw);
+                if (prefab == null) { log.AppendLine($"  herbs: no SN prefab for {h.objName} — capsule hidden only."); continue; }
+
+                // 4. Instantiate as _Visual child
+                var vis = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                vis.name = "_Visual";
+                vis.transform.SetParent(go.transform, false);
+                vis.transform.localPosition = h.offset;
+                vis.transform.localScale = Vector3.one * h.scale;
+                log.AppendLine($"  herbs: {h.objName} → {prefab.name} (scale {h.scale})");
+            }
+        }
+
+        private static GameObject FindSNPrefab(string[] keywords)
+        {
+            if (!System.IO.Directory.Exists(SNRoot)) return null;
+            var guids = AssetDatabase.FindAssets("t:Prefab", new[] { SNRoot });
+            var best = new List<(int score, GameObject prefab)>();
+            foreach (var g in guids)
+            {
+                var path  = AssetDatabase.GUIDToAssetPath(g);
+                var lower = path.ToLowerInvariant();
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
+                int score = 0; string pn = prefab.name.ToLowerInvariant();
+                foreach (var kw in keywords)
+                {
+                    string k = kw.ToLowerInvariant();
+                    if (lower.Contains(k)) score += 12;
+                    if (pn.Contains(k))    score += 18;
+                }
+                if (score > 0) best.Add((score, prefab));
+            }
+            best.Sort((a, b) => b.score.CompareTo(a.score));
+            return best.Count > 0 ? best[0].prefab : null;
         }
 
         // ── Shared helpers (mirrors Phase60) ───────────────────────
