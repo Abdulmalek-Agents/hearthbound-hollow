@@ -14,7 +14,9 @@ The complete **art production package** for the Mission 1–2 vertical slice of 
 | [`01_ART_PRODUCTION_PLAN.md`](01_ART_PRODUCTION_PLAN.md) | The **art production plan**: north star, palette/lighting language, pipeline & conventions, all four scenes, characters, orbs/shaders, UI, dreams, the dependency‑ordered build sequence, and acceptance criteria. |
 | [`02_ASSET_DEFINITIONS.md`](02_ASSET_DEFINITIONS.md) | **Every art asset** defined — name, type, description, palette, lighting mood, location, LOD notes, file path (generated from the CSV). |
 | [`03_COLOR_AND_LIGHTING_BIBLE.md`](03_COLOR_AND_LIGHTING_BIBLE.md) | The **color & lighting glossary** — master autumn palette, the 6‑emotion orb/dream palette, the 5 lighting moods, the realtime‑light budget. |
+| [`04_ENVIRONMENT_LAYOUTS.md`](04_ENVIRONMENT_LAYOUTS.md) | **Spatial layouts** — per‑scene ASCII top‑down plans annotated with asset codes, a GitHub‑native **Mermaid flow map** of the mission route, a **Mermaid mind map** of the asset taxonomy, and the side‑view asset list. |
 | [`ART_PRODUCTION_DASHBOARD.html`](ART_PRODUCTION_DASHBOARD.html) | An **interactive HTML dashboard** — filter/search assets, browse the roster, view palette swatches and per‑scene/category breakdowns. It loads the CSVs in `manifests/` live (best via GitHub Pages or a local server such as `python3 -m http.server`; opened straight from disk it falls back to fetching the manifests from the branch's raw URLs, so it also works in‑browser with an internet connection). |
+| [`ART_ENVIRONMENT_LAYOUTS.html`](ART_ENVIRONMENT_LAYOUTS.html) | An **interactive top‑down layout** — accurate plan‑view maps of all 4 scenes with every asset placed at its blocked position (emoji icon + asset code + name on hover + TOP/SIDE/BOTH view badge + position table), plus a mission flow "miro" map, an asset mind map, and a side‑view elevation gallery. Fully self‑contained — open in any browser. |
 | [`manifests/asset_manifest.csv`](manifests/asset_manifest.csv) | The machine‑readable **asset manifest** (130 rows × 14 columns) — the single source of truth. |
 | [`manifests/team_roster.csv`](manifests/team_roster.csv) | The roster as CSV (45 rows). |
 | [`manifests/lighting_palette.csv`](manifests/lighting_palette.csv) | The palette & lighting swatches as CSV (30 rows). |
@@ -28,6 +30,7 @@ The complete **art production package** for the Mission 1–2 vertical slice of 
 - **2 mini‑games:** Polish (M1, warm) and Cleanse (M2, careful) — both built on the `MemoryOrb_Master` shader.
 - **2 Memory Dreams:** *The First Loaves* (warm) and *The Last Week* (4 choice variants).
 - **6 realtime lights total**, build < 1.5 GB, < 200 MB textures — the URP‑Mobile budget.
+- **Spatial layouts:** open `ART_ENVIRONMENT_LAYOUTS.html` (or `04_ENVIRONMENT_LAYOUTS.md`) for accurate top‑down placement of every asset, what reads top‑down vs from the side, and the mission flow/mind maps.
 
 ## 🧭 Inviolable disciplines (carried from `CLAUDE.md`)
 1. **The Cozy Contract holds, always** — nothing punishes kindness; failure is narratively absorbed; **no "FAILED" string ever ships**; Auto‑Complete on every mini‑game; cozy, opt‑in, celebratory progression feedback (D‑076).
