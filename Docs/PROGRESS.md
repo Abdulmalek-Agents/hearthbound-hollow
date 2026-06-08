@@ -10,6 +10,54 @@
 
 ---
 
+## 🆕 D-085 — Save schema v4: 33 missing fields wired into VillageStateSnapshot + Garden scene visual overhaul  🟢 (2026-06-08)
+
+**Root cause:** Across the playtest-pass commit, Phase 30 (onboarding), and the Phase 48–54 Depth
+Layer, 33 fields were added to `VillageState` runtime state but never wired into
+`VillageStateSnapshot` serialization. Every save/load silently dropped: Pickle's approval &
+sass intensity, the M2 moral-choice outcome (`gerroldChoice`, `firstMoralChoiceMade`), the Cold
+Open seen-gate, the Reading Nook letter history (`letterFragmentIdsRead`), all Gerrold/Doris
+encounter flags, and ~20 other persistent narrative flags.
+
+**Fix — schema v4 (D-085):**
+- **`VillageStateSnapshot.cs`** — `schemaVersion` bumped to 4.
+  - 33 new field declarations added with forward-compatible defaults
+    (`pickleApproval=50`, `pickleSassIntensity=3`, all others 0/false/"").
+  - `FromState()` serializer: all 33 fields wired in. `List<string>` copied defensively.
+  - `ApplyTo()` deserializer: all 33 fields restored. Old v1/v2/v3 saves missing these fields
+    deserialize to the declared defaults (no hostile resets).
+  - Three clusters: **Playtest-pass** (Pickle, Doris/Gerrold encounter flags, moral choice,
+    quality strings), **Phase 30 onboarding** (`onboardingCompleted`), **Phase 48–54 Depth
+    Layer** (Cold Open, Echo Hologram, Preface Beat, Memory Web, Reading Nook letter history).
+
+**Garden scene visual overhaul (`04_Mission02_Garden.unity`):**
+- Removed `_Phase63_WorldPolish` container (held old HarvestGarden SpeedTree8 vegetation —
+  `Nature/SpeedTree8` is Built-in RP only, renders as magenta blobs in URP-Mobile).
+- Ground material fixed: project asset `HH_Ground_garden.mat` with earthy olive color
+  (`#385723`), no foliage-card texture — replacing the former neon-lime `#CCE0AD` + atlas.
+- `_Phase62_Vegetation` container added with URP-compatible Stylized Nature CC0 assets:
+  4 corner trees (`CommonTree_1/3`), 5 `Bush_Common_Flowers` clusters, 6 `Grass_Common_Short`
+  patches, 8 `SM_Grass_01a_Foliage` tufts.
+- `LavenderPlant` / `ValerianPlant`: capsule `MeshRenderer` disabled; `_Visual` child added
+  (`Bush_Common_Flowers.prefab` / `Plant_7_Big.prefab`) — `HerbHarvestInteractable` +
+  `CapsuleCollider` on parent preserved.
+- Camera: `clearFlags` → `Skybox`; `UniversalAdditionalCameraData` added (required for URP).
+  Existing `HearthboundAutumnSky` procedural skybox tuned to warm amber-autumn palette.
+- Directional light: warm golden `#FFE8B2`, intensity 1.25, Euler(40,-28,0).
+- Fog: warm `(0.70, 0.62, 0.50)`, ExponentialSquared density 0.015.
+
+**Files touched:**
+- `Assets/_Project/Scripts/Save/VillageStateSnapshot.cs`
+- `Assets/_Project/Scenes/04_Mission02_Garden.unity`
+- `Assets/_Project/Art/Materials/HH_Ground_garden.mat` (new project asset)
+- `Assets/_Project/Art/Materials/Mat_LavenderPlant.mat`
+- `Assets/_Project/Art/Materials/Mat_ValerianPlant.mat`
+- `Assets/_Project/Art/Sky/HearthboundAutumnSky.mat`
+
+**Console:** Zero game errors after changes. Only Unity AI Assistant network noise (unrelated).
+
+---
+
 ## 🆕 Phase 58.1 — Arabic-mode freeze (TMP crash) + dialogue camera + subtitle reveal  🟢 (2026-05-31)
 
 **User report (QA video + screenshot):** in Arabic mode the game **froze** on the Help overlay

@@ -50,25 +50,30 @@ namespace HearthboundHollow.EditorTools
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             var mat = new Material(shader) { name = "HH_Ground_" + kind };
 
-            Texture2D tex = earth
-                ? FindGroundTexture(
-                      prefer:  new[] { "groundpatch", "t_ground", "ground", "dirt", "soil", "path", "cobble" },
-                      exclude: new[] { "grass", "snow", "_n.", "_normal", "_or", "ors", "mask", "rough", "metal", "height", "_ao" })
-                : FindGroundTexture(
-                      prefer:  new[] { "t_grass_fo", "grass", "meadow", "field", "lawn" },
-                      exclude: new[] { "dried", "dry", "dead", "burn", "snow", "_n.", "_normal", "_or", "ors", "mask", "rough", "metal", "height", "_ao" });
+            // Garden/meadow: use flat colour only — foliage-card textures (T_Grass_Fo_*)
+            // tile badly as large ground planes and were producing the tiled-grass-blade grid
+            // artifact. Lane/earth paths can use a soil texture since they tile more naturally.
+            Texture2D tex = null;
+            if (earth)
+            {
+                tex = FindGroundTexture(
+                    prefer:  new[] { "groundpatch", "t_ground", "ground", "dirt", "soil", "path", "cobble" },
+                    exclude: new[] { "grass", "snow", "_n.", "_normal", "_or", "ors", "mask", "rough", "metal", "height", "_ao", "_fo_", "_fo.", "foliage" });
+            }
+            // For garden/meadow we intentionally leave tex = null → solid flat colour
+            // which looks clean and cozy instead of a tiled foliage-card grid.
 
-            // Texture is colour-multiplied by base tint, so keep the tint light.
+            // Flat colours: earth = warm soil, garden = rich lush green (#385723-ish).
             var baseTint  = earth ? new Color(0.55f, 0.46f, 0.33f)   // warm soil
-                                  : new Color(0.80f, 0.88f, 0.68f);  // light → grass reads lush-green
+                                  : new Color(0.80f, 0.88f, 0.68f);  // unused for garden
             var flatColor = earth ? new Color(0.30f, 0.25f, 0.18f)   // warm earth
-                                  : new Color(0.27f, 0.45f, 0.22f);  // lush meadow green (NEVER brown)
+                                  : new Color(0.22f, 0.34f, 0.14f);  // #385722 earthy olive-green
 
             if (tex != null)
             {
                 if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
                 if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
-                float tile = earth ? 10f : 14f;        // many small tiles read as detail, not a slab
+                float tile = 8f;
                 mat.mainTextureScale = new Vector2(tile, tile);
                 if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", baseTint);
                 if (mat.HasProperty("_Color"))     mat.SetColor("_Color", baseTint);
@@ -79,8 +84,8 @@ namespace HearthboundHollow.EditorTools
                 if (mat.HasProperty("_Color"))     mat.SetColor("_Color", flatColor);
             }
 
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.05f);
-            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.05f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.04f);
+            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.04f);
             return mat;
         }
 

@@ -37,7 +37,10 @@ namespace HearthboundHollow.EditorTools
     public static class Phase63_WorldPolish
     {
         private const string MV   = "Assets/MeshingunStudio";     // Medieval Village
-        private const string HG   = "Assets/Waldemarst";          // HarvestGarden
+        // HarvestGarden (Assets/Waldemarst) is intentionally NOT referenced here —
+        // all its vegetation uses Nature/SpeedTree8 (Built-in RP only) which renders
+        // as magenta blobs in URP-Mobile. Use Stylized Nature CC0 instead.
+        private const string SN   = "Assets/Unluck Software/Stylized Weather/Demo/Stylized Nature CC0"; // URP Lit ✓
         private const string Root = "_Phase63_WorldPolish";
 
         private const string LaneScene    = "Assets/_Project/Scenes/02_Mission01_Lane.unity";
@@ -130,12 +133,13 @@ namespace HearthboundHollow.EditorTools
             log.AppendLine($"  {kind} light: warm sun + ambient.");
         }
 
-        // ── 3) Greenery ring (trees + boxwood hedges) ───────────────────
+        // ── 3) Greenery ring (trees + URP-compatible bushes) ────────────────
         private static int GreeneryRing(Transform parent, string kind, float groundY)
         {
             var ring = new GameObject("GreeneryRing"); ring.transform.SetParent(parent, false);
             var pine = FindPrefab(MV, new[] { "PineTree", "Tree" });
-            var bush = FindPrefab(HG, new[] { "Boxwood" }) ?? FindPrefab(MV, new[] { "Bush", "Shrub" });
+            // Use Stylized Nature CC0 (URP/Lit) for bushes — never HarvestGarden (SpeedTree8 → magenta).
+            var bush = FindPrefab(SN, new[] { "Bush_Common", "Bush" }) ?? FindPrefab(MV, new[] { "Bush", "Shrub" });
             int placed = 0;
             float r = kind == "cottage" ? 14f : 19f;
             Vector3 c = new Vector3(0f, groundY, kind == "garden" ? 6f : 0f);
@@ -205,17 +209,20 @@ namespace HearthboundHollow.EditorTools
 
         private static int CropRows(Transform parent, float groundY)
         {
-            var wheat = FindPrefab(HG, new[] { "Wheat_Mid", "Wheat" });
-            var box   = FindPrefab(HG, new[] { "Boxwood" });
+            // HarvestGarden wheat/boxwood use Nature/SpeedTree8 (magenta in URP).
+            // Use Stylized Nature CC0 URP/Lit plants instead.
+            var plantA = FindPrefab(SN, new[] { "Plant_7_Big", "Plant_7", "Plant" });
+            var plantB = FindPrefab(SN, new[] { "Bush_Common_Flowers", "Bush_Common", "Bush" });
             int placed = 0;
             for (int row = 0; row < 2; row++)
             {
-                var prefab = row == 0 ? wheat : box;
+                var prefab = row == 0 ? plantA : plantB;
                 if (prefab == null) continue;
-                for (int i = 0; i < 7; i++)
+                float scl = row == 0 ? 0.7f : 0.6f;
+                for (int i = 0; i < 6; i++)
                 {
-                    Vector3 p = new Vector3(-3.2f + row * 0.9f, 6f, 3f + i * 0.8f);
-                    placed += Spawn(prefab, parent, $"Crop_{row}_{i}", p, Quaternion.Euler(0f, i * 30f, 0f), 1f, groundY, collide: false);
+                    Vector3 p = new Vector3(-3.2f + row * 1.1f, 6f, 3f + i * 0.9f);
+                    placed += Spawn(prefab, parent, $"Crop_{row}_{i}", p, Quaternion.Euler(0f, i * 45f, 0f), scl, groundY, collide: false);
                 }
             }
             return placed;

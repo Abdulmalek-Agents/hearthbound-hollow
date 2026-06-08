@@ -136,7 +136,7 @@ namespace HearthboundHollow.Save
         {
             return new VillageStateSnapshot
             {
-                schemaVersion = 3,
+                schemaVersion = 4,
                 savedAtIso = DateTime.UtcNow.ToString("o"),
                 lastSceneName = s.lastSceneName,
                 trustDoris = s.trustDoris,
@@ -185,6 +185,43 @@ namespace HearthboundHollow.Save
                 keeperHandCraftCount = s.keeperHandCraftCount,
                 gardenBeds = CloneBeds(s.gardenBeds),
                 villageSeed = s.villageSeed,
+
+                // D-085 schema v4 — playtest-pass + onboarding + depth-layer
+                pickleApproval = s.pickleApproval,
+                pickleSassIntensity = s.pickleSassIntensity,
+                cinder = s.cinder,
+                askedAboutPredecessor = s.askedAboutPredecessor,
+                refusedDorisOrb = s.refusedDorisOrb,
+                dorisOwesPlayer = s.dorisOwesPlayer,
+                polishQuality = s.polishQuality ?? "",
+                metDoris = s.metDoris,
+                metGerrold = s.metGerrold,
+                offeredGerroldTea = s.offeredGerroldTea,
+                teaBrewed = s.teaBrewed ?? "",
+                walkedToGerroldHouse = s.walkedToGerroldHouse,
+                workedAtHollow = s.workedAtHollow,
+                workedAlone = s.workedAlone,
+                satInGerroldChair = s.satInGerroldChair,
+                satInMargeryChair = s.satInMargeryChair,
+                deferredGerrold = s.deferredGerrold,
+                gerroldChoice = s.gerroldChoice ?? "",
+                cleanseQuality = s.cleanseQuality ?? "",
+                firstMoralChoiceMade = s.firstMoralChoiceMade,
+                gerroldReturnsDay3 = s.gerroldReturnsDay3,
+                mission6RecoveryArcSeeded = s.mission6RecoveryArcSeeded,
+                onboardingCompleted = s.onboardingCompleted,
+                seenColdOpen = s.seenColdOpen,
+                coldOpenLastVariant = s.coldOpenLastVariant ?? "",
+                echoHologramHeard = s.echoHologramHeard,
+                echoHologramsFound = s.echoHologramsFound,
+                prefaceBeatPlayed = s.prefaceBeatPlayed,
+                prefaceToneBucket = s.prefaceToneBucket ?? "",
+                memoryWebConnectionsFound = s.memoryWebConnectionsFound,
+                readingNookVisited = s.readingNookVisited,
+                letterFragmentsRead = s.letterFragmentsRead,
+                letterFragmentIdsRead = s.letterFragmentIdsRead != null
+                    ? new List<string>(s.letterFragmentIdsRead)
+                    : new List<string>(),
             };
         }
 
@@ -258,6 +295,46 @@ namespace HearthboundHollow.Save
             s.keeperHandCraftCount = keeperHandCraftCount;
             s.gardenBeds = CloneBeds(gardenBeds);
             s.villageSeed = villageSeed;   // Phase 74 (0 for pre-v74 saves → day-only roster, unchanged)
+
+            // D-085 schema v4 — forward-compatible: v1/v2/v3 saves missing these
+            // fields deserialize to the declared defaults above (pickleApproval=50,
+            // pickleSassIntensity=3, all others 0/false/"") which match the
+            // VillageState.ResetToDefault() values — never a hostile default.
+            s.pickleApproval = pickleApproval;
+            s.pickleSassIntensity = pickleSassIntensity;
+            s.cinder = cinder;
+            s.askedAboutPredecessor = askedAboutPredecessor;
+            s.refusedDorisOrb = refusedDorisOrb;
+            s.dorisOwesPlayer = dorisOwesPlayer;
+            s.polishQuality = polishQuality ?? "";
+            s.metDoris = metDoris;
+            s.metGerrold = metGerrold;
+            s.offeredGerroldTea = offeredGerroldTea;
+            s.teaBrewed = teaBrewed ?? "";
+            s.walkedToGerroldHouse = walkedToGerroldHouse;
+            s.workedAtHollow = workedAtHollow;
+            s.workedAlone = workedAlone;
+            s.satInGerroldChair = satInGerroldChair;
+            s.satInMargeryChair = satInMargeryChair;
+            s.deferredGerrold = deferredGerrold;
+            s.gerroldChoice = gerroldChoice ?? "";
+            s.cleanseQuality = cleanseQuality ?? "";
+            s.firstMoralChoiceMade = firstMoralChoiceMade;
+            s.gerroldReturnsDay3 = gerroldReturnsDay3;
+            s.mission6RecoveryArcSeeded = mission6RecoveryArcSeeded;
+            s.onboardingCompleted = onboardingCompleted;
+            s.seenColdOpen = seenColdOpen;
+            s.coldOpenLastVariant = coldOpenLastVariant ?? "";
+            s.echoHologramHeard = echoHologramHeard;
+            s.echoHologramsFound = echoHologramsFound;
+            s.prefaceBeatPlayed = prefaceBeatPlayed;
+            s.prefaceToneBucket = prefaceToneBucket ?? "";
+            s.memoryWebConnectionsFound = memoryWebConnectionsFound;
+            s.readingNookVisited = readingNookVisited;
+            s.letterFragmentsRead = letterFragmentsRead;
+            s.letterFragmentIdsRead = letterFragmentIdsRead != null
+                ? new List<string>(letterFragmentIdsRead)
+                : new List<string>();
         }
     }
 }
