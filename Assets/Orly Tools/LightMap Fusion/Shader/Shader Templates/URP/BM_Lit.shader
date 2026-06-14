@@ -733,13 +733,10 @@ Shader /*ase_name*/ "Hidden/Universal/BM_Lit" /*end*/
 			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
 			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
 
-			/*ase_srp_cond_begin:<140009*/
-			#pragma multi_compile_fragment _ _SHADOWS_SOFT
-            /*ase_srp_cond_end*/
-
-			/*ase_srp_cond_begin:>=140009*/
+			// Hearthbound patch: removed pre-URP-14.0.9 _SHADOWS_SOFT directive
+			// to fix Unity 6 warning: "Keyword '_SHADOWS_SOFT' is duplicated in several directives".
+			// We're on URP 17.2.x — only the new granular variant is needed.
 			#pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
-            /*ase_srp_cond_end*/
 
 			#pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
 			#pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
@@ -2869,13 +2866,10 @@ Shader /*ase_name*/ "Hidden/Universal/BM_Lit" /*end*/
 			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
 			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
 
-			/*ase_srp_cond_begin:<140009*/
-			#pragma multi_compile_fragment _ _SHADOWS_SOFT
-            /*ase_srp_cond_end*/
-
-			/*ase_srp_cond_begin:>=140009*/
+			// Hearthbound patch: removed pre-URP-14.0.9 _SHADOWS_SOFT directive
+			// to fix Unity 6 warning: "Keyword '_SHADOWS_SOFT' is duplicated in several directives".
+			// We're on URP 17.2.x — only the new granular variant is needed.
 			#pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
-            /*ase_srp_cond_end*/
 
 			#pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
 			#pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
