@@ -10,6 +10,40 @@
 
 ---
 
+## 🆕 Phase 77 — Sandbox Prototype Scene  🟢 (2026-06-16)
+
+**Goal:** A standalone playable prototype scene (`06_SandboxProto.unity`) where the
+core loop works in isolation — no missions, no save system, no Yarn Spinner required.
+Player moves, talks to a villager, receives an orb task, polishes it, gets paid.
+
+**Files added:**
+- `Assets/_Project/Scripts/Mission/SandboxBootstrapper.cs`
+  Registers VillageState with ServiceLocator + resets to day-0 defaults on Play.
+  Replaces GameManager for the sandbox scene only. Execution order −900.
+- `Assets/_Project/Scripts/Mission/SandboxVillagerDirector.cs`
+  Drives the full Doris interaction: proximity detection → 3-act dialogue
+  (greeting / task / thanks) → orb reveal → PolishMiniGame → coin reward.
+  Plain string arrays (no Yarn). Simple Canvas/TMP UI built by the builder.
+  Execution order −800.
+- `Assets/_Project/Scripts/Editor/Phase77_SandboxSceneBuilder.cs`
+  One-click builder: `Hearthbound → ⚙️ Advanced → Phase 77 – Build Sandbox Scene`.
+  Places Cottage_A_Bakery, Doris NPC, Player prefab, workbench, orb,
+  CM_PlayerFollow camera, dialogue UI Canvas, SandboxBootstrapper,
+  SandboxVillagerDirector. Falls back to primitives if any prefab is missing.
+  Adds scene to Build Settings slot 6.
+
+**How to run:**
+1. `Hearthbound → ⚙️ Advanced → Phase 77 – Build Sandbox Scene`
+2. Open `06_SandboxProto.unity` → Press ▶ Play
+3. WASD toward Doris → E to talk → E to advance lines
+4. Walk to workbench → E on orb → hold LMB + draw circles
+5. Walk back to Doris → +4 coins
+
+**Prototype loop covers:** player movement · proximity interaction · multi-line
+dialogue · orb reveal · PolishMiniGame (full production system) · coin reward.
+
+---
+
 ## 🆕 D-085 — Save schema v4: 33 missing fields wired into VillageStateSnapshot + Garden scene visual overhaul  🟢 (2026-06-08)
 
 **Root cause:** Across the playtest-pass commit, Phase 30 (onboarding), and the Phase 48–54 Depth
