@@ -134,7 +134,11 @@ namespace SimpleTalentTreeUi
         private static string BuildKeyForSaveable(ISaveable saveable)
         {
             var unityObject = (UnityEngine.Object)saveable;
+#if UNITY_6000_3_OR_NEWER
+            int instanceID = unityObject.GetEntityId().GetHashCode();
+#else
             int instanceID = unityObject.GetInstanceID();
+#endif
             return saveable.GetType().FullName + "#" + instanceID.ToString();
         }
 

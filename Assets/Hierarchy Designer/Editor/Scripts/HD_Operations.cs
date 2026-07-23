@@ -1258,7 +1258,7 @@ namespace HierarchyDesigner
             {
                 foreach (GameObject selectedGameObject in selectedGameObjects)
                 {
-                    int instanceID = selectedGameObject.GetInstanceID();
+                    int instanceID = selectedGameObject.CompatInstanceId();
                     if (HD_Manager.gameObjectDataCache.TryGetValue(instanceID, out HD_Manager.GameObjectData data))
                     {
                         data.MainIcon = HD_Manager.GetGameObjectMainIcon(selectedGameObject);
@@ -1281,7 +1281,7 @@ namespace HierarchyDesigner
             {
                 foreach (GameObject selectedGameObject in selectedGameObjects)
                 {
-                    int instanceID = selectedGameObject.GetInstanceID();
+                    int instanceID = selectedGameObject.CompatInstanceId();
                     if (HD_Manager.gameObjectDataCache.TryGetValue(instanceID, out HD_Manager.GameObjectData data))
                     {
                         data.ComponentIcons = HD_Manager.GetComponentIcons(selectedGameObject);
@@ -1304,7 +1304,7 @@ namespace HierarchyDesigner
             {
                 foreach (GameObject selectedGameObject in selectedGameObjects)
                 {
-                    int instanceID = selectedGameObject.GetInstanceID();
+                    int instanceID = selectedGameObject.CompatInstanceId();
                     if (HD_Manager.gameObjectDataCache.TryGetValue(instanceID, out HD_Manager.GameObjectData data))
                     {
                         data.HierarchyTreeIcon = HD_Manager.GetOrCreateBranchIcon(selectedGameObject.transform);
@@ -1327,7 +1327,7 @@ namespace HierarchyDesigner
             {
                 foreach (GameObject selectedGameObject in selectedGameObjects)
                 {
-                    int instanceID = selectedGameObject.GetInstanceID();
+                    int instanceID = selectedGameObject.CompatInstanceId();
                     if (HD_Manager.gameObjectDataCache.TryGetValue(instanceID, out HD_Manager.GameObjectData data))
                     {
                         data.Tag = selectedGameObject.tag;
@@ -1350,7 +1350,7 @@ namespace HierarchyDesigner
             {
                 foreach (GameObject selectedGameObject in selectedGameObjects)
                 {
-                    int instanceID = selectedGameObject.GetInstanceID();
+                    int instanceID = selectedGameObject.CompatInstanceId();
                     if (HD_Manager.gameObjectDataCache.TryGetValue(instanceID, out HD_Manager.GameObjectData data))
                     {
                         data.Layer = LayerMask.LayerToName(selectedGameObject.layer);
@@ -1366,7 +1366,7 @@ namespace HierarchyDesigner
 
         public static void RefreshGameObjectData(GameObject gameObject)
         {
-            int instanceID = gameObject.GetInstanceID();
+            int instanceID = gameObject.CompatInstanceId();
             if (!HD_Manager.gameObjectDataCache.TryGetValue(instanceID, out HD_Manager.GameObjectData data))
             {
                 data = new HD_Manager.GameObjectData();
@@ -1426,7 +1426,7 @@ namespace HierarchyDesigner
 
         private static void CollapseRecursive(GameObject obj)
         {
-            int instanceID = obj.GetInstanceID();
+            int instanceID = obj.CompatInstanceId();
             SetExpanded(instanceID, false);
 
             foreach (Transform child in obj.transform)
@@ -1437,7 +1437,7 @@ namespace HierarchyDesigner
 
         private static void ExpandRecursive(GameObject obj)
         {
-            int instanceID = obj.GetInstanceID();
+            int instanceID = obj.CompatInstanceId();
             SetExpanded(instanceID, true);
 
             foreach (Transform child in obj.transform)
@@ -1520,7 +1520,7 @@ namespace HierarchyDesigner
                 if (t.childCount > 0)
                 {
                     total++;
-                    if (expanded.Contains(t.gameObject.GetInstanceID())) expandedCount++;
+                    if (expanded.Contains(t.gameObject.CompatInstanceId())) expandedCount++;
                 }
 
                 for (int i = 0; i < t.childCount; i++)

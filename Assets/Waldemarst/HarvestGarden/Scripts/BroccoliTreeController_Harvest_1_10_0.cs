@@ -825,7 +825,11 @@ namespace Broccoli.Controller {
 		public void RegisterGlobalWindInstance () {
 			int rendererId;
 			if (_localRenderer == null) _localRenderer = GetComponent<Renderer> ();
+#if UNITY_6000_3_OR_NEWER
+			rendererId = _localRenderer.GetEntityId ().GetHashCode ();
+#else
 			rendererId = _localRenderer.GetInstanceID ();
+#endif
 			if (!_globalRenderers.ContainsKey (rendererId)) {
 				_globalRenderers.Add (rendererId, _localRenderer);
 				_globalWindSettings.Add (rendererId, new WindSettings (trunkBending));
@@ -833,7 +837,11 @@ namespace Broccoli.Controller {
 		}
 		public void DeregisterGlobalWindInstance () {
 			if (_localRenderer == null) return;
+#if UNITY_6000_3_OR_NEWER
+			int rendererId = _localRenderer.GetEntityId ().GetHashCode ();
+#else
 			int rendererId = _localRenderer.GetInstanceID ();
+#endif
 			if (_globalRenderers.ContainsKey (rendererId)) {
 				_globalRenderers.Remove (rendererId);
 				_globalWindSettings.Remove (rendererId);

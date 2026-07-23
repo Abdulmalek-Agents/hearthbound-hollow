@@ -15,7 +15,11 @@ namespace Microdetail
 
             public SerializedRenderer(GameObject parent, string state)
             {
+#if UNITY_6000_3_OR_NEWER
+                InstanceID = parent.GetEntityId().GetHashCode();
+#else
                 InstanceID = parent.GetInstanceID();
+#endif
                 State = state;
             }
         }
@@ -63,7 +67,11 @@ namespace Microdetail
                         object entry = new SerializedRenderer();
                         EditorJsonUtility.FromJsonOverwrite(serialized, entry);
                         var deserializedObject = (SerializedRenderer)entry;
+#if UNITY_6000_3_OR_NEWER
+                        var terrain = terrains.Find(x => x.gameObject.GetEntityId().GetHashCode() == deserializedObject.InstanceID);
+#else
                         var terrain = terrains.Find(x => x.gameObject.GetInstanceID() == deserializedObject.InstanceID);
+#endif
                         if (terrain == null)
                         {
                             Debug.LogWarning($"Couldn't find terrain for {deserializedObject.InstanceID}. Was it created during runtime?");

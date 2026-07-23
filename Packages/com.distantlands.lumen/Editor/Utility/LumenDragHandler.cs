@@ -66,7 +66,11 @@ namespace DistantLands.Lumen.EditorScripts
                     LumenEffectPlayer player = go.AddComponent<LumenEffectPlayer>();
                     player.profile = lumenEffect;
 
+#if UNITY_6000_3_OR_NEWER
+                    GameObject parentObject = (GameObject)EditorUtility.EntityIdToObject(dropTargetInstanceID);
+#else
                     GameObject parentObject = (GameObject)EditorUtility.InstanceIDToObject(dropTargetInstanceID);
+#endif
                     if (parentObject)
                     {
                         go.transform.SetParent(parentObject.transform);

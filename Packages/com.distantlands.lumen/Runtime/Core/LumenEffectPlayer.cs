@@ -194,7 +194,11 @@ namespace DistantLands.Lumen
 
         private void Awake()
         {
+#if UNITY_6000_3_OR_NEWER
+            entityId = gameObject.GetEntityId().GetHashCode();
+#else
             entityId = gameObject.GetInstanceID();
+#endif
             entityIdHash = entityId.GetHashCode();
         }
 

@@ -129,15 +129,15 @@ namespace UnityEditor.UIElements.Expansions
             }
             protected override void RegisterCallbacksOnTarget()
             {
-                base.target.RegisterCallback<MouseDownEvent>(new EventCallback<MouseDownEvent>(this.OnMouseDown), 0);
-                base.target.RegisterCallback<MouseMoveEvent>(new EventCallback<MouseMoveEvent>(this.OnMouseMove), 0);
-                base.target.RegisterCallback<MouseUpEvent>(new EventCallback<MouseUpEvent>(this.OnMouseUp), 0);
+                base.target.RegisterCallback<MouseDownEvent>(new EventCallback<MouseDownEvent>(this.OnMouseDown), TrickleDown.NoTrickleDown);
+                base.target.RegisterCallback<MouseMoveEvent>(new EventCallback<MouseMoveEvent>(this.OnMouseMove), TrickleDown.NoTrickleDown);
+                base.target.RegisterCallback<MouseUpEvent>(new EventCallback<MouseUpEvent>(this.OnMouseUp), TrickleDown.NoTrickleDown);
             }
             protected override void UnregisterCallbacksFromTarget()
             {
-                base.target.UnregisterCallback<MouseDownEvent>(new EventCallback<MouseDownEvent>(this.OnMouseDown), 0);
-                base.target.UnregisterCallback<MouseMoveEvent>(new EventCallback<MouseMoveEvent>(this.OnMouseMove), 0);
-                base.target.UnregisterCallback<MouseUpEvent>(new EventCallback<MouseUpEvent>(this.OnMouseUp), 0);
+                base.target.UnregisterCallback<MouseDownEvent>(new EventCallback<MouseDownEvent>(this.OnMouseDown), TrickleDown.NoTrickleDown);
+                base.target.UnregisterCallback<MouseMoveEvent>(new EventCallback<MouseMoveEvent>(this.OnMouseMove), TrickleDown.NoTrickleDown);
+                base.target.UnregisterCallback<MouseUpEvent>(new EventCallback<MouseUpEvent>(this.OnMouseUp), TrickleDown.NoTrickleDown);
             }
             protected void OnMouseDown(MouseDownEvent e)
             {
@@ -841,7 +841,7 @@ namespace UnityEditor.UIElements.Expansions
             if (bindableLabel != null)
             {
                 bindableLabel.userData = (property.Copy());
-                bindableLabel.RegisterCallback<MouseUpEvent>(new EventCallback<MouseUpEvent>(this.RightClickMenuEvent), 0);
+                bindableLabel.RegisterCallback<MouseUpEvent>(new EventCallback<MouseUpEvent>(this.RightClickMenuEvent), TrickleDown.NoTrickleDown);
             }
             VisualElement visualElement = new VisualElement();
             visualElement.AddToClassList(ReorderableList.singleItemUssClassName);

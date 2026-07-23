@@ -10,6 +10,49 @@
 
 ---
 
+## 🆕 Phase 78 — Unity 6000.5 compatibility hotfix (D-086)  🟢 (2026-07-23)
+
+**Blocker:** the project (pinned to 6000.4.4f1) was opened with the only installed editor,
+**6000.5.0f1**, and would not compile: package resolution failed outright
+(`com.unity.modules.vr` no longer exists in 6000.5), and `Object.GetInstanceID()` /
+`EditorUtility.InstanceIDToObject()` became **error-level obsolete** (CS0619), breaking four
+registry packages and eight vendored asset packs. Game unplayable — no scene could enter Play.
+
+**Fix (D-086 — editor-version migration policy):**
+- `Packages/manifest.json` — removed `com.unity.modules.vr`; bumped the four packages whose
+  pinned versions still call the removed APIs (new versions verified clean by tarball
+  inspection before pinning): timeline 1.8.7→**1.8.12**, splines 2.7.2→**2.9.0**,
+  visualscripting 1.9.7→**1.9.12**, cinemachine 3.1.4→**3.1.7**.
+- Deleted stale `Packages/packages-lock.json` (UPM regenerated it; verified the new pins +
+  no vr module resolved).
+- Vendored call sites wrapped in `#if UNITY_6000_3_OR_NEWER` guards (new API in the `#if`
+  branch, original call preserved in `#else` so a return to 6000.4.4f1 still compiles) —
+  same pattern AssetInventory/Jorjouto already ship:
+  - `Character Controller Pro/Core/Scripts/Utilities/CharacterDetector.cs` (1 site)
+  - `Packages/com.distantlands.lumen` — `LumenEffectPlayer.cs`, `LumenDragHandler.cs` (2)
+  - `Plugins/Microdetail` — `SaveModeSaveHandler.cs`, `MapSet.cs` (3)
+  - `SimpleTalentTreeUi/Scripts/SaveSystem/SaveManager.cs` (1)
+  - `VertexField/VoluSmoke FX/Editor/VS_PresetBrowser.cs` (2)
+  - `FImpossible Creations/.../FHierarchyIcons.cs` (1)
+  - `Cutscene Engine/Runtime/Utility/CutsceneEngineUtility.cs` (1)
+  - `Hierarchy Designer/Editor/Scripts/` — new `HD_InstanceIdCompat.cs` extension shim +
+    16 call sites in `HD_Manager.cs`/`HD_Operations.cs` swapped to `.CompatInstanceId()`.
+- Int-keyed IDs derive via `GetEntityId().GetHashCode()` (AssetInventory's own compat
+  pattern); `InstanceIDToObject(int)` → `EntityIdToObject(int)` (implicit int→EntityId).
+
+**Deviation from ARCHITECTURE.md:** the repo pins 6000.4.4f1, but the working machine has
+only 6000.5.0f1 installed and all recent sessions open with it. This hotfix makes the project
+compile under **both**. Decide later whether to re-pin `ProjectVersion.txt` to 6000.5.
+
+**Follow-ups:**
+- `git-lfs` is not installed on this machine — plain `git status`/`diff` fail
+  (`git-lfs: command not found`). LFS-tracked binaries in the working tree are real files,
+  so the game is unaffected; install git-lfs (`brew install git-lfs`) to restore git hygiene.
+- Playtest report embedded in `Docs/*.mp4` filename: camera clips through player; player
+  gets stuck at Mission 2 with no progress affordance — audit after compile is green.
+
+---
+
 ## 🆕 Phase 77 — Sandbox Prototype Scene  🟢 (2026-06-16)
 
 **Goal:** A standalone playable prototype scene (`06_SandboxProto.unity`) where the

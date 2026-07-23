@@ -215,8 +215,13 @@ namespace HierarchyDesigner
 
         private static void SubscribeToEvents()
         {
+#if UNITY_6000_5_OR_NEWER
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI -= OnHierarchyWindowItemGUIByEntityId;
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyWindowItemGUIByEntityId;
+#else
             EditorApplication.hierarchyWindowItemOnGUI -= OnHierarchyWindowItemGUI;
             EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyWindowItemGUI;
+#endif
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
             Editor.finishedDefaultHeaderGUI -= OnPostHeaderGUI;
@@ -225,6 +230,11 @@ namespace HierarchyDesigner
         #endregion
 
         #region Events
+#if UNITY_6000_5_OR_NEWER
+        private static void OnHierarchyWindowItemGUIByEntityId(UnityEngine.EntityId entityId, Rect selectionRect)
+            => OnHierarchyWindowItemGUI(entityId.GetHashCode(), selectionRect);
+#endif
+
         private static void OnHierarchyWindowItemGUI(int instanceID, Rect selectionRect)
         {
             #region Header
@@ -286,7 +296,7 @@ namespace HierarchyDesigner
             #endregion
 
             #region Features
-            if (separatorCache.TryGetValue(gameObject.GetInstanceID(), out _) || (gameObject.CompareTag(HD_Constants.SeparatorTag) && gameObject.name.StartsWith(HD_Constants.SeparatorPrefix))) { DrawSeparator(gameObject, selectionRect, instanceID); return; }
+            if (separatorCache.TryGetValue(gameObject.CompatInstanceId(), out _) || (gameObject.CompareTag(HD_Constants.SeparatorTag) && gameObject.name.StartsWith(HD_Constants.SeparatorPrefix))) { DrawSeparator(gameObject, selectionRect, instanceID); return; }
             if (enableHierarchyRows) { DrawHierarchyRows(selectionRect); }
             if (enableGameObjectMainIcon) { DrawGameObjectMainIcon(gameObject, selectionRect, instanceID); }
             bool isFolder = folderCache.TryGetValue(instanceID, out _) || gameObject.GetComponent<HierarchyDesignerFolder>();
@@ -346,7 +356,7 @@ namespace HierarchyDesigner
 
             #region Features
             if ((gameObject.hideFlags & HideFlags.NotEditable) != HideFlags.NotEditable) return;
-            if (separatorCache.TryGetValue(gameObject.GetInstanceID(), out _) || (gameObject.CompareTag(HD_Constants.SeparatorTag) && gameObject.name.StartsWith(HD_Constants.SeparatorPrefix))) { EditorGUILayout.HelpBox(separatorMessage, MessageType.Info, true); }
+            if (separatorCache.TryGetValue(gameObject.CompatInstanceId(), out _) || (gameObject.CompareTag(HD_Constants.SeparatorTag) && gameObject.name.StartsWith(HD_Constants.SeparatorPrefix))) { EditorGUILayout.HelpBox(separatorMessage, MessageType.Info, true); }
             else { EditorGUILayout.HelpBox(lockedGameObjectMessage, MessageType.Info, true); }
             #endregion
         }
@@ -496,7 +506,7 @@ namespace HierarchyDesigner
         {
             if (!enableGameObjectMainIcon) return;
             if ((gameObject.hideFlags & HideFlags.NotEditable) == HideFlags.NotEditable) return;
-            if (folderCache.TryGetValue(gameObject.GetInstanceID(), out _) || gameObject.GetComponent<HierarchyDesignerFolder>()) return;
+            if (folderCache.TryGetValue(gameObject.CompatInstanceId(), out _) || gameObject.GetComponent<HierarchyDesignerFolder>()) return;
 
             Rect iconRect = GetMainIconRect(selectionRect);
             if (!iconRect.Contains(Event.current.mousePosition)) return;
@@ -1125,7 +1135,7 @@ namespace HierarchyDesigner
                 case HD_Settings.HierarchyLayoutMode.Consecutive:
                     float offsetX = selectionRect.x + 8f;
                     float nameWidth = CalcWidthFast(GUI.skin.label, gameObject.name);
-                    if (folderCache.TryGetValue(gameObject.GetInstanceID(), out (Color textColor, int fontSize, FontStyle fontStyle, Color folderColor, HD_Folders.FolderImageType folderImageType) folderInfo))
+                    if (folderCache.TryGetValue(gameObject.CompatInstanceId(), out (Color textColor, int fontSize, FontStyle fontStyle, Color folderColor, HD_Folders.FolderImageType folderImageType) folderInfo))
                     {
                         GUIStyle folderLabelStyle = FolderStyle;
                         folderLabelStyle.fontSize = folderInfo.fontSize;
@@ -1140,9 +1150,9 @@ namespace HierarchyDesigner
                         return offsetX + layoutBaseOffset + lockLabelWidth + defaultXOffset;
                     }
 
-                    if ((folderCache.TryGetValue(gameObject.GetInstanceID(), out _) || gameObject.GetComponent<HierarchyDesignerFolder>()) && excludeFolderProperties) return offsetX += layoutBaseOffset;
+                    if ((folderCache.TryGetValue(gameObject.CompatInstanceId(), out _) || gameObject.GetComponent<HierarchyDesignerFolder>()) && excludeFolderProperties) return offsetX += layoutBaseOffset;
 
-                    int id = gameObject.GetInstanceID();
+                    int id = gameObject.CompatInstanceId();
                     bool hasData = gameObjectDataCache.TryGetValue(id, out GameObjectData data);
 
                     if (enableGameObjectComponentIcons)
@@ -1337,7 +1347,7 @@ namespace HierarchyDesigner
                 default:
                     GUIContent nameContent = new(gameObject.name);
                     float nameWidth = CalcWidthFast(GUI.skin.label, gameObject.name);
-                    if (folderCache.TryGetValue(gameObject.GetInstanceID(), out (Color textColor, int fontSize, FontStyle fontStyle, Color folderColor, HD_Folders.FolderImageType folderImageType) folderInfo))
+                    if (folderCache.TryGetValue(gameObject.CompatInstanceId(), out (Color textColor, int fontSize, FontStyle fontStyle, Color folderColor, HD_Folders.FolderImageType folderImageType) folderInfo))
                     {
                         GUIStyle folderLabelStyle = FolderStyle;
                         folderLabelStyle.fontSize = folderInfo.fontSize;

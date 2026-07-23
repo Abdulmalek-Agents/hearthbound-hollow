@@ -43,7 +43,11 @@ namespace Lightbug.CharacterControllerPro.Core
                 return;
 
             // We don't want to trigger the logic more than once due to multiple colliders interacting with the trigger.
+#if UNITY_6000_3_OR_NEWER
+            int characterActorID = characterActor.GetEntityId().GetHashCode();
+#else
             int characterActorID = characterActor.GetInstanceID();
+#endif
             if (characterActorsIDList.Contains(characterActorID))
                 return;
 

@@ -184,7 +184,11 @@ namespace Microdetail
             if (UnityEditor.AssetDatabase.Contains(Persistent)) 
                 return;
             
+#if UNITY_6000_3_OR_NEWER
+            var terrainData = UnityEditor.EditorUtility.EntityIdToObject(data.GetEntityId());
+#else
             var terrainData = UnityEditor.EditorUtility.InstanceIDToObject(data.GetInstanceID());
+#endif
             UnityEditor.AssetDatabase.AddObjectToAsset(Persistent, terrainData);
         }
 

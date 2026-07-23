@@ -1246,7 +1246,11 @@ namespace CutsceneEngine
             var directorName = director ? director.name : "(null)";
             var ownerTypeValue = string.IsNullOrEmpty(ownerType) ? "(unknown)" : ownerType;
             var ownerFieldValue = string.IsNullOrEmpty(ownerField) ? "(unknown)" : ownerField;
+#if UNITY_6000_3_OR_NEWER
+            var key = $"{ownerTypeValue}|{ownerFieldValue}|{target.GetEntityId().GetHashCode()}|{directorName}";
+#else
             var key = $"{ownerTypeValue}|{ownerFieldValue}|{target.GetInstanceID()}|{directorName}";
+#endif
 
             if (skippedReferenceWarnings != null && !skippedReferenceWarnings.Add(key))
                 return;

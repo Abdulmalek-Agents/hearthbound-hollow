@@ -652,7 +652,11 @@ namespace VertexField.VoluSmokeFX
             if (!preset) return "preset:null";
             string guid = GetGuid(preset);
             if (!string.IsNullOrEmpty(guid)) return "preset:" + guid;
+#if UNITY_6000_3_OR_NEWER
+            return "preset_inst:" + preset.GetEntityId().GetHashCode();
+#else
             return "preset_inst:" + preset.GetInstanceID();
+#endif
         }
 
         static string GetFolderAnimKey(string folderPath)
@@ -1209,7 +1213,11 @@ namespace VertexField.VoluSmokeFX
                             Rect starR = new Rect(scaled.width - star - 6f, 6f, star, star);
                             GUI.DrawTexture(starR, favStarTex, ScaleMode.ScaleToFit, true);
 
+#if UNITY_6000_3_OR_NEWER
+                            int id = entry.preset ? entry.preset.GetEntityId().GetHashCode() : 0;
+#else
                             int id = entry.preset ? entry.preset.GetInstanceID() : 0;
+#endif
                             float tScroll = timeNow * 0.035f + (id & 7) * 0.09f;
                             Rect uv = new Rect(tScroll % 1f, (tScroll * 0.6f) % 1f, 1f, 1f);
 

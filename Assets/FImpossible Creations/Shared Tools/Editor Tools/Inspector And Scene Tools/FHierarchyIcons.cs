@@ -13,14 +13,22 @@ public class FHierarchyIcons
     static FHierarchyIcons()
     {
 #if UNITY_EDITOR
+#if UNITY_6000_5_OR_NEWER
+        EditorApplication.hierarchyWindowItemByEntityIdOnGUI += (entityId, rect) => EvaluateIcons(entityId.GetHashCode(), rect);
+#else
         EditorApplication.hierarchyWindowItemOnGUI += EvaluateIcons;
+#endif
 #endif
     }
 
     private static void EvaluateIcons(int instanceId, Rect selectionRect)
     {
 #if UNITY_EDITOR
+#if UNITY_6000_3_OR_NEWER
+        GameObject go = EditorUtility.EntityIdToObject(instanceId) as GameObject;
+#else
         GameObject go = EditorUtility.InstanceIDToObject(instanceId) as GameObject;
+#endif
         if (go == null) return;
 
         IFHierarchyIcon slotCon = go.GetComponent<IFHierarchyIcon>();
